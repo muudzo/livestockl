@@ -64,43 +64,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify auction win and calculate correct amount
-    const { data: winningBid } = await verifyClient
-      .from("bids")
-      .select("amount, livestock_id")
-      .eq("user_id", callerUser.id)
-      .eq("is_winner", true)
-      .eq("livestock_id", paymentRecord.livestock_id)
-      .single();
+    // Skip auction validation for test payments (no livestock_id)
+    const isTestPayment = !paymentRecord.livestock_id;
 
-    if (!winningBid) {
-      return new Response(
-        JSON.stringify({ error: "You did not win this auction" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    if (!isTestPayment) {
+      // Verify auction win and calculate correct amount
+      const { data: winningBid } = await verifyClient
+        .from("bids")
+        .select("amount, livestock_id")
+        .eq("user_id", callerUser.id)
+        .eq("is_winner", true)
+        .eq("livestock_id", paymentRecord.livestock_id)
+        .single();
 
-    // Verify listing status is 'ended'
-    const { data: listing } = await verifyClient
-      .from("livestock_items")
-      .select("status")
-      .eq("id", winningBid.livestock_id)
-      .single();
+      if (!winningBid) {
+        return new Response(
+          JSON.stringify({ error: "You did not win this auction" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
-    if (!listing || listing.status !== "ended") {
-      return new Response(
-        JSON.stringify({ error: "Auction is not in a payable state" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+      // Verify listing status is 'ended'
+      const { data: listing } = await verifyClient
+        .from("livestock_items")
+        .select("status")
+        .eq("id", winningBid.livestock_id)
+        .single();
 
-    // Server-calculated amount (bid + 5% platform fee)
-    const correctAmount = Math.round(winningBid.amount * 1.05);
-    if (paymentRecord.amount !== correctAmount) {
-      return new Response(
-        JSON.stringify({ error: "Payment amount mismatch" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (!listing || listing.status !== "ended") {
+        return new Response(
+          JSON.stringify({ error: "Auction is not in a payable state" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Server-calculated amount (bid + 5% platform fee)
+      const correctAmount = Math.round(winningBid.amount * 1.05);
+      if (paymentRecord.amount !== correctAmount) {
+        return new Response(
+          JSON.stringify({ error: "Payment amount mismatch" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     const origin = req.headers.get("origin") || "https://zimlivestock.co.zw";
