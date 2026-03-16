@@ -36,9 +36,9 @@
 | Metric | Score |
 |--------|-------|
 | Account creation time | ___ minutes (fill in) |
-| Required verification for testing | Business registration may be required |
-| Sandbox available immediately | Unclear -- test mode availability varies |
-| Test API keys accessible from dashboard | Yes (API Key + Encryption Key) |
+| Required verification for testing | Email only -- integration key shown immediately after verification |
+| Sandbox available immediately | Yes -- integration key presented right after email verification |
+| Test API keys accessible from dashboard | Yes -- integration key shown on first login (good DX) |
 
 **Onboarding Score: ___/5** (fill in)
 
