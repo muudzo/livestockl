@@ -237,6 +237,28 @@ No other benchmarked provider had this issue:
 | Pesepay | Yes (but malformed HTTP headers) | Yes |
 | **Paynow** | **No** | **No** |
 
+#### Local Express Server Attempt (matching working dummy site architecture)
+
+After discovering the dummy site uses a local Node.js + Express + Paynow SDK setup, we replicated it exactly:
+- `paynow-server.cjs` running Express on port 3000
+- Paynow SDK v2.2.2 with axios making the API call
+- Tested from a **Zimbabwean network**
+
+**Result:** `connect ETIMEDOUT 196.44.182.165:443`
+
+The IP `196.44.182.165` (Paynow's server) does not respond on port 443 from ANY network. This is not geo-blocking — the server appears to be down or firewalled.
+
+| Attempt | Network | Runtime | Error |
+|---------|---------|---------|-------|
+| Edge Function (raw fetch) | Cloud (Deno Deploy) | Deno | `Connection reset by peer (os error 104)` |
+| Edge Function (SDK) | Cloud (Deno Deploy) | Deno | SDK returns `undefined` silently |
+| Local Express + SDK | International | Node.js | `ETIMEDOUT 196.44.182.165:443` |
+| Local Express + SDK | **Zimbabwean** | Node.js | `ETIMEDOUT 196.44.182.165:443` |
+| Browser form POST | International | Browser | HTTP 404 |
+| curl | International | curl | Timeout (75s) |
+
+**DX observation:** We had to build a separate Node.js + Express server just to attempt the integration — no other provider in this benchmark required anything beyond a single Edge Function. Even after building it, the API was unreachable.
+
 **Impact:** Cannot complete end-to-end testing. This is the most critical DX finding in the entire benchmark.
 
 ### Supported Payment Methods

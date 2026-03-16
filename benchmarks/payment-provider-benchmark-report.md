@@ -269,6 +269,8 @@ Paynow's servers (`www.paynow.co.zw`) returned `Connection reset by peer` from S
 
 **This is a known community issue:** A Paynow Forum thread ("Paynow failing on supabase", 2026-02-03) reports the exact same `os error 104` from Supabase Edge Functions. The community workaround is to route requests through a VPS with a static IP (`Edge Function → VPS → Paynow`), adding cost and complexity that no other provider requires.
 
+**Update (2026-03-16):** Tested from a Zimbabwean network with a local Node.js + Express + Paynow SDK setup (identical to a known working dummy site). Result: `ETIMEDOUT 196.44.182.165:443`. The server is not responding from any network — this appears to be an outage, not geo-blocking.
+
 **Source:** https://forums.paynow.co.zw/t/paynow-failing-on-supabase/
 
 ### Finding 8: Amount Format Inconsistency Is a Common Gotcha
