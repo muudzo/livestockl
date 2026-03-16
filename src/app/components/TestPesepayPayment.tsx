@@ -20,27 +20,34 @@ export function TestPesepayPayment() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("test-pesepay-checkout", {
-        body: {
+      // Use raw fetch to get full error body (supabase.functions.invoke swallows non-2xx details)
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://hmeieslclzycyjjjflfh.supabase.co";
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const response = await fetch(`${supabaseUrl}/functions/v1/test-pesepay-checkout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(supabaseKey ? { apikey: supabaseKey } : {}),
+        },
+        body: JSON.stringify({
           amount,
           email: user.email,
           origin: window.location.origin,
-        },
+        }),
       });
 
-      if (error) {
-        toast.error("Edge Function error: " + error.message);
-        return;
-      }
+      const data = await response.json();
 
-      if (data?.error) {
-        toast.error(data.error);
+      if (!response.ok || data?.error) {
+        console.error("Pesepay error response:", data);
+        toast.error(data?.error || `Error ${response.status}`);
         return;
       }
 
       if (data?.redirectUrl) {
         window.location.href = data.redirectUrl;
       } else {
+        console.error("Pesepay response (no redirect):", data);
         toast.error("No redirect URL returned from Pesepay");
       }
     } catch (err: any) {

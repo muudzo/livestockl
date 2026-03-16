@@ -10,7 +10,7 @@
 | **SDK used** | No SDK -- raw REST API with AES-256-CBC encryption |
 | **Date started** | ___ (fill in) |
 | **Time to first successful test payment** | ___ minutes (fill in) |
-| **Developer friction** | ___ (fill in after testing) |
+| **Developer friction** | High -- API incompatible with Deno runtime (malformed HTTP headers) |
 
 ---
 
@@ -403,12 +403,20 @@ const verified = await decryptPayload(checkData.payload, PESEPAY_ENCRYPTION_KEY)
 ## 9. Developer Friction Notes
 
 **What went smoothly:**
-- ___ (fill in after testing)
+- Account creation was fast -- email verification only, integration key shown immediately
+- Two keys (API key + encryption key) provided upfront on first login
 
 **What caused friction:**
-- ___ (fill in after testing)
+- **BLOCKER: Pesepay API returns malformed HTTP response headers** that Deno's strict HTTP parser rejects. Error: `invalid HTTP header parsed`. This means Pesepay cannot be called from Supabase Edge Functions (Deno runtime) at all without a proxy workaround.
+- AES-256-CBC encryption requirement adds ~50 lines of boilerplate per Edge Function
+- Encryption key derivation (SHA-256 hash, IV from first 16 bytes) is not clearly documented
+- Test card numbers are not documented
+- Error responses are sometimes encrypted, sometimes plaintext -- inconsistent
+- Two separate keys needed (API key + encryption key) with unclear documentation on how each is used
 
-**Developer quote:** _"___"_ (fill in after testing)
+**Critical DX issue:** Pesepay's API server sends HTTP response headers that do not comply with HTTP standards. This makes it incompatible with strict HTTP clients like Deno (used by Supabase Edge Functions, Cloudflare Workers, etc.). A Node.js/Express backend might work due to more lenient HTTP parsing, but modern serverless runtimes reject the response entirely.
+
+**Developer quote:** _"We couldn't even complete a test payment -- Pesepay's API returns malformed HTTP headers that crash the Deno runtime before we can read the response."_
 
 ---
 
@@ -416,6 +424,7 @@ const verified = await decryptPayload(checkData.payload, PESEPAY_ENCRYPTION_KEY)
 
 | Gotcha | Impact | Solution |
 |--------|--------|----------|
+| **BLOCKER: Malformed HTTP response headers** | Deno/Cloudflare Workers reject the response entirely | Use Node.js backend or proxy; cannot use modern serverless runtimes |
 | **All payloads must be AES encrypted** | Major complexity increase vs other providers | Write reusable encrypt/decrypt functions |
 | **All responses are AES encrypted** | Can't just `response.json()` and read fields | Must decrypt before accessing any data |
 | **PKCS7 padding required** | AES-CBC needs proper padding or decryption fails | Implement padding manually in Deno |

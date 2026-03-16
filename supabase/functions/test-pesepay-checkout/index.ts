@@ -6,21 +6,26 @@ const corsHeaders = {
 const PESEPAY_API_KEY = Deno.env.get("PESEPAY_API_KEY");
 const PESEPAY_ENCRYPTION_KEY = Deno.env.get("PESEPAY_ENCRYPTION_KEY");
 
+// Pesepay encryption: AES-256-CBC
+// Key = SHA-256 of encryption key, IV = first 16 bytes of that hash
 async function encryptPayload(payload: object, encryptionKey: string): Promise<string> {
   const encoder = new TextEncoder();
   const plaintext = JSON.stringify(payload);
 
-  const keyData = await crypto.subtle.digest("SHA-256", encoder.encode(encryptionKey));
-  const key = await crypto.subtle.importKey("raw", keyData, { name: "AES-CBC" }, false, ["encrypt"]);
-  const iv = new Uint8Array(keyData.slice(0, 16));
+  // Derive 32-byte key via SHA-256
+  const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(encryptionKey));
+  const key = await crypto.subtle.importKey("raw", keyHash, { name: "AES-CBC" }, false, ["encrypt"]);
+  // IV = first 16 bytes of the key hash
+  const iv = new Uint8Array(keyHash.slice(0, 16));
 
-  const data = encoder.encode(plaintext);
-  const padLength = 16 - (data.length % 16);
-  const padded = new Uint8Array(data.length + padLength);
-  padded.set(data);
-  padded.fill(padLength, data.length);
+  // Web Crypto handles PKCS7 padding automatically
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-CBC", iv },
+    key,
+    encoder.encode(plaintext)
+  );
 
-  const encrypted = await crypto.subtle.encrypt({ name: "AES-CBC", iv }, key, padded);
+  // Convert to base64
   const bytes = new Uint8Array(encrypted);
   let binary = "";
   for (let i = 0; i < bytes.length; i++) {
@@ -32,22 +37,21 @@ async function encryptPayload(payload: object, encryptionKey: string): Promise<s
 async function decryptPayload(encryptedBase64: string, encryptionKey: string): Promise<any> {
   const encoder = new TextEncoder();
 
-  const keyData = await crypto.subtle.digest("SHA-256", encoder.encode(encryptionKey));
-  const key = await crypto.subtle.importKey("raw", keyData, { name: "AES-CBC" }, false, ["decrypt"]);
-  const iv = new Uint8Array(keyData.slice(0, 16));
+  const keyHash = await crypto.subtle.digest("SHA-256", encoder.encode(encryptionKey));
+  const key = await crypto.subtle.importKey("raw", keyHash, { name: "AES-CBC" }, false, ["decrypt"]);
+  const iv = new Uint8Array(keyHash.slice(0, 16));
 
+  // Decode base64
   const binary = atob(encryptedBase64);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
 
+  // Web Crypto handles PKCS7 unpadding automatically
   const decrypted = await crypto.subtle.decrypt({ name: "AES-CBC", iv }, key, bytes);
   const decoded = new TextDecoder().decode(decrypted);
-
-  const padLen = decoded.charCodeAt(decoded.length - 1);
-  const unpadded = decoded.slice(0, decoded.length - padLen);
-  return JSON.parse(unpadded);
+  return JSON.parse(decoded);
 }
 
 Deno.serve(async (req) => {
@@ -78,24 +82,73 @@ Deno.serve(async (req) => {
       merchantReference: testRef,
     };
 
-    const encryptedPayload = await encryptPayload(paymentPayload, PESEPAY_ENCRYPTION_KEY);
+    let encryptedPayload: string;
+    try {
+      encryptedPayload = await encryptPayload(paymentPayload, PESEPAY_ENCRYPTION_KEY);
+    } catch (encErr) {
+      return new Response(
+        JSON.stringify({ error: "Encryption failed: " + (encErr as Error).message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    const pesepayResponse = await fetch(
-      "https://api.pesepay.com/api/payments-engine/v1/payments/initiate",
-      {
-        method: "POST",
-        headers: {
-          Authorization: PESEPAY_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ payload: encryptedPayload }),
-      }
-    );
+    let responseText: string;
+    let pesepayStatus: number;
+    try {
+      const pesepayResponse = await fetch(
+        "https://api.pesepay.com/api/payments-engine/v1/payments/initiate",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${PESEPAY_API_KEY.trim()}`,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({ payload: encryptedPayload }),
+        }
+      );
+      pesepayStatus = pesepayResponse.status;
+      responseText = await pesepayResponse.text();
+    } catch (fetchErr) {
+      return new Response(
+        JSON.stringify({
+          error: "Failed to reach Pesepay API: " + (fetchErr as Error).message,
+          apiKey: PESEPAY_API_KEY.slice(0, 8) + "...",
+          payloadLength: encryptedPayload.length,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    const pesepayData = await pesepayResponse.json();
+    // Try to parse as JSON
+    let pesepayData: any;
+    try {
+      pesepayData = JSON.parse(responseText);
+    } catch {
+      return new Response(
+        JSON.stringify({
+          error: "Pesepay returned non-JSON response",
+          status: pesepayResponse.status,
+          body: responseText.slice(0, 500),
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
+    // If response has encrypted payload, decrypt it
     if (pesepayData.payload) {
-      const decryptedResponse = await decryptPayload(pesepayData.payload, PESEPAY_ENCRYPTION_KEY);
+      let decryptedResponse: any;
+      try {
+        decryptedResponse = await decryptPayload(pesepayData.payload, PESEPAY_ENCRYPTION_KEY);
+      } catch (decErr) {
+        return new Response(
+          JSON.stringify({
+            error: "Decryption failed: " + (decErr as Error).message,
+            rawPayload: pesepayData.payload.slice(0, 100) + "...",
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       if (decryptedResponse.redirectUrl) {
         return new Response(
@@ -110,18 +163,26 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ error: decryptedResponse.message || "No redirect URL in response", raw: decryptedResponse }),
+        JSON.stringify({
+          error: "No redirect URL in decrypted response",
+          decrypted: decryptedResponse,
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Non-encrypted response (likely an error)
     return new Response(
-      JSON.stringify({ error: pesepayData.message || pesepayData.error || "Pesepay request failed", raw: pesepayData }),
+      JSON.stringify({
+        error: pesepayData.message || pesepayData.error || "Pesepay request failed",
+        httpStatus: pesepayResponse.status,
+        raw: pesepayData,
+      }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: (err as Error).message }),
+      JSON.stringify({ error: (err as Error).message, stack: (err as Error).stack }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
