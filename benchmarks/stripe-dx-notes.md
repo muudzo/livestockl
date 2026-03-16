@@ -431,6 +431,11 @@ return 'pending'; // waiting for webhook
 | Success URL does not mean payment succeeded | User could manually navigate to success URL | Always verify via webhook, poll DB for status |
 | Stripe Checkout sessions expire after 24h | Pending payments could hang forever | Handle `checkout.session.expired` webhook event |
 | Deno ESM import needs `?target=deno` | Import fails without target parameter | `https://esm.sh/stripe@17.7.0?target=deno` |
+| Supabase Edge Functions require JWT by default | Test function returned 401 until `--no-verify-jwt` flag was used | Deploy public test endpoints with `--no-verify-jwt`; production endpoints keep JWT verification |
+| CORS blocks localhost | Edge Function `Access-Control-Allow-Origin` was set to production domain | Use `"*"` for test functions or add localhost to allowed origins during development |
+| Supabase Edge Functions need Docker for local dev | `supabase functions serve` fails without Docker Desktop running | Deploy directly to remote Supabase project with `supabase functions deploy` as an alternative |
+| DB schema constraints block test payments | `payments.livestock_id` is `NOT NULL` so test payments without a real auction item fail on insert | Created a separate `test-stripe-checkout` Edge Function that calls Stripe directly without touching the DB |
+| Stripe account permissions dialog on signup | Stripe asks about write permissions to bank accounts during onboarding | Select "None" for testing -- test mode needs no real bank connection |
 
 ---
 
@@ -470,7 +475,44 @@ Fill these in after completing the hands-on integration:
 
 ---
 
-## 12. Recommendations for Paynow Based on Stripe's DX
+## 12. Deployment and Infrastructure Notes
+
+### Setting Up Secrets
+
+```bash
+# Link to Supabase project
+supabase link --project-ref <project-ref>
+
+# Set Stripe secrets on remote Supabase
+supabase secrets set STRIPE_SECRET_KEY=sk_test_...
+supabase secrets set STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Deploy Edge Functions
+supabase functions deploy initiate-payment
+supabase functions deploy payment-webhook
+supabase functions deploy test-stripe-checkout --no-verify-jwt  # test only
+```
+
+### Stripe Webhook Endpoint Configuration
+
+In Stripe Dashboard > Developers > Webhooks:
+- **Endpoint URL:** `https://<project-ref>.supabase.co/functions/v1/payment-webhook`
+- **Events to listen for:** `checkout.session.completed`, `checkout.session.expired`
+- **Signing secret:** Copy the `whsec_...` value and set it as `STRIPE_WEBHOOK_SECRET`
+
+### Local Development Without Docker
+
+Since Supabase Edge Functions require Docker for local serving, the workaround is:
+1. Deploy functions to the remote Supabase project
+2. Run only the Vite frontend locally (`npm run dev`)
+3. The frontend calls the remote Edge Functions via the Supabase client
+4. This works but means every code change to an Edge Function requires a redeploy
+
+This is a DX friction point worth noting -- Stripe's own integration doesn't require Docker, but our Supabase + Stripe architecture does for local development.
+
+---
+
+## 13. Recommendations for Paynow Based on Stripe's DX
 
 These will feed into your final report's "5 actionable recommendations":
 
@@ -483,3 +525,7 @@ These will feed into your final report's "5 actionable recommendations":
 4. **Return structured error objects** -- Stripe errors include `code`, `message`, `param`, and `doc_url`. Paynow returns `status=error&error=Some+text`. Structured errors dramatically reduce debugging time.
 
 5. **Publish integration quickstarts** -- Stripe has step-by-step guides in 7 languages. Paynow documentation would benefit from similar quickstarts for common stacks (Node.js, Python, PHP).
+
+6. **Make sandbox mode the default** -- Stripe starts every new account in test mode with no verification required. This means developers can start building immediately. Paynow should consider a similar zero-friction onboarding for sandbox access.
+
+7. **Provide a webhook testing CLI** -- Stripe's `stripe listen --forward-to localhost:PORT` lets developers test webhooks locally without deploying. Paynow has no equivalent, making webhook development much slower.

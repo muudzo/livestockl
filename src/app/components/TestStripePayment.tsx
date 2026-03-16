@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Loader2, CreditCard, Lock } from "lucide-react";
-import { supabase, isSupabaseConfigured } from "../../lib/supabase";
+import { supabase } from "../../lib/supabase";
 import { useAuthStore } from "../../stores/authStore";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";
@@ -20,71 +20,28 @@ export function TestStripePayment() {
 
     setLoading(true);
     try {
-      const reference = `ZL-TEST-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
-
-      if (!isSupabaseConfigured) {
-        toast.error("Supabase not configured — cannot test Stripe");
-        return;
-      }
-
-      // Create a test payment record directly (bypasses auction check)
-      const { error: insertError } = await supabase
-        .from("payments")
-        .insert({
-          user_id: user.id,
-          livestock_id: null,
-          reference,
+      const { data, error } = await supabase.functions.invoke("test-stripe-checkout", {
+        body: {
           amount,
-          method: "Card",
-          phone: null,
-          status: "pending",
-        });
-
-      if (insertError) {
-        toast.error("Failed to create payment record: " + insertError.message);
-        return;
-      }
-
-      // Call Edge Function — it will fail auction validation, so we call Stripe directly
-      const { data, error } = await supabase.functions.invoke("initiate-payment", {
-        body: { reference, amount, livestockTitle: "Test Stripe Payment" },
+          email: user.email,
+          origin: window.location.origin,
+        },
       });
 
-      if (error || data?.error) {
-        // Expected: auction validation fails. Let's try a direct Stripe call instead.
-        // Clean up the payment record
-        await supabase.from("payments").delete().eq("reference", reference);
+      if (error) {
+        toast.error("Edge Function error: " + error.message);
+        return;
+      }
 
-        // Call Stripe directly via a simple fetch to test the redirect
-        toast.info("Auction validation skipped — redirecting to Stripe test checkout...");
-
-        // Create a Stripe Checkout session via the function, bypassing auction checks
-        // For testing, we'll use a simpler approach
-        const res = await fetch(
-          `https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/initiate-payment`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({ reference, amount, livestockTitle: "Test Stripe Payment" }),
-          }
-        );
-        const result = await res.json();
-
-        if (result.redirectUrl) {
-          window.location.href = result.redirectUrl;
-          return;
-        }
-
-        toast.error(result.error || "Could not create Stripe session");
+      if (data?.error) {
+        toast.error(data.error);
         return;
       }
 
       if (data?.redirectUrl) {
         window.location.href = data.redirectUrl;
+      } else {
+        toast.error("No redirect URL returned from Stripe");
       }
     } catch (err: any) {
       toast.error(err.message || "Payment failed");
