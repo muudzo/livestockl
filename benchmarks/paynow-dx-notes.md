@@ -106,12 +106,19 @@ const { data } = await response.json();
 
 | Criteria | Observation |
 |----------|-------------|
-| Package | No official JavaScript/TypeScript SDK |
-| TypeScript support | None -- must define your own types |
-| Authentication | Integration ID + Integration Key, hash computed per-request |
-| API call pattern | Form-encoded POST, hash of concatenated values, URL-encoded responses |
-| Error handling | Plain text error string in URL-encoded response |
-| Webhook verification | SHA-512 hash of concatenated values -- **unclear field ordering** |
+| Package | `paynow` v2.2.2 on npm (community/official -- 2 deps: axios, js-sha512) |
+| TypeScript support | None -- compiled JS with no type declarations |
+| Deno/Edge compatibility | **Broken** -- default export doesn't work (`not a constructor`), named export `{ Paynow }` required but undocumented |
+| Authentication | Integration ID + Integration Key, hash computed per-request (SDK abstracts this) |
+| API call pattern | SDK uses axios internally for form-encoded POST |
+| Error handling | **SDK silently returns `undefined` on network errors** -- `.catch()` logs to console but does not throw or return an error object |
+| Webhook verification | Not handled by SDK -- must implement manually with SHA-512 hash |
+
+**SDK-specific DX issues:**
+1. `import Paynow from "paynow"` fails -- must use `import { Paynow } from "paynow"` (named export, not documented in README examples)
+2. `send()` and `sendMobile()` return `undefined` on failure instead of throwing -- impossible to distinguish "network error" from "invalid credentials" from "server down"
+3. SDK does not export TypeScript types -- no autocomplete, no compile-time safety
+4. SDK has only 2 dependencies (axios + js-sha512) but axios adds ~400KB to bundle and may not work in all runtimes
 
 **Webhook verification -- Paynow (25+ lines, 3 strategies):**
 
@@ -174,7 +181,34 @@ Paynow's API servers (`www.paynow.co.zw`) are **completely unreachable** from:
 1. **Supabase Edge Functions** (Deno Deploy -- global CDN): `Connection reset by peer (os error 104)`
 2. **Local machine** (macOS, international IP): `HTTP 000` after 75-second timeout, connection never established
 
+#### SDK Attempt (following Paynow engineer guidance)
+
+After reporting this blocker to Paynow's engineering team, they responded:
+> "There are no geo-restrictions. Use the Node.js SDK to properly configure the integration."
+
+We then attempted the SDK integration in multiple ways:
+
+| Attempt | Import Method | Result |
+|---------|---------------|--------|
+| 1. Raw `fetch` | N/A | `Connection reset by peer (os error 104)` |
+| 2. SDK via `esm.sh` | `import Paynow from "https://esm.sh/paynow@2.2.2"` | SDK returns `undefined` silently -- swallows axios error |
+| 3. SDK via `npm:` (default) | `import Paynow from "npm:paynow@2.2.2"` | `Paynow is not a constructor` (export mismatch) |
+| 4. SDK via `npm:` (named) | `import { Paynow } from "npm:paynow@2.2.2"` | SDK returns `undefined` silently -- same connection error |
+
+**Root cause:** The SDK uses `axios` internally (dependency: `axios@^1.7.9`), which makes the **exact same HTTP POST** to `www.paynow.co.zw`. The SDK's `.catch()` handler simply logs and returns `undefined` instead of throwing:
+
+```javascript
+// From paynow SDK source (paynow.js line ~90)
+.catch(function (err) {
+    console.log("An error occured while initiating transaction", err);
+    // returns undefined -- no throw, no error propagation
+});
+```
+
 This means:
+- The SDK **does not fix the connectivity issue** -- it uses the same endpoint
+- The SDK **silently swallows errors** -- the developer gets `undefined` with no indication of what went wrong
+- The SDK **is not compatible with Deno runtime** without workarounds (export structure mismatch)
 - **Any serverless architecture using Paynow must have a relay server inside Zimbabwe** or on an IP range Paynow accepts
 - Supabase Edge Functions, AWS Lambda, Cloudflare Workers, Vercel Edge -- **none of these can reach Paynow**
 - This is a **dealbreaker for modern cloud-native architectures**
@@ -392,6 +426,10 @@ Other providers handle method selection on their hosted payment page. Paynow pus
 | **`pollurl` vs `browserurl`** | Different response fields for mobile vs web | Check payment method to know which to use |
 | **URL-encoded error messages** | Spaces encoded as `+`, hard to read in logs | Decode before logging |
 | **API unreachable from cloud/international IPs** | Edge Functions, Lambda, Workers all fail to connect | Need a relay server inside Zimbabwe or on accepted IP range |
+| **SDK silently returns undefined on error** | `send()` and `sendMobile()` return `undefined` instead of throwing | Always check `if (!response)` before accessing `.success` |
+| **SDK export mismatch** | `import Paynow from "paynow"` fails in Deno | Must use `import { Paynow } from "paynow"` (named export) |
+| **SDK doesn't work in Deno/Edge runtimes** | axios may not work correctly via esm.sh | Use `npm:` specifier with named import |
+| **"Use the SDK" doesn't fix connectivity** | Paynow engineers recommended SDK but it uses same unreachable endpoint | SDK is not a workaround for the network issue |
 
 ---
 
@@ -417,7 +455,7 @@ Other providers handle method selection on their hosted payment page. Paynow pus
 | **Auth** | Hash of concatenated values | Bearer token | Bearer token | Bearer token | API key + AES key |
 | **Hosted checkout** | Yes (basic) | Yes (full-featured) | Yes (clean) | Yes (clean) | Yes |
 | **Mobile money** | EcoCash, OneMoney (native USSD) | No | Ghana, Nigeria | M-Pesa, MTN, Airtel | EcoCash, OneMoney, Telecash |
-| **SDK** | None | Official TypeScript SDK | No (raw REST fine) | No (raw REST fine) | None |
+| **SDK** | npm `paynow` (no TS types, silent errors) | Official TypeScript SDK | No (raw REST fine) | No (raw REST fine) | None |
 | **Webhook security** | SHA-512, 3 strategies (25+ lines) | SDK 1-liner | HMAC SHA-512 (10 lines) | Header check (3 lines) | AES decrypt (25+ lines) |
 | **Error format** | URL-encoded string | Structured JSON + doc links | JSON message | JSON message | Mixed encrypted/plain |
 | **Test credentials** | Not documented | Extensive test cards | Clear test cards | Test cards + PIN/OTP | Not documented |
