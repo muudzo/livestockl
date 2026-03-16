@@ -122,7 +122,7 @@ Integration Time (estimated hours):
 - **Webhook Security:** SHA-512 hash of concatenated values — **required 3 different ordering strategies** because documentation is unclear on field order
 - **Amount Format:** Actual currency
 - **Strengths:** Native EcoCash/OneMoney support with USSD prompts, works in Zimbabwe's payment ecosystem
-- **Weaknesses:** Most complex integration (835 lines vs 523-561 for competitors), manual hash computation, form-encoded API (not JSON), 3 webhook hash strategies needed, no SDK, limited test documentation, no structured errors
+- **Weaknesses:** Most complex integration (835 lines vs 523-561 for competitors), manual hash computation, form-encoded API (not JSON), 3 webhook hash strategies needed, no SDK, limited test documentation, no structured errors. **CRITICAL: API servers unreachable from cloud/international IPs** — Edge Functions, Lambda, Workers all get connection reset or timeout.
 
 ---
 
@@ -141,7 +141,7 @@ Each cell rated: LOW / MEDIUM / HIGH / CRITICAL (or BLOCKED)
 | **Webhook verification** | LOW (1 line) | LOW (10 lines) | LOW (3 lines) | HIGH (25+ lines) | MEDIUM (API call) | HIGH (25+ lines, fragile) |
 | **Test documentation** | LOW | LOW | MEDIUM | HIGH | N/A | HIGH |
 | **Error debugging** | LOW | MEDIUM | MEDIUM | HIGH | N/A | HIGH |
-| **Runtime compatibility** | LOW | LOW | LOW | CRITICAL | LOW | LOW |
+| **Runtime compatibility** | LOW | LOW | LOW | CRITICAL | LOW | CRITICAL |
 
 ### Code Complexity (lines of code)
 
@@ -262,7 +262,10 @@ The progression of developer friendliness in API formats is clear:
 - **Form-encoded** (Paynow): Harder to debug, URL-encoded values are less readable
 - **XML** (DPOpay): Requires manual string construction or XML parser, most error-prone
 
-### Finding 7: Amount Format Inconsistency Is a Common Gotcha
+### Finding 7: Paynow's API Is Unreachable from Cloud Infrastructure
+Paynow's servers (`www.paynow.co.zw`) returned `Connection reset by peer` from Supabase Edge Functions (Deno Deploy) and timed out after 75 seconds from an international machine. This means **any serverless architecture (Lambda, Workers, Edge Functions) cannot reach Paynow**. A relay server inside Zimbabwe or on an accepted IP range would be required. No other benchmarked provider had this issue — Stripe, Paystack, Flutterwave, and even Pesepay (despite its header bug) all connected successfully from cloud runtimes.
+
+### Finding 8: Amount Format Inconsistency Is a Common Gotcha
 - **Cents/kobo** (Stripe, Paystack): `amount: 1000` = US$10 — must multiply by 100
 - **Actual currency** (Flutterwave, Pesepay, Paynow): `amount: 10` = US$10 — more intuitive
 There's no industry standard. Paynow's actual-currency approach is the more intuitive choice.
@@ -379,5 +382,7 @@ Each branch modifies the same files so the integrations are directly comparable:
 > "The webhook bit is confusing with Flutterwave, but the payment goes through" — during Flutterwave webhook setup
 
 > "We couldn't even complete a test payment — Pesepay's API returns malformed HTTP headers that crash the Deno runtime" — Pesepay blocker
+
+> "Paynow's API is completely unreachable from Supabase Edge Functions — connection reset after 15s, and times out from local machine after 75s. Can't test at all from cloud infrastructure." — Paynow connectivity test
 
 > (DPOpay) — Could not test; requires business registration documents for sandbox access

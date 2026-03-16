@@ -166,6 +166,30 @@ This is the single biggest DX pain point. Every other provider's webhook verific
 - **Test phone numbers for EcoCash/OneMoney: NOT clearly documented** -- this is a significant gap
 - No documented test card numbers for web payments
 
+### BLOCKER: API Unreachable from Cloud/International IPs
+
+**Date tested:** 2026-03-16
+
+Paynow's API servers (`www.paynow.co.zw`) are **completely unreachable** from:
+1. **Supabase Edge Functions** (Deno Deploy -- global CDN): `Connection reset by peer (os error 104)`
+2. **Local machine** (macOS, international IP): `HTTP 000` after 75-second timeout, connection never established
+
+This means:
+- **Any serverless architecture using Paynow must have a relay server inside Zimbabwe** or on an IP range Paynow accepts
+- Supabase Edge Functions, AWS Lambda, Cloudflare Workers, Vercel Edge -- **none of these can reach Paynow**
+- This is a **dealbreaker for modern cloud-native architectures**
+
+No other benchmarked provider had this issue:
+| Provider | Reachable from Edge Functions | Reachable from international IPs |
+|----------|-------------------------------|----------------------------------|
+| Stripe | Yes | Yes |
+| Paystack | Yes | Yes |
+| Flutterwave | Yes | Yes |
+| Pesepay | Yes (but malformed HTTP headers) | Yes |
+| **Paynow** | **No** | **No** |
+
+**Impact:** Cannot complete end-to-end testing. This is the most critical DX finding in the entire benchmark.
+
 ### Supported Payment Methods
 - EcoCash (USSD prompt via `/remotetransaction`)
 - OneMoney (USSD prompt via `/remotetransaction`)
@@ -367,6 +391,7 @@ Other providers handle method selection on their hosted payment page. Paynow pus
 | **No phone number validation from Paynow** | Invalid numbers just silently fail | Validate Zimbabwe format (07XXXXXXXX) client-side |
 | **`pollurl` vs `browserurl`** | Different response fields for mobile vs web | Check payment method to know which to use |
 | **URL-encoded error messages** | Spaces encoded as `+`, hard to read in logs | Decode before logging |
+| **API unreachable from cloud/international IPs** | Edge Functions, Lambda, Workers all fail to connect | Need a relay server inside Zimbabwe or on accepted IP range |
 
 ---
 
@@ -378,7 +403,7 @@ Other providers handle method selection on their hosted payment page. Paynow pus
 | Docs quality | 4/10 | Basic API reference, unclear hash ordering, limited examples |
 | Integration speed | 5/10 | ~3.5 hours -- hash computation, two endpoints, form encoding |
 | Error messages | 3/10 | Plain text URL-encoded strings, no codes or doc links |
-| Testing tools | 3/10 | No test credentials documented, no webhook CLI/logs |
+| Testing tools | 2/10 | No test credentials documented, no webhook CLI/logs, API unreachable from cloud |
 | Webhook DX | 3/10 | 3 hash strategies needed, form-encoded, no delivery logs |
 | **Overall DX** | **4.2/10** | Works but significantly more complex than competitors |
 
