@@ -14,6 +14,7 @@ const MyListings = lazy(() => import('./components/MyListings').then(m => ({ def
 const PaymentHistory = lazy(() => import('./components/PaymentHistory').then(m => ({ default: m.PaymentHistory })));
 const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
 const MessagesScreen = lazy(() => import('./components/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
+const TestPaynowPayment = lazy(() => import('./components/TestPaynowPayment'));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -77,6 +78,10 @@ export const router = createBrowserRouter([
         ),
       },
     ],
+  },
+  {
+    path: "/test-paynow",
+    element: <LazyLoad><TestPaynowPayment /></LazyLoad>,
   },
   {
     path: "/auth",
