@@ -173,13 +173,23 @@ This is the single biggest DX pain point. Every other provider's webhook verific
 - **Test phone numbers for EcoCash/OneMoney: NOT clearly documented** -- this is a significant gap
 - No documented test card numbers for web payments
 
-### BLOCKER: API Unreachable from Cloud/International IPs
+### BLOCKER: Cloudflare Bot Protection Blocks All Programmatic API Access
 
 **Date tested:** 2026-03-16
 
-Paynow's API servers (`www.paynow.co.zw`) are **completely unreachable** from:
+**Root cause identified:** Paynow serves both its website AND its API on the same domain (`www.paynow.co.zw`) behind **Cloudflare bot protection**. Browsers can pass Cloudflare's JavaScript challenge (confirmed by `cf_clearance` cookie in browser requests), but all programmatic HTTP clients (curl, axios, fetch, Deno) are blocked because they cannot solve the challenge.
+
+This is a fundamental architectural issue. Every other benchmarked provider separates their API from their website:
+- Stripe: `api.stripe.com` (no bot protection on API)
+- Paystack: `api.paystack.co` (no bot protection on API)
+- Flutterwave: `api.flutterwave.com` (no bot protection on API)
+- Pesepay: `api.pesepay.com` (no bot protection on API)
+- **Paynow: `www.paynow.co.zw/interface/*` (behind Cloudflare challenge page)**
+
+Paynow's API servers are **unreachable from all programmatic clients**:
 1. **Supabase Edge Functions** (Deno Deploy -- global CDN): `Connection reset by peer (os error 104)`
-2. **Local machine** (macOS, international IP): `HTTP 000` after 75-second timeout, connection never established
+2. **Local Node.js + axios** (Zimbabwean network): `ETIMEDOUT 196.44.182.165:443`
+3. **curl** (any network): Timeout -- cannot solve Cloudflare JS challenge
 
 #### SDK Attempt (following Paynow engineer guidance)
 
@@ -246,20 +256,23 @@ After discovering the dummy site uses a local Node.js + Express + Paynow SDK set
 
 **Result:** `connect ETIMEDOUT 196.44.182.165:443`
 
-The IP `196.44.182.165` (Paynow's server) does not respond on port 443 from ANY network. This is not geo-blocking — the server appears to be down or firewalled.
+Even from a Zimbabwean network, Node.js cannot reach Paynow's API because Cloudflare blocks the connection before it reaches the application server.
 
-| Attempt | Network | Runtime | Error |
-|---------|---------|---------|-------|
-| Edge Function (raw fetch) | Cloud (Deno Deploy) | Deno | `Connection reset by peer (os error 104)` |
-| Edge Function (SDK) | Cloud (Deno Deploy) | Deno | SDK returns `undefined` silently |
-| Local Express + SDK | International | Node.js | `ETIMEDOUT 196.44.182.165:443` |
-| Local Express + SDK | **Zimbabwean** | Node.js | `ETIMEDOUT 196.44.182.165:443` |
-| Browser form POST | International | Browser | HTTP 404 |
-| curl | International | curl | Timeout (75s) |
+| Attempt | Network | Runtime | Cloudflare challenge? | Error |
+|---------|---------|---------|----------------------|-------|
+| Browser (website) | Zimbabwean | Browser | Solved (cf_clearance cookie) | **Website loads** |
+| Browser form POST | International | Browser | Partially (got HTTP 404) | 404 |
+| Edge Function (raw fetch) | Cloud (Deno Deploy) | Deno | Cannot solve | `Connection reset by peer` |
+| Edge Function (SDK) | Cloud (Deno Deploy) | Deno | Cannot solve | SDK returns `undefined` silently |
+| Local Express + SDK | International | Node.js | Cannot solve | `ETIMEDOUT 196.44.182.165:443` |
+| Local Express + SDK | **Zimbabwean** | Node.js | Cannot solve | `ETIMEDOUT 196.44.182.165:443` |
+| curl | Any | curl | Cannot solve | Timeout (75s) |
 
-**DX observation:** We had to build a separate Node.js + Express server just to attempt the integration — no other provider in this benchmark required anything beyond a single Edge Function. Even after building it, the API was unreachable.
+**Key evidence:** The browser successfully loads `www.paynow.co.zw` (confirmed by `cf_clearance`, `_ga`, and `twk_uuid` cookies being set), proving the server is UP. But every programmatic client fails because Cloudflare's JavaScript challenge cannot be solved by non-browser HTTP clients.
 
-**Impact:** Cannot complete end-to-end testing. This is the most critical DX finding in the entire benchmark.
+**DX observation:** We had to build a separate Node.js + Express server just to attempt the integration — no other provider in this benchmark required anything beyond a single Edge Function. Even after building it, the API was unreachable due to Cloudflare blocking.
+
+**Impact:** Cannot complete end-to-end testing. Paynow's API is functionally unusable from any server-side code. This is the most critical DX finding in the entire benchmark.
 
 ### Supported Payment Methods
 - EcoCash (USSD prompt via `/remotetransaction`)
@@ -553,4 +566,7 @@ In Paynow Dashboard > Integration Settings:
 - Support additional Zimbabwe methods (Telecash, Zimswitch)
 
 ### The #1 recommendation:
+**Move the API to a separate subdomain (e.g. `api.paynow.co.zw`) without Cloudflare bot protection.** Currently, the API sits on `www.paynow.co.zw/interface/*` behind Cloudflare's JavaScript challenge, making it impossible to call from any server-side code (Edge Functions, Lambda, Express, curl). Every other provider has a dedicated API domain with no bot protection. Until this is fixed, Paynow is unusable from modern cloud architectures.
+
+### The #2 recommendation:
 **Provide a lightweight JavaScript SDK** that abstracts hash computation, form encoding, and the two-endpoint split. This single change would reduce integration code by ~40% and eliminate the webhook hash ordering problem entirely.

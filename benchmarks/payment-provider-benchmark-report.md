@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-**The problem:** Paynow requires 33-60% more code than every tested competitor to achieve the same hosted checkout flow, driven by manual SHA-512 hashing with undocumented field ordering and a form-encoded API. **The top recommendation:** Provide an official SDK that abstracts hash computation — this single change would eliminate Paynow's biggest DX gap overnight.
+**The problem:** Paynow's API is behind Cloudflare bot protection on `www.paynow.co.zw`, making it **impossible to call from any server-side code** (Edge Functions, Lambda, Express, curl). Browsers can pass the Cloudflare JS challenge, but programmatic clients cannot. Beyond this blocker, Paynow requires 33-60% more code than every tested competitor, driven by manual SHA-512 hashing with undocumented field ordering and a form-encoded API. **The top recommendation:** Move the API to a dedicated subdomain (e.g. `api.paynow.co.zw`) without Cloudflare bot protection — until this is fixed, Paynow is unusable from modern cloud architectures.
 
 Five payment providers were benchmarked against Paynow (the baseline) by integrating each into the same codebase. DPOpay was excluded because sandbox access requires business registration documents — itself a DX finding.
 
@@ -262,14 +262,26 @@ The progression of developer friendliness in API formats is clear:
 - **Form-encoded** (Paynow): Harder to debug, URL-encoded values are less readable
 - **XML** (DPOpay): Requires manual string construction or XML parser, most error-prone
 
-### Finding 7: Paynow's API Is Unreachable from Cloud Infrastructure
-Paynow's servers (`www.paynow.co.zw`) returned `Connection reset by peer` from Supabase Edge Functions (Deno Deploy) and timed out after 75 seconds from an international machine. This means **any serverless architecture (Lambda, Workers, Edge Functions) cannot reach Paynow**. No other benchmarked provider had this issue.
+### Finding 7: Paynow's API Is Behind Cloudflare Bot Protection — Blocks All Server-Side Code
 
-**SDK does not help:** Paynow engineers recommended using the Node.js SDK (`paynow` v2.2.2 on npm), but the SDK uses axios internally to make the same HTTP request to the same endpoint. It silently returns `undefined` on failure instead of throwing — making debugging impossible.
+**Root cause identified:** Paynow serves its API on `www.paynow.co.zw/interface/*` — the same domain as its website, behind **Cloudflare bot protection**. Browsers can solve the Cloudflare JavaScript challenge (confirmed by `cf_clearance` cookie), but all programmatic HTTP clients are blocked:
 
-**This is a known community issue:** A Paynow Forum thread ("Paynow failing on supabase", 2026-02-03) reports the exact same `os error 104` from Supabase Edge Functions. The community workaround is to route requests through a VPS with a static IP (`Edge Function → VPS → Paynow`), adding cost and complexity that no other provider requires.
+| Client | Can solve Cloudflare challenge? | Result |
+|--------|--------------------------------|--------|
+| Browser | Yes | Website loads, `cf_clearance` cookie set |
+| curl | No | `ETIMEDOUT` / 75s timeout |
+| Node.js + axios (SDK) | No | `ETIMEDOUT 196.44.182.165:443` |
+| Deno fetch (Edge Function) | No | `Connection reset by peer (os error 104)` |
 
-**Update (2026-03-16):** Tested from a Zimbabwean network with a local Node.js + Express + Paynow SDK setup (identical to a known working dummy site). Result: `ETIMEDOUT 196.44.182.165:443`. The server is not responding from any network — this appears to be an outage, not geo-blocking.
+Every other provider hosts their API on a **separate subdomain without bot protection**:
+- Stripe: `api.stripe.com` | Paystack: `api.paystack.co` | Flutterwave: `api.flutterwave.com` | Pesepay: `api.pesepay.com`
+- **Paynow: `www.paynow.co.zw/interface/*` (behind Cloudflare)**
+
+**SDK does not help:** Paynow engineers recommended using the Node.js SDK (`paynow` v2.2.2), but the SDK uses axios internally to make the same HTTP request to the same Cloudflare-protected endpoint. It silently returns `undefined` on failure instead of throwing — making debugging impossible.
+
+**Tested exhaustively across 6 methods**, including from a Zimbabwean network with Node.js + Express + Paynow SDK. All programmatic clients fail. Only the browser succeeds.
+
+**This is a known community issue:** Paynow Forum thread "Paynow failing on supabase" (2026-02-03) reports the exact same error. Community workaround: route through a VPS proxy — adding cost, latency, and a failure point no other provider requires.
 
 **Source:** https://forums.paynow.co.zw/t/paynow-failing-on-supabase/
 
@@ -282,29 +294,32 @@ There's no industry standard. Paynow's actual-currency approach is the more intu
 
 ## 5. Actionable Recommendations for Paynow
 
-### Recommendation 1: Fix and Modernize the Node.js SDK
+### Recommendation 1 (CRITICAL): Move API to a Dedicated Subdomain Without Cloudflare Bot Protection
+The API currently lives on `www.paynow.co.zw/interface/*` behind Cloudflare's JavaScript challenge. This makes it **impossible to call from any server-side code**. Move the API to a dedicated subdomain (e.g. `api.paynow.co.zw`) that bypasses Cloudflare's bot protection, like every other payment provider does. This is a P0 — nothing else matters until developers can actually reach the API.
+
+### Recommendation 2: Fix and Modernize the Node.js SDK
 A `paynow` npm package (v2.2.2) exists but has critical issues: (1) silently returns `undefined` on errors instead of throwing, (2) no TypeScript types, (3) doesn't handle the Deno/Edge runtime export format correctly, (4) does not cover webhook verification. The SDK should propagate errors properly, ship TypeScript declarations, support ESM/Deno imports, and include a webhook verification helper.
 
-### Recommendation 2: Standardize and Document Webhook Hash Field Ordering
+### Recommendation 3: Standardize and Document Webhook Hash Field Ordering
 The single biggest integration pain point was needing 3 hash strategies for webhook verification. Paynow should:
 - Clearly document the exact field order for hash computation
 - Provide a reference implementation in multiple languages
 - Consider switching to HMAC (like Paystack) which hashes the raw body and doesn't depend on field ordering
 
-### Recommendation 3: Adopt JSON API Format
+### Recommendation 4: Adopt JSON API Format
 Switch from form-encoded to JSON for both requests and responses. Every modern payment provider uses JSON. This would:
 - Eliminate URL-encoding issues
 - Make debugging easier (JSON is human-readable)
 - Align with developer expectations
 - Reduce integration code by ~20%
 
-### Recommendation 4: Improve Sandbox and Test Documentation
+### Recommendation 5: Improve Sandbox and Test Documentation
 - Document specific test phone numbers for EcoCash/OneMoney sandbox testing
 - Provide test scenarios (success, failure, timeout) with expected inputs
 - Add webhook delivery logs in the dashboard
 - Consider a CLI tool or webhook testing endpoint (like Stripe's `stripe listen`)
 
-### Recommendation 5: Return Structured Error Responses
+### Recommendation 6: Return Structured Error Responses
 Replace plain text errors with structured JSON:
 ```json
 // Current: "status=error&error=Insufficient+balance"
