@@ -9,7 +9,7 @@
 
 ## Executive Summary
 
-**The problem:** Paynow requires 33-43% more code than every tested competitor to achieve the same hosted checkout flow, driven by manual SHA-512 hashing with undocumented field ordering and a form-encoded API. **The top recommendation:** Provide an official SDK that abstracts hash computation — this single change would eliminate Paynow's biggest DX gap overnight.
+**The problem:** Paynow requires 33-60% more code than every tested competitor to achieve the same hosted checkout flow, driven by manual SHA-512 hashing with undocumented field ordering and a form-encoded API. **The top recommendation:** Provide an official SDK that abstracts hash computation — this single change would eliminate Paynow's biggest DX gap overnight.
 
 Five payment providers were benchmarked against Paynow (the baseline) by integrating each into the same codebase. DPOpay was excluded because sandbox access requires business registration documents — itself a DX finding.
 
@@ -31,7 +31,7 @@ Code Complexity (lines — lower is better):
   Paystack      █████████████████████████████ ~557
   Stripe        █████████████████████████████ ~561
   Pesepay       ██████████████████████████████ ~608  (blocked)
-  Paynow        █████████████████████████████████████ ~746  <<< 43% more than Flutterwave
+  Paynow        ██████████████████████████████████████████ 835  <<< 60% more than Flutterwave
 
 Webhook Verification (lines of code):
 
@@ -60,7 +60,7 @@ Integration Time (estimated hours):
 | **Flutterwave** | Tested | MEDIUM | ~523 | ~2.5 hrs | 3 |
 | **Pesepay** | BLOCKER | CRITICAL | ~608 | N/A | ~25+ |
 | **DPOpay** | Skipped | HIGH | N/A | N/A | N/A |
-| **Paynow** | Baseline | HIGH | ~746 | ~3.5 hrs | ~25+ |
+| **Paynow** | Baseline | HIGH | 835 | ~3.5 hrs | ~25+ |
 
 ---
 
@@ -122,7 +122,7 @@ Integration Time (estimated hours):
 - **Webhook Security:** SHA-512 hash of concatenated values — **required 3 different ordering strategies** because documentation is unclear on field order
 - **Amount Format:** Actual currency
 - **Strengths:** Native EcoCash/OneMoney support with USSD prompts, works in Zimbabwe's payment ecosystem
-- **Weaknesses:** Most complex integration (746 lines vs 523-561 for competitors), manual hash computation, form-encoded API (not JSON), 3 webhook hash strategies needed, no SDK, limited test documentation, no structured errors
+- **Weaknesses:** Most complex integration (835 lines vs 523-561 for competitors), manual hash computation, form-encoded API (not JSON), 3 webhook hash strategies needed, no SDK, limited test documentation, no structured errors
 
 ---
 
@@ -151,8 +151,9 @@ Each cell rated: LOW / MEDIUM / HIGH / CRITICAL (or BLOCKED)
 | Webhook Handler | 122 | ~125 | ~115 | ~140 | **146** |
 | Frontend Hook | 132 | ~132 | ~115 | ~115 | **137** |
 | Checkout UI | 149 | ~150 | ~148 | ~148 | **206** |
-| **Total** | **561** | **~557** | **~523** | **~608** | **746** |
-| **vs Paynow** | -25% | -25% | -30% | -18% | **baseline** |
+| Payment Status UI | -- | -- | -- | -- | **89** |
+| **Total** | **561** | **~557** | **~523** | **~608** | **835** |
+| **vs Paynow** | -33% | -33% | -37% | -27% | **baseline** |
 
 Paynow's highest-friction component is the Payment Initiation function (257 lines vs 145-158 for competitors), driven by manual hash computation, two separate API endpoints (web vs mobile), and form-encoded request/response parsing.
 
@@ -237,7 +238,7 @@ Build JSON → AES-256-CBC encrypt → POST → AES decrypt response → redirec
 ## 4. Key Findings
 
 ### Finding 1: Paynow Has the Highest Integration Complexity
-Paynow requires 33% more code than Stripe/Paystack and 43% more than Flutterwave for the exact same outcome (hosted checkout redirect). The primary drivers are:
+Paynow requires 33% more code than Stripe/Paystack and 60% more than Flutterwave for the exact same outcome (hosted checkout redirect). The primary drivers are:
 - Manual SHA-512 hash computation (vs Bearer token auth)
 - Form-encoded requests and responses (vs JSON)
 - Separate mobile and web payment endpoints
