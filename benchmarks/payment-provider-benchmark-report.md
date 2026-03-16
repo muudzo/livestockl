@@ -9,18 +9,58 @@
 
 ## Executive Summary
 
+**The problem:** Paynow requires 33-43% more code than every tested competitor to achieve the same hosted checkout flow, driven by manual SHA-512 hashing with undocumented field ordering and a form-encoded API. **The top recommendation:** Provide an official SDK that abstracts hash computation — this single change would eliminate Paynow's biggest DX gap overnight.
+
 Five payment providers were benchmarked against Paynow (the baseline) by integrating each into the same codebase. DPOpay was excluded because sandbox access requires business registration documents — itself a DX finding.
 
-| Provider | Status | Overall Impression | Code Lines |
-|----------|--------|--------------------|------------|
-| **Stripe** | Tested | Gold standard DX — SDK, types, CLI, docs | ~561 |
-| **Paystack** | Tested | "That was relatively easy" — clean REST, fast onboarding | ~557 |
-| **Flutterwave** | Tested | Payment works, webhook setup confusing | ~523 |
-| **Pesepay** | BLOCKER | Malformed HTTP headers — incompatible with Deno runtime | ~608 |
-| **DPOpay** | Skipped | Requires business docs for sandbox — can't test | N/A |
-| **Paynow** | Baseline | Works but most complex integration (3 hash strategies) | ~746 |
+### At a Glance
 
-**Key finding:** Paynow requires **33-43% more code** than any competitor for the same hosted checkout flow, primarily due to manual SHA-512 hash computation with unclear field ordering and form-encoded request/response formats.
+```
+DX Ranking (best to worst):
+
+  Stripe        ██████████████████████████████  1st  - Gold standard
+  Paystack      ████████████████████████████    2nd  - "That was relatively easy"
+  Flutterwave   ██████████████████████████      3rd  - Works, webhook confusing
+  Paynow        ██████████████████              4th  - High complexity, 3 hash strategies
+  Pesepay       ████████████                    5th  - BLOCKED (malformed HTTP headers)
+  DPOpay        ██████                          6th  - Can't access sandbox (KYC required)
+
+Code Complexity (lines — lower is better):
+
+  Flutterwave   ████████████████████████████  ~523
+  Paystack      █████████████████████████████ ~557
+  Stripe        █████████████████████████████ ~561
+  Pesepay       ██████████████████████████████ ~608  (blocked)
+  Paynow        █████████████████████████████████████ ~746  <<< 43% more than Flutterwave
+
+Webhook Verification (lines of code):
+
+  Stripe        █          1-3 lines  (SDK)
+  Flutterwave   ██         3 lines    (header check)
+  Paystack      █████      ~10 lines  (HMAC)
+  Paynow        ████████████ ~25 lines (3 strategies!)  <<< BIGGEST PAIN POINT
+  Pesepay       ████████████ ~25 lines (AES decrypt x2)
+
+Integration Time (estimated hours):
+
+  Paystack      ~1.5 hrs   - Fastest hands-on integration
+  Stripe        ~2 hrs     - Slightly more config (webhook secret, SDK import)
+  Flutterwave   ~2.5 hrs   - Webhook hash confusion added ~30min
+  Paynow        ~3.5 hrs   - Hash computation + 3 strategies + form encoding
+  Pesepay       ~4 hrs+    - AES boilerplate + BLOCKED by malformed headers
+  DPOpay        N/A        - Could not access sandbox
+```
+
+### Summary Table
+
+| Provider | Status | Friction | Code Lines | Integration Time | Webhook LOC |
+|----------|--------|----------|------------|------------------|-------------|
+| **Stripe** | Tested | LOW | ~561 | ~2 hrs | 1-3 |
+| **Paystack** | Tested | LOW | ~557 | ~1.5 hrs | ~10 |
+| **Flutterwave** | Tested | MEDIUM | ~523 | ~2.5 hrs | 3 |
+| **Pesepay** | BLOCKER | CRITICAL | ~608 | N/A | ~25+ |
+| **DPOpay** | Skipped | HIGH | N/A | N/A | N/A |
+| **Paynow** | Baseline | HIGH | ~746 | ~3.5 hrs | ~25+ |
 
 ---
 
@@ -88,58 +128,75 @@ Five payment providers were benchmarked against Paynow (the baseline) by integra
 
 ## 2. Comparative Analysis
 
-### Code Complexity
+### Friction Heatmap
+
+Each cell rated: LOW / MEDIUM / HIGH / CRITICAL (or BLOCKED)
+
+| Dimension | Stripe | Paystack | Flutterwave | Pesepay | DPOpay | Paynow |
+|-----------|--------|----------|-------------|---------|--------|--------|
+| **Signup to test keys** | LOW | LOW | LOW | LOW | BLOCKED | MEDIUM |
+| **API format** | LOW (JSON+SDK) | LOW (JSON) | LOW (JSON) | HIGH (AES+JSON) | HIGH (XML) | HIGH (form-encoded) |
+| **Auth complexity** | LOW (1 key) | LOW (1 key) | MEDIUM (2 keys) | HIGH (2 keys+AES) | MEDIUM (1 key, XML) | HIGH (2 keys+hash) |
+| **Payment initiation** | LOW | LOW | LOW | HIGH | MEDIUM | HIGH |
+| **Webhook verification** | LOW (1 line) | LOW (10 lines) | LOW (3 lines) | HIGH (25+ lines) | MEDIUM (API call) | HIGH (25+ lines, fragile) |
+| **Test documentation** | LOW | LOW | MEDIUM | HIGH | N/A | HIGH |
+| **Error debugging** | LOW | MEDIUM | MEDIUM | HIGH | N/A | HIGH |
+| **Runtime compatibility** | LOW | LOW | LOW | CRITICAL | LOW | LOW |
+
+### Code Complexity (lines of code)
 
 | Component | Stripe | Paystack | Flutterwave | Pesepay | Paynow |
 |-----------|--------|----------|-------------|---------|--------|
-| Payment Initiation (Edge Function) | 158 | ~150 | ~145 | ~205 | 257 |
-| Webhook Handler | 122 | ~125 | ~115 | ~140 | 146 |
-| Frontend Hook | 132 | ~132 | ~115 | ~115 | 137 |
-| Checkout UI | 149 | ~150 | ~148 | ~148 | 206 |
+| Payment Initiation (Edge Function) | 158 | ~150 | ~145 | ~205 | **257** |
+| Webhook Handler | 122 | ~125 | ~115 | ~140 | **146** |
+| Frontend Hook | 132 | ~132 | ~115 | ~115 | **137** |
+| Checkout UI | 149 | ~150 | ~148 | ~148 | **206** |
 | **Total** | **561** | **~557** | **~523** | **~608** | **746** |
-| **vs Paynow** | -25% | -25% | -30% | -18% | baseline |
+| **vs Paynow** | -25% | -25% | -30% | -18% | **baseline** |
+
+Paynow's highest-friction component is the Payment Initiation function (257 lines vs 145-158 for competitors), driven by manual hash computation, two separate API endpoints (web vs mobile), and form-encoded request/response parsing.
 
 ### Webhook Verification Complexity
 
-| Provider | Method | Lines of Code | Reliability |
-|----------|--------|---------------|-------------|
-| Stripe | SDK `constructEvent()` | 1-3 | Always works |
-| Flutterwave | Header comparison (`verif-hash`) | 3 | Simple, works |
-| Paystack | HMAC SHA-512 | ~10 | Standard, works |
-| Pesepay | AES decrypt + API verify + AES decrypt | ~25+ | N/A (blocked) |
-| Paynow | SHA-512 hash (3 ordering strategies) | ~25+ | Fragile — unclear field order |
+| Provider | Method | Lines of Code | Reliability | Friction |
+|----------|--------|---------------|-------------|----------|
+| Stripe | SDK `constructEvent()` | 1-3 | Always works | LOW |
+| Flutterwave | Header comparison (`verif-hash`) | 3 | Simple, works | LOW |
+| Paystack | HMAC SHA-512 | ~10 | Standard, works | LOW |
+| Pesepay | AES decrypt + API verify + AES decrypt | ~25+ | N/A (blocked) | HIGH |
+| **Paynow** | **SHA-512 hash (3 ordering strategies)** | **~25+** | **Fragile — unclear field order** | **HIGH** |
 
 ### Authentication Model
 
-| Provider | Method | Keys Needed | Complexity |
-|----------|--------|-------------|------------|
-| Stripe | Bearer token | 1 (secret key) | Low |
-| Paystack | Bearer token | 1 (secret key) | Low |
-| Flutterwave | Bearer + webhook hash | 2 (secret key + webhook hash) | Medium |
-| Pesepay | API key + encryption key | 2 (API key + AES key) | High |
-| DPOpay | Company token in XML body | 1 (company token) | Medium (XML) |
-| Paynow | Integration ID + key + hash | 2 (ID + key, hash computed) | High |
+| Provider | Method | Keys Needed | Complexity | Friction |
+|----------|--------|-------------|------------|----------|
+| Stripe | Bearer token | 1 (secret key) | Low | LOW |
+| Paystack | Bearer token | 1 (secret key) | Low | LOW |
+| Flutterwave | Bearer + webhook hash | 2 (secret key + webhook hash) | Medium | MEDIUM |
+| Pesepay | API key + encryption key | 2 (API key + AES key) | High | HIGH |
+| DPOpay | Company token in XML body | 1 (company token) | Medium (XML) | MEDIUM |
+| **Paynow** | **Integration ID + key + hash** | **2 (ID + key, hash computed)** | **High** | **HIGH** |
 
 ### Sandbox Access
 
-| Provider | Verification Needed | Test Cards Documented | Webhook Testing Tool |
-|----------|--------------------|-----------------------|---------------------|
-| Stripe | Email only | Yes (extensive) | `stripe listen` CLI |
-| Paystack | Email only | Yes (clear) | No (use ngrok) |
-| Flutterwave | Email + phone | Yes (with PIN/OTP) | No (use ngrok) |
-| Pesepay | Email only | No | No |
-| DPOpay | Business docs (KYC) | N/A (couldn't access) | N/A |
-| Paynow | Email + integration setup | Not clearly documented | No |
+| Provider | Verification Needed | Test Cards Documented | Webhook Testing Tool | Friction |
+|----------|--------------------|-----------------------|---------------------|----------|
+| Stripe | Email only | Yes (extensive) | `stripe listen` CLI | LOW |
+| Paystack | Email only | Yes (clear) | No (use ngrok) | LOW |
+| Flutterwave | Email + phone | Yes (with PIN/OTP) | No (use ngrok) | MEDIUM |
+| Pesepay | Email only | No | No | HIGH |
+| DPOpay | Business docs (KYC) | N/A (couldn't access) | N/A | BLOCKED |
+| **Paynow** | **Email + integration setup** | **Not clearly documented** | **No** | **HIGH** |
 
 ### Error Message Quality
 
-| Provider | Structured Codes | Doc Links | Field Identification | Dashboard Logs |
-|----------|-----------------|-----------|---------------------|---------------|
-| Stripe | Yes (`type`, `code`, `param`) | Yes (`doc_url`) | Yes (`param`) | Yes (`request_log_url`) |
-| Paystack | No (message only) | No | No | Yes |
-| Flutterwave | No (message only) | No | No | Yes |
-| Pesepay | No (mixed format) | No | No | Basic |
-| Paynow | No (plain text) | No | No | No |
+| Provider | Structured Codes | Doc Links | Field ID | Dashboard Logs | Friction |
+|----------|-----------------|-----------|----------|---------------|----------|
+| Stripe | Yes (`type`, `code`, `param`) | Yes (`doc_url`) | Yes | Yes (`request_log_url`) | LOW |
+| Paystack | No (message only) | No | No | Yes | MEDIUM |
+| Flutterwave | No (message only) | No | No | Yes | MEDIUM |
+| Pesepay | No (mixed encrypted/plain) | No | No | Basic | HIGH |
+| **Paynow** | **No (plain text)** | **No** | **No** | **No** | **HIGH** |
 
 ---
 
@@ -251,16 +308,41 @@ Replace plain text errors with structured JSON:
 
 ---
 
-## 6. Provider Ranking (Developer Experience)
+## 6. Provider Ranking & Scorecard
 
-| Rank | Provider | Strengths | Weaknesses |
-|------|----------|-----------|------------|
-| 1 | **Stripe** | SDK, types, CLI, docs, error objects | Not in Africa |
-| 2 | **Paystack** | Clean REST, fast onboarding, standard HMAC | No SDK, no CLI |
-| 3 | **Flutterwave** | Wide coverage, simple amounts, 3-line webhook | Confusing webhook setup |
-| 4 | **Paynow** | EcoCash/OneMoney native, works in Zimbabwe | High code complexity, unclear hash ordering |
-| 5 | **Pesepay** | Modern API design, Zimbabwe-focused | BLOCKER: malformed HTTP headers, AES overhead |
-| 6 | **DPOpay** | Multi-country, hosted page handles method selection | KYC for sandbox, XML API, no SDK |
+### DX Scores (1-10, higher is better)
+
+| Category | Stripe | Paystack | Flutterwave | Pesepay | DPOpay | Paynow |
+|----------|--------|----------|-------------|---------|--------|--------|
+| Signup speed | 9 | 9 | 8 | 8 | 2 | 7 |
+| Docs quality | 10 | 8 | 7 | 4 | 5 | 4 |
+| Integration speed | 9 | 9 | 8 | 3 | N/A | 5 |
+| Error messages | 10 | 7 | 7 | 3 | N/A | 3 |
+| Testing tools | 10 | 7 | 7 | 3 | N/A | 3 |
+| Webhook DX | 10 | 8 | 6 | 2 | N/A | 3 |
+| **Overall DX** | **9.7** | **8.0** | **7.2** | **3.8** | **N/A** | **4.2** |
+
+```
+Overall DX Score (out of 10):
+
+  Stripe        ██████████████████████████████████████████████████  9.7
+  Paystack      ████████████████████████████████████████            8.0
+  Flutterwave   ████████████████████████████████████                7.2
+  Paynow        █████████████████████                               4.2
+  Pesepay       ███████████████████                                 3.8
+  DPOpay        (not testable)                                      N/A
+```
+
+### Final Ranking
+
+| Rank | Provider | Score | Strengths | Weaknesses |
+|------|----------|-------|-----------|------------|
+| 1 | **Stripe** | 9.7 | SDK, types, CLI, docs, error objects | Not in Africa |
+| 2 | **Paystack** | 8.0 | Clean REST, fast onboarding, standard HMAC | No SDK, no CLI |
+| 3 | **Flutterwave** | 7.2 | Wide coverage, simple amounts, 3-line webhook | Confusing webhook setup |
+| 4 | **Paynow** | 4.2 | EcoCash/OneMoney native, works in Zimbabwe | High code complexity, unclear hash ordering |
+| 5 | **Pesepay** | 3.8 | Modern API design, Zimbabwe-focused | BLOCKER: malformed HTTP headers, AES overhead |
+| 6 | **DPOpay** | N/A | Multi-country, hosted page handles method selection | KYC for sandbox, XML API, no SDK |
 
 ---
 
