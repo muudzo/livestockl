@@ -263,7 +263,13 @@ The progression of developer friendliness in API formats is clear:
 - **XML** (DPOpay): Requires manual string construction or XML parser, most error-prone
 
 ### Finding 7: Paynow's API Is Unreachable from Cloud Infrastructure
-Paynow's servers (`www.paynow.co.zw`) returned `Connection reset by peer` from Supabase Edge Functions (Deno Deploy) and timed out after 75 seconds from an international machine. This means **any serverless architecture (Lambda, Workers, Edge Functions) cannot reach Paynow**. A relay server inside Zimbabwe or on an accepted IP range would be required. No other benchmarked provider had this issue — Stripe, Paystack, Flutterwave, and even Pesepay (despite its header bug) all connected successfully from cloud runtimes.
+Paynow's servers (`www.paynow.co.zw`) returned `Connection reset by peer` from Supabase Edge Functions (Deno Deploy) and timed out after 75 seconds from an international machine. This means **any serverless architecture (Lambda, Workers, Edge Functions) cannot reach Paynow**. No other benchmarked provider had this issue.
+
+**SDK does not help:** Paynow engineers recommended using the Node.js SDK (`paynow` v2.2.2 on npm), but the SDK uses axios internally to make the same HTTP request to the same endpoint. It silently returns `undefined` on failure instead of throwing — making debugging impossible.
+
+**This is a known community issue:** A Paynow Forum thread ("Paynow failing on supabase", 2026-02-03) reports the exact same `os error 104` from Supabase Edge Functions. The community workaround is to route requests through a VPS with a static IP (`Edge Function → VPS → Paynow`), adding cost and complexity that no other provider requires.
+
+**Source:** https://forums.paynow.co.zw/t/paynow-failing-on-supabase/
 
 ### Finding 8: Amount Format Inconsistency Is a Common Gotcha
 - **Cents/kobo** (Stripe, Paystack): `amount: 1000` = US$10 — must multiply by 100
@@ -274,8 +280,8 @@ There's no industry standard. Paynow's actual-currency approach is the more intu
 
 ## 5. Actionable Recommendations for Paynow
 
-### Recommendation 1: Provide an Official SDK (or at minimum, clear code samples)
-Every competitor except Pesepay offers either an official SDK (Stripe) or well-documented REST patterns that work with standard `fetch`. Paynow's manual hash computation and form encoding should be abstracted into a lightweight SDK for JavaScript/TypeScript, Python, and PHP.
+### Recommendation 1: Fix and Modernize the Node.js SDK
+A `paynow` npm package (v2.2.2) exists but has critical issues: (1) silently returns `undefined` on errors instead of throwing, (2) no TypeScript types, (3) doesn't handle the Deno/Edge runtime export format correctly, (4) does not cover webhook verification. The SDK should propagate errors properly, ship TypeScript declarations, support ESM/Deno imports, and include a webhook verification helper.
 
 ### Recommendation 2: Standardize and Document Webhook Hash Field Ordering
 The single biggest integration pain point was needing 3 hash strategies for webhook verification. Paynow should:

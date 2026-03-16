@@ -213,6 +213,21 @@ This means:
 - Supabase Edge Functions, AWS Lambda, Cloudflare Workers, Vercel Edge -- **none of these can reach Paynow**
 - This is a **dealbreaker for modern cloud-native architectures**
 
+#### Community Confirmation (Paynow Forums)
+
+This is **not an isolated issue**. The Paynow Developer Forum has threads confirming the same blocker:
+
+**Thread: "Paynow failing on supabase"** (2026-02-03, by user Cyberwave)
+> "Connection reset by peer (os error 104)" — Deno v2.1.4 on Supabase Edge Functions, eu-west-3 region. Exact same error as our testing.
+
+**Responses from community:**
+- **elphas** suggested asking Supabase to "whitelist *.paynow.co.zw(443) for edge function outbound connections" — this implies Paynow's servers reject unknown IPs, not the other way around
+- **Gillian212** confirmed the root cause is firewall rejection and proposed a **workaround: route requests through a VPS with a static IP** (e.g. DigitalOcean): `Supabase Edge Functions → VPS → Paynow`
+
+This workaround means Paynow developers using serverless platforms must maintain an additional VPS just to proxy API calls — adding cost, complexity, and a single point of failure that no other provider requires.
+
+**Source:** https://forums.paynow.co.zw/t/paynow-failing-on-supabase/
+
 No other benchmarked provider had this issue:
 | Provider | Reachable from Edge Functions | Reachable from international IPs |
 |----------|-------------------------------|----------------------------------|
