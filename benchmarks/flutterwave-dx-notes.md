@@ -10,7 +10,7 @@
 | **SDK used** | No SDK -- raw REST API calls (`fetch`) |
 | **Date started** | ___ (fill in) |
 | **Time to first successful test payment** | ___ minutes (fill in) |
-| **Developer friction** | ___ (fill in after testing) |
+| **Developer friction** | Medium — payment flow works but webhook setup is confusing |
 
 ---
 
@@ -390,12 +390,18 @@ if (flutterwaveResult?.redirectUrl) {
 ## 9. Developer Friction Notes
 
 **What went smoothly:**
-- ___ (fill in after testing)
+- Payment flow itself works — redirect to Flutterwave checkout, pay, redirect back
+- REST API pattern is similar to Paystack — familiar if you've done one hosted checkout
+- Test card + PIN + OTP worked as documented
 
 **What caused friction:**
-- ___ (fill in after testing)
+- Webhook configuration is confusing — the "Secret Hash" concept is not well-explained in the dashboard
+- Had difficulty finding where to set the webhook secret hash in the Flutterwave dashboard
+- The webhook secret hash is something you create yourself (not generated), which isn't obvious
+- Two separate secrets needed (API key + webhook hash) vs Paystack's single secret key for both
+- Test flow requires PIN + OTP steps, making each test cycle slower than Paystack
 
-**Developer quote:** _"___"_ (fill in after testing)
+**Developer quote:** _"The webhook bit is confusing with Flutterwave, but the payment goes through"_ — noted during first integration test.
 
 ---
 
