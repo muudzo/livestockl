@@ -10,6 +10,7 @@
 | **SDK used** | No SDK -- raw REST API calls (`fetch`) |
 | **Date started** | ___ (fill in) |
 | **Time to first successful test payment** | ___ minutes (fill in) |
+| **Developer friction** | Low — described as "relatively easy" after completing full integration |
 
 ---
 
@@ -347,7 +348,22 @@ if (paystackResult?.redirectUrl) {
 
 ---
 
-## 9. Gotchas and Pitfalls
+## 9. Developer Friction Notes
+
+**What went smoothly:**
+- Integration was notably fast and frictionless compared to other providers
+- No SDK installation required — standard `fetch` calls with Bearer auth
+- Test mode enabled by default on account creation
+- Test card numbers clearly documented and worked first try
+- Simple 2-endpoint flow: `POST /transaction/initialize` → redirect → `GET /transaction/verify/:ref`
+- HMAC SHA512 webhook verification is standard and worked on the first attempt
+- Account setup to first test payment was a short, linear process
+
+**Developer quote:** _"That was relatively easy"_ — said after completing the full integration and first test payment.
+
+---
+
+## 10. Gotchas and Pitfalls
 
 | Gotcha | Impact | Solution |
 |--------|--------|----------|
@@ -360,7 +376,7 @@ if (paystackResult?.redirectUrl) {
 
 ---
 
-## 10. Scores Summary
+## 11. Scores Summary
 
 | Metric | Score (1-5) | Notes |
 |--------|-------------|-------|
@@ -374,7 +390,7 @@ if (paystackResult?.redirectUrl) {
 
 ---
 
-## 11. Paystack vs Stripe vs Paynow Comparison
+## 12. Paystack vs Stripe vs Paynow Comparison
 
 | Dimension | Paystack | Stripe | Paynow |
 |-----------|----------|--------|--------|
@@ -391,7 +407,7 @@ if (paystackResult?.redirectUrl) {
 
 ---
 
-## 12. Deployment Notes
+## 13. Deployment Notes
 
 ```bash
 # Set Paystack secret on remote Supabase
@@ -411,7 +427,7 @@ In Paystack Dashboard > Settings > API Keys & Webhooks:
 
 ---
 
-## 13. Recommendations for Paynow Based on Paystack's DX
+## 14. Recommendations for Paynow Based on Paystack's DX
 
 1. **Simple REST API is good enough** -- Paystack doesn't need an SDK for basic integration. The clean REST pattern (`POST /initialize`, `GET /verify/:ref`) with Bearer auth is more developer-friendly than Paynow's form-encoded + hash approach.
 
