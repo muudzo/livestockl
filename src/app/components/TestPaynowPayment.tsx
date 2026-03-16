@@ -1,63 +1,62 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const LOCAL_SERVER = "http://localhost:3000";
+
+type Method = "EcoCash" | "OneMoney" | "Card";
 
 export default function TestPaynowPayment() {
   const [amount, setAmount] = useState("1.00");
+  const [method, setMethod] = useState<Method>("EcoCash");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  const [formData, setFormData] = useState<{
-    formAction: string;
-    formFields: Record<string, string>;
-  } | null>(null);
+  const [result, setResult] = useState<any>(null);
 
-  // Check if we returned from Paynow
   const urlParams = new URLSearchParams(window.location.search);
   const returnedStatus = urlParams.get("status");
 
   const handlePay = async () => {
     setLoading(true);
     setError(null);
+    setResult(null);
 
     try {
-      // Step 1: Get signed form data from Edge Function (hash computed server-side)
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/test-paynow-checkout`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ amount: Number(amount) }),
-        }
-      );
+      const isMobile = method === "EcoCash" || method === "OneMoney";
+      const endpoint = isMobile
+        ? `${LOCAL_SERVER}/api/process-mobile-payment`
+        : `${LOCAL_SERVER}/api/process-payment`;
 
-      const data = await res.json();
+      const body: any = {
+        amount: Number(amount),
+        description: "Benchmark test payment",
+      };
 
-      if (data.error) {
-        setError(data.error);
-        setLoading(false);
-        return;
+      if (isMobile) {
+        body.phone = phone;
+        body.method = method;
       }
 
-      // Step 2: Set form data and submit — browser POSTs directly to Paynow
-      // This bypasses the Edge Function connectivity blocker
-      setFormData({
-        formAction: data.formAction,
-        formFields: data.formFields,
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       });
 
-      // Wait for React to render the hidden form, then submit
-      setTimeout(() => {
-        formRef.current?.submit();
-      }, 100);
+      const data = await res.json();
+      setResult(data);
+
+      if (data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+      }
     } catch (err: any) {
-      setError(err.message);
+      setError(
+        err.message.includes("Failed to fetch")
+          ? "Can't reach local server. Run: node paynow-server.js"
+          : err.message
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -67,7 +66,7 @@ export default function TestPaynowPayment() {
       <div className="max-w-md w-full bg-card border rounded-lg shadow-lg p-6 space-y-4">
         <h1 className="text-xl font-bold text-center">Paynow Test Checkout</h1>
         <p className="text-sm text-muted-foreground text-center">
-          Client-side form submission — bypasses Edge Function connectivity blocker
+          Uses local Express server + Paynow SDK (same as dummy site)
         </p>
 
         {returnedStatus && (
@@ -90,25 +89,50 @@ export default function TestPaynowPayment() {
           />
         </div>
 
-        <div className="bg-muted/50 border rounded p-3">
-          <p className="text-xs text-muted-foreground">
-            Payment method selection happens on Paynow's hosted page.
-            You'll choose EcoCash, OneMoney, or Card there.
-          </p>
+        <div>
+          <label className="block text-sm font-medium mb-1">Payment Method</label>
+          <div className="flex gap-2">
+            {(["EcoCash", "OneMoney", "Card"] as Method[]).map((m) => (
+              <button
+                key={m}
+                onClick={() => setMethod(m)}
+                className={`flex-1 py-2 px-3 rounded border text-sm font-medium transition-colors ${
+                  method === m
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background hover:bg-muted"
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {method !== "Card" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">Phone Number</label>
+            <input
+              type="tel"
+              placeholder="07XXXXXXXX"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full border rounded px-3 py-2 bg-background"
+            />
+          </div>
+        )}
 
         <Button
           onClick={handlePay}
-          disabled={loading || !amount}
+          disabled={loading || !amount || (method !== "Card" && !phone)}
           className="w-full"
         >
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Redirecting to Paynow...
+              Connecting to Paynow...
             </>
           ) : (
-            `Pay US$${amount} via Paynow`
+            `Pay US$${amount} via ${method}`
           )}
         </Button>
 
@@ -118,30 +142,27 @@ export default function TestPaynowPayment() {
           </div>
         )}
 
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>How it works:</strong></p>
-          <ol className="list-decimal pl-4 space-y-0.5">
-            <li>Edge Function computes SHA-512 hash (keeps key secret)</li>
-            <li>Returns signed form data to browser</li>
-            <li>Browser submits form directly to paynow.co.zw</li>
-            <li>No server-to-Paynow connection needed</li>
-          </ol>
+        {result && (
+          <div className="bg-muted rounded p-3 space-y-2">
+            <p className="text-sm font-medium">Response:</p>
+            <pre className="text-xs overflow-auto whitespace-pre-wrap">
+              {JSON.stringify(result, null, 2)}
+            </pre>
+            {result.pollUrl && (
+              <p className="text-xs text-muted-foreground">
+                Check your phone for the USSD prompt. Dial *151# if you missed it.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="bg-amber-50 border border-amber-200 rounded p-3">
+          <p className="text-xs text-amber-800">
+            <strong>Requires:</strong> Run <code>node paynow-server.js</code> in a separate terminal.
+            This local Express server proxies calls to Paynow using the Node.js SDK.
+          </p>
         </div>
       </div>
-
-      {/* Hidden form — submitted directly to Paynow from the browser */}
-      {formData && (
-        <form
-          ref={formRef}
-          method="POST"
-          action={formData.formAction}
-          style={{ display: "none" }}
-        >
-          {Object.entries(formData.formFields).map(([key, value]) => (
-            <input key={key} type="hidden" name={key} value={value} />
-          ))}
-        </form>
-      )}
     </div>
   );
 }
