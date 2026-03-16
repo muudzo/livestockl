@@ -1,4 +1,4 @@
-# Payment Provider Developer Experience Benchmark Report
+Payment Provider Developer Experience Benchmark Report
 
 **Project:** Evaluating Paynow's Developer Experience Against Regional & International Competitors
 **Stack:** React 18 + TypeScript + Supabase Edge Functions (Deno) + Supabase PostgreSQL
@@ -285,7 +285,21 @@ Every other provider hosts their API on a **separate subdomain without bot prote
 
 **Source:** https://forums.paynow.co.zw/t/paynow-failing-on-supabase/
 
-### Finding 8: Amount Format Inconsistency Is a Common Gotcha
+### Finding 8: Onboarding Support Varies Dramatically
+Post-signup developer support differs significantly across providers:
+
+| Provider | Onboarding experience |
+|----------|----------------------|
+| **Paystack** | Named Customer Success Manager (personal email within days), clear 2-step activation (bank account + ID), YouTube walkthrough video, proactive follow-up |
+| **Stripe** | Automated onboarding wizard, world-class docs, no personal contact needed |
+| **Flutterwave** | Automated emails, self-serve activation |
+| **Pesepay** | Minimal onboarding communication |
+| **DPOpay** | Blocked — requires business KYC docs before sandbox access |
+| **Paynow** | Forum-based support, engineers respond but server was down during testing |
+
+Paystack's human-touch onboarding (named CSM: Seike) stands out, especially for African markets where developers may need hands-on guidance. This is a competitive advantage Paynow could replicate.
+
+### Finding 9: Amount Format Inconsistency Is a Common Gotcha
 - **Cents/kobo** (Stripe, Paystack): `amount: 1000` = US$10 — must multiply by 100
 - **Actual currency** (Flutterwave, Pesepay, Paynow): `amount: 10` = US$10 — more intuitive
 There's no industry standard. Paynow's actual-currency approach is the more intuitive choice.
