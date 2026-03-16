@@ -1,74 +1,91 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+/**
+ * Client-side form submission approach:
+ * Instead of the Edge Function calling Paynow (which fails due to
+ * connection reset from cloud IPs), we compute the hash server-side
+ * and return signed form data. The browser then submits a hidden form
+ * directly to Paynow — bypassing the connectivity blocker entirely.
+ */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { amount, method, phone } = await req.json();
+    const { amount } = await req.json();
 
-    if (!amount || !method) {
+    if (!amount) {
       return new Response(
-        JSON.stringify({ error: "amount and method are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "amount is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
-    const reference = `ZL-TEST-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
+    const integrationId = Deno.env.get("PAYNOW_INTEGRATION_ID");
+    const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
+    const resultUrl = Deno.env.get("PAYNOW_RESULT_URL");
+    const returnUrl = Deno.env.get("PAYNOW_RETURN_URL") || "http://localhost:5174/test-paynow?status=returned";
 
-    // Create a test payment record in the DB
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    const { error: insertError } = await supabase
-      .from("payments")
-      .insert({
-        reference,
-        amount: Number(amount),
-        method,
-        phone: phone || null,
-        status: "pending",
-        // Use a dummy user_id and livestock_id for testing
-        user_id: "00000000-0000-0000-0000-000000000000",
-        livestock_id: "00000000-0000-0000-0000-000000000000",
-      });
-
-    // If insert fails due to FK constraints, proceed without DB record
-    if (insertError) {
-      console.warn("Could not create test payment record:", insertError.message);
+    if (!integrationId || !integrationKey) {
+      return new Response(
+        JSON.stringify({ error: "Paynow credentials not configured" }),
+        {
+          status: 503,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Call the actual initiate-payment function
-    const initiateUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/initiate-payment`;
-    const res = await fetch(initiateUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-      },
-      body: JSON.stringify({ reference, amount: Number(amount), method, phone }),
-    });
+    const reference = `ZL-TEST-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
 
-    const result = await res.json();
+    // Build the form values in the exact order Paynow expects
+    const values: Record<string, string> = {
+      id: integrationId,
+      reference: reference,
+      amount: Number(amount).toFixed(2),
+      additionalinfo: "Benchmark test payment",
+      returnurl: returnUrl,
+      resulturl: resultUrl || "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/payment-webhook",
+      authemail: "test@benchmark.com",
+      status: "Message",
+    };
 
+    // Compute SHA-512 hash: concatenate all values + integration key
+    const hashString = Object.values(values).join("") + integrationKey;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(hashString);
+    const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+    values.hash = hash.toUpperCase();
+
+    // Return the signed form data — the browser will submit directly to Paynow
     return new Response(
-      JSON.stringify({ reference, ...result }),
+      JSON.stringify({
+        reference,
+        formAction: "https://www.paynow.co.zw/interface/initiatetransaction",
+        formFields: values,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: err.message, stack: err.stack }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
