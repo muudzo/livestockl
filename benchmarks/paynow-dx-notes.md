@@ -268,7 +268,7 @@ Even from a Zimbabwean network, Node.js cannot reach Paynow's API because Cloudf
 | Local Express + SDK | **Zimbabwean** | Node.js | Cannot solve | `ETIMEDOUT 196.44.182.165:443` |
 | curl | Any | curl | Cannot solve | Timeout (75s) |
 
-**Key evidence:** The browser successfully loads `www.paynow.co.zw` (confirmed by `cf_clearance`, `_ga`, and `twk_uuid` cookies being set), proving the server is UP. But every programmatic client fails because Cloudflare's JavaScript challenge cannot be solved by non-browser HTTP clients.
+**Cloudflare evidence:** Browser requests show `cf_clearance`, `_ga`, and `twk_uuid` cookies from a prior session, confirming Paynow uses Cloudflare bot protection. However, during our testing window (2026-03-16), even the browser on a Zimbabwean network timed out trying to reach `www.paynow.co.zw`. This suggests the server is intermittently down AND protected by Cloudflare — a double blocker. When the server is up, Cloudflare still blocks all programmatic clients.
 
 **DX observation:** We had to build a separate Node.js + Express server just to attempt the integration — no other provider in this benchmark required anything beyond a single Edge Function. Even after building it, the API was unreachable due to Cloudflare blocking.
 

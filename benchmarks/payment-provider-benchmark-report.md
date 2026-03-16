@@ -262,9 +262,9 @@ The progression of developer friendliness in API formats is clear:
 - **Form-encoded** (Paynow): Harder to debug, URL-encoded values are less readable
 - **XML** (DPOpay): Requires manual string construction or XML parser, most error-prone
 
-### Finding 7: Paynow's API Is Behind Cloudflare Bot Protection — Blocks All Server-Side Code
+### Finding 7: Paynow's API Is Unreachable — Server Downtime + Cloudflare Bot Protection
 
-**Root cause identified:** Paynow serves its API on `www.paynow.co.zw/interface/*` — the same domain as its website, behind **Cloudflare bot protection**. Browsers can solve the Cloudflare JavaScript challenge (confirmed by `cf_clearance` cookie), but all programmatic HTTP clients are blocked:
+**Root cause:** Paynow serves its API on `www.paynow.co.zw/interface/*` — the same domain as its website, behind **Cloudflare bot protection**. Browser cookies (`cf_clearance`) confirm Cloudflare is active. During our testing window (2026-03-16), the server was also **completely unreachable even from a browser on a Zimbabwean network** — indicating intermittent downtime on top of the Cloudflare blocker. When the server is up, programmatic clients are still blocked:
 
 | Client | Can solve Cloudflare challenge? | Result |
 |--------|--------------------------------|--------|
