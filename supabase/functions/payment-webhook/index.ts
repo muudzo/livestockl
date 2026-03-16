@@ -1,62 +1,52 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const PAYSTACK_SECRET_KEY = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
   try {
-    const formData = await req.text();
-    const params = Object.fromEntries(new URLSearchParams(formData));
+    const body = await req.text();
+    const signature = req.headers.get("x-paystack-signature");
 
-    const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
-    if (!integrationKey) {
-      return new Response("Not configured", { status: 500 });
+    if (!signature) {
+      return new Response("Missing signature", { status: 400 });
     }
 
-    // Verify hash from Paynow
-    // NOTE: The hash field order should be verified against Paynow's official documentation.
-    // We try multiple strategies: documented order first, then received order, then alphabetical.
-    const receivedHash = params.hash;
-
-    const computeHash = async (valueString: string): Promise<string> => {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(valueString + integrationKey);
-      const hashBuffer = await crypto.subtle.digest("SHA-512", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
-    };
-
-    // Strategy 1: Documented Paynow status update field order
-    const documentedOrder = ["reference", "paynowreference", "amount", "status", "pollurl"];
-    const documentedValues = documentedOrder
-      .filter((key) => key in params)
-      .map((key) => params[key])
+    // Verify webhook signature using HMAC SHA512
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(PAYSTACK_SECRET_KEY),
+      { name: "HMAC", hash: "SHA-512" },
+      false,
+      ["sign"]
+    );
+    const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(body));
+    const computedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
-    let computedHash = await computeHash(documentedValues);
 
-    // Strategy 2: Concatenate values in the order received (form-encoded order)
-    if (computedHash !== receivedHash?.toUpperCase()) {
-      const receivedOrderValues = Object.entries(params)
-        .filter(([key]) => key.toLowerCase() !== "hash")
-        .map(([, value]) => value)
-        .join("");
-      computedHash = await computeHash(receivedOrderValues);
+    if (computedSignature !== signature) {
+      console.error("Webhook signature verification failed");
+      return new Response("Invalid signature", { status: 403 });
     }
 
-    // Strategy 3: Alphabetical sort (original fallback)
-    if (computedHash !== receivedHash?.toUpperCase()) {
-      const sortedValues = Object.entries(params)
-        .filter(([key]) => key.toLowerCase() !== "hash")
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([, value]) => value)
-        .join("");
-      computedHash = await computeHash(sortedValues);
+    const event = JSON.parse(body);
+
+    if (event.event !== "charge.success") {
+      // Only handle successful charges
+      return new Response("OK", { status: 200 });
     }
 
-    if (computedHash !== receivedHash?.toUpperCase()) {
-      console.error("Hash verification failed");
-      return new Response("Invalid hash", { status: 403 });
+    const data = event.data;
+    const reference = data.reference;
+
+    if (!reference) {
+      console.error("No reference in webhook payload");
+      return new Response("OK", { status: 200 });
     }
 
     const supabase = createClient(
@@ -64,25 +54,26 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Map Paynow status to our status
-    const paynowStatus = params.status?.toLowerCase();
-    let dbStatus: "pending" | "paid" | "failed" = "pending";
+    // Verify the transaction with Paystack API (defense in depth)
+    const verifyResponse = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+      }
+    );
+    const verifyData = await verifyResponse.json();
 
-    if (paynowStatus === "paid" || paynowStatus === "delivered") {
-      dbStatus = "paid";
-    } else if (paynowStatus === "cancelled" || paynowStatus === "failed" || paynowStatus === "refunded") {
-      dbStatus = "failed";
+    if (!verifyData.status || verifyData.data.status !== "success") {
+      console.error("Paystack verification failed:", verifyData.message);
+      return new Response("Verification failed", { status: 400 });
     }
 
-    // Update payment by reference
-    const reference = params.reference;
-
-    // Atomic: only update if still pending (prevents TOCTOU race)
+    // Atomic: only update if still pending
     const { data: updated, error } = await supabase
       .from("payments")
       .update({
-        status: dbStatus,
-        paynow_reference: params.paynowreference || null,
+        status: "paid",
+        paynow_reference: data.id?.toString() || null,
         updated_at: new Date().toISOString(),
       })
       .eq("reference", reference)
@@ -99,42 +90,39 @@ Deno.serve(async (req) => {
       return new Response("Already processed", { status: 200 });
     }
 
-    // If payment succeeded, mark the livestock item as sold and create notification
-    if (dbStatus === "paid") {
-      const payment = updated;
+    // Mark item as sold
+    if (updated.livestock_id) {
+      await supabase
+        .from("livestock_items")
+        .update({ status: "sold" })
+        .eq("id", updated.livestock_id);
+    }
 
-      if (payment) {
-        // Mark item as sold
-        await supabase
-          .from("livestock_items")
-          .update({ status: "sold" })
-          .eq("id", payment.livestock_id);
+    // Notify buyer
+    await supabase.from("notifications").insert({
+      user_id: updated.user_id,
+      type: "payment",
+      title: "Payment Confirmed",
+      message: `Your payment of US$${updated.amount} has been confirmed.`,
+      priority: "high",
+    });
 
-        // Notify buyer
+    // Notify seller
+    if (updated.livestock_id) {
+      const { data: item } = await supabase
+        .from("livestock_items")
+        .select("seller_id, title")
+        .eq("id", updated.livestock_id)
+        .single();
+
+      if (item) {
         await supabase.from("notifications").insert({
-          user_id: payment.user_id,
+          user_id: item.seller_id,
           type: "payment",
-          title: "Payment Confirmed",
-          message: `Your payment of $${payment.amount} has been confirmed.`,
+          title: "Payment Received",
+          message: `Payment of US$${updated.amount} received for ${item.title}.`,
           priority: "high",
         });
-
-        // Notify seller
-        const { data: item } = await supabase
-          .from("livestock_items")
-          .select("seller_id, title")
-          .eq("id", payment.livestock_id)
-          .single();
-
-        if (item) {
-          await supabase.from("notifications").insert({
-            user_id: item.seller_id,
-            type: "payment",
-            title: "Payment Received",
-            message: `Payment of $${payment.amount} received for ${item.title}.`,
-            priority: "high",
-          });
-        }
       }
     }
 
