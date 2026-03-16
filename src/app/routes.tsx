@@ -14,6 +14,7 @@ const MyListings = lazy(() => import('./components/MyListings').then(m => ({ def
 const PaymentHistory = lazy(() => import('./components/PaymentHistory').then(m => ({ default: m.PaymentHistory })));
 const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
 const MessagesScreen = lazy(() => import('./components/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
+const TestFlutterwavePayment = lazy(() => import('./components/TestFlutterwavePayment').then(m => ({ default: m.TestFlutterwavePayment })));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -65,6 +66,10 @@ export const router = createBrowserRouter([
       {
         path: "messages/:conversationId",
         element: <ProtectedRoute><LazyLoad><MessagesScreen /></LazyLoad></ProtectedRoute>,
+      },
+      {
+        path: "test-flutterwave",
+        element: <ProtectedRoute><LazyLoad><TestFlutterwavePayment /></LazyLoad></ProtectedRoute>,
       },
       {
         path: "*",

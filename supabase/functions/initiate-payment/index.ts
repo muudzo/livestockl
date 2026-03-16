@@ -5,37 +5,35 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const FLUTTERWAVE_SECRET_KEY = Deno.env.get("FLUTTERWAVE_SECRET_KEY");
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { reference, amount, method, phone } = await req.json();
+    const { reference, amount, livestockTitle } = await req.json();
+    const origin = req.headers.get("origin") || "https://zimlivestock.co.zw";
 
     // Input validation
-    if (!reference || typeof reference !== 'string') {
+    if (!reference || typeof reference !== "string") {
       return new Response(
         JSON.stringify({ error: "Invalid reference" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
+    if (!amount || typeof amount !== "number" || amount <= 0) {
       return new Response(
         JSON.stringify({ error: "Invalid amount" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (!['EcoCash', 'OneMoney', 'Card'].includes(method)) {
+
+    if (!FLUTTERWAVE_SECRET_KEY) {
       return new Response(
-        JSON.stringify({ error: "Invalid payment method" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    if ((method === 'EcoCash' || method === 'OneMoney') && !phone) {
-      return new Response(
-        JSON.stringify({ error: "Phone number required for mobile payments" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Flutterwave not configured" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -71,7 +69,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify auction win and calculate correct amount
+    // Verify auction win
     const { data: winningBid } = await verifyClient
       .from("bids")
       .select("amount, livestock_id")
@@ -87,7 +85,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify listing status is 'ended' (not sold, cancelled, or active)
+    // Verify listing status
     const { data: listing } = await verifyClient
       .from("livestock_items")
       .select("status")
@@ -110,142 +108,54 @@ Deno.serve(async (req) => {
       );
     }
 
-    const integrationId = Deno.env.get("PAYNOW_INTEGRATION_ID");
-    const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
-    const resultUrl = Deno.env.get("PAYNOW_RESULT_URL");
-    const returnUrl = Deno.env.get("PAYNOW_RETURN_URL");
+    // Flutterwave Standard Payment — create a payment link via API
+    const flutterwaveResponse = await fetch("https://api.flutterwave.com/v3/payments", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${FLUTTERWAVE_SECRET_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        tx_ref: reference,
+        amount,
+        currency: "USD",
+        redirect_url: `${origin}/payment-status/${reference}?method=card&amount=${amount}`,
+        customer: {
+          email: callerUser.email,
+          name: callerUser.user_metadata?.first_name || "Customer",
+        },
+        customizations: {
+          title: "ZimLivestock",
+          description: livestockTitle || "Livestock Purchase",
+          logo: "https://zimlivestock.co.zw/logo.png",
+        },
+        meta: {
+          livestock_id: paymentRecord.livestock_id,
+          user_id: callerUser.id,
+        },
+      }),
+    });
 
-    if (!integrationId || !integrationKey) {
-      return new Response(
-        JSON.stringify({ error: "Paynow not configured", reference }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const flutterwaveData = await flutterwaveResponse.json();
 
-    // Build Paynow initiate request
-    const values: Record<string, string> = {
-      id: integrationId,
-      reference,
-      amount: amount.toString(),
-      returnurl: returnUrl || `${req.headers.get("origin")}/payment-status/${reference}`,
-      resulturl: resultUrl || "",
-      status: "Message",
-    };
-
-    // Create hash
-    const hashString = Object.values(values).join("") + integrationKey;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(hashString);
-    const hashBuffer = await crypto.subtle.digest("SHA-512", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-    values.hash = hash.toUpperCase();
-
-    // For mobile payments (EcoCash/OneMoney), use the mobile endpoint
-    if ((method === "EcoCash" || method === "OneMoney") && phone) {
-      values.phone = phone;
-      values.method = method === "EcoCash" ? "ecocash" : "onemoney";
-      values.authemail = ""; // Required field for mobile
-
-      const formBody = new URLSearchParams(values).toString();
-      const mobileController = new AbortController();
-      const mobileTimeout = setTimeout(() => mobileController.abort(), 15000);
-      let paynowResponse: Response;
-      try {
-        paynowResponse = await fetch(
-          "https://www.paynow.co.zw/interface/remotetransaction",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formBody,
-            signal: mobileController.signal,
-          }
-        );
-      } finally {
-        clearTimeout(mobileTimeout);
-      }
-
-      const responseText = await paynowResponse.text();
-      const parsed = Object.fromEntries(new URLSearchParams(responseText));
-
-      if (parsed.status?.toLowerCase() === "ok") {
-        // Update payment record with Paynow reference
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-
-        await supabase
-          .from("payments")
-          .update({
-            paynow_reference: parsed.paynowreference,
-            status: "pending",
-          })
-          .eq("reference", reference);
-
-        return new Response(
-          JSON.stringify({
-            status: "ok",
-            pollUrl: parsed.pollurl,
-            paynowReference: parsed.paynowreference,
-            instructions: parsed.instructions || "Check your phone for a USSD prompt",
-          }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({ error: parsed.error || "Paynow request failed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Web payment — redirect to Paynow checkout
-    const formBody = new URLSearchParams(values).toString();
-    const webController = new AbortController();
-    const webTimeout = setTimeout(() => webController.abort(), 15000);
-    let paynowResponse: Response;
-    try {
-      paynowResponse = await fetch(
-        "https://www.paynow.co.zw/interface/initiatetransaction",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: formBody,
-          signal: webController.signal,
-        }
-      );
-    } finally {
-      clearTimeout(webTimeout);
-    }
-
-    const responseText = await paynowResponse.text();
-    const parsed = Object.fromEntries(new URLSearchParams(responseText));
-
-    if (parsed.status?.toLowerCase() === "ok") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-
-      await supabase
+    if (flutterwaveData.status === "success" && flutterwaveData.data?.link) {
+      // Update payment record
+      await verifyClient
         .from("payments")
-        .update({ paynow_reference: parsed.paynowreference })
+        .update({ status: "pending" })
         .eq("reference", reference);
 
       return new Response(
         JSON.stringify({
           status: "ok",
-          redirectUrl: parsed.browserurl,
-          pollUrl: parsed.pollurl,
-          paynowReference: parsed.paynowreference,
+          redirectUrl: flutterwaveData.data.link,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ error: parsed.error || "Paynow request failed" }),
+      JSON.stringify({ error: flutterwaveData.message || "Flutterwave request failed" }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {

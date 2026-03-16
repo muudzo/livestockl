@@ -323,7 +323,7 @@ export function ItemDetail() {
         ) : isWinner ? (
           <div className="p-4">
             <Button onClick={() => navigate(`/checkout/${item.id}`)} className="w-full bg-green-600 hover:bg-green-700">
-              Pay US${currentBid.toLocaleString()} — Paynow
+              Pay US${currentBid.toLocaleString()} — Flutterwave
             </Button>
           </div>
         ) : null}

@@ -12,8 +12,10 @@ export function PaymentStatus() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const method = searchParams.get('method') || 'ecocash';
   const amount = searchParams.get('amount') || '0';
+  // Flutterwave appends ?status=successful|cancelled|failed and ?transaction_id=...
+  const flwStatus = searchParams.get('status');
+  const flwTxId = searchParams.get('transaction_id');
 
   // Use real polling when Supabase is configured
   const { data: paymentData } = usePaymentStatus(isSupabaseConfigured ? ref : undefined);
@@ -28,9 +30,22 @@ export function PaymentStatus() {
     }
   }, [demoStatus]);
 
-  const status: Status = isSupabaseConfigured
-    ? (paymentData?.status === 'paid' ? 'success' : paymentData?.status === 'failed' ? 'failed' : 'pending')
-    : demoStatus;
+  // Determine status from Flutterwave redirect params or DB polling
+  const getStatus = (): Status => {
+    if (!isSupabaseConfigured) return demoStatus;
+
+    // If DB says paid/failed, that's authoritative
+    if (paymentData?.status === 'paid') return 'success';
+    if (paymentData?.status === 'failed') return 'failed';
+
+    // Check Flutterwave redirect params while waiting for webhook
+    if (flwStatus === 'cancelled' || flwStatus === 'failed') return 'failed';
+    if (flwStatus === 'successful') return 'pending'; // Wait for webhook confirmation
+
+    return 'pending';
+  };
+
+  const status = getStatus();
 
   const getIcon = () => {
     switch (status) {
@@ -50,7 +65,7 @@ export function PaymentStatus() {
 
   const getMessage = () => {
     switch (status) {
-      case 'pending': return `Waiting for ${method === 'ecocash' ? 'EcoCash' : method === 'onemoney' ? 'OneMoney' : 'payment'} confirmation...`;
+      case 'pending': return 'Waiting for Flutterwave payment confirmation...';
       case 'success': return 'Your payment has been confirmed. The seller will contact you shortly.';
       case 'failed': return 'Payment could not be processed. Please try again or contact support.';
     }
@@ -65,12 +80,6 @@ export function PaymentStatus() {
           <p className="text-center font-mono text-sm">REF: {ref?.toUpperCase()}</p>
         </div>
         <p className="text-center text-muted-foreground mb-6">{getMessage()}</p>
-
-        {status === 'pending' && (method === 'ecocash' || method === 'onemoney') && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-900 text-center">Dial *151# if you missed the prompt</p>
-          </div>
-        )}
 
         {status === 'pending' && (
           <p className="text-center text-sm text-muted-foreground mb-6">Auto-checking every 5 seconds...</p>
