@@ -1,62 +1,71 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const PESEPAY_API_KEY = Deno.env.get("PESEPAY_API_KEY");
+const PESEPAY_ENCRYPTION_KEY = Deno.env.get("PESEPAY_ENCRYPTION_KEY");
+
+async function decryptPayload(encryptedBase64: string, encryptionKey: string): Promise<any> {
+  const encoder = new TextEncoder();
+
+  const keyData = await crypto.subtle.digest("SHA-256", encoder.encode(encryptionKey));
+  const key = await crypto.subtle.importKey("raw", keyData, { name: "AES-CBC" }, false, ["decrypt"]);
+  const iv = new Uint8Array(keyData.slice(0, 16));
+
+  const binary = atob(encryptedBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-CBC", iv }, key, bytes);
+  const decoded = new TextDecoder().decode(decrypted);
+
+  const padLen = decoded.charCodeAt(decoded.length - 1);
+  const unpadded = decoded.slice(0, decoded.length - padLen);
+  return JSON.parse(unpadded);
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
   try {
-    const formData = await req.text();
-    const params = Object.fromEntries(new URLSearchParams(formData));
-
-    const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
-    if (!integrationKey) {
+    if (!PESEPAY_ENCRYPTION_KEY || !PESEPAY_API_KEY) {
       return new Response("Not configured", { status: 500 });
     }
 
-    // Verify hash from Paynow
-    // NOTE: The hash field order should be verified against Paynow's official documentation.
-    // We try multiple strategies: documented order first, then received order, then alphabetical.
-    const receivedHash = params.hash;
+    const body = await req.json();
 
-    const computeHash = async (valueString: string): Promise<string> => {
-      const encoder = new TextEncoder();
-      const data = encoder.encode(valueString + integrationKey);
-      const hashBuffer = await crypto.subtle.digest("SHA-512", data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
-    };
-
-    // Strategy 1: Documented Paynow status update field order
-    const documentedOrder = ["reference", "paynowreference", "amount", "status", "pollurl"];
-    const documentedValues = documentedOrder
-      .filter((key) => key in params)
-      .map((key) => params[key])
-      .join("");
-    let computedHash = await computeHash(documentedValues);
-
-    // Strategy 2: Concatenate values in the order received (form-encoded order)
-    if (computedHash !== receivedHash?.toUpperCase()) {
-      const receivedOrderValues = Object.entries(params)
-        .filter(([key]) => key.toLowerCase() !== "hash")
-        .map(([, value]) => value)
-        .join("");
-      computedHash = await computeHash(receivedOrderValues);
+    // Pesepay sends encrypted webhook payloads
+    let webhookData: any;
+    if (body.payload) {
+      webhookData = await decryptPayload(body.payload, PESEPAY_ENCRYPTION_KEY);
+    } else {
+      // Some Pesepay webhook formats send plaintext
+      webhookData = body;
     }
 
-    // Strategy 3: Alphabetical sort (original fallback)
-    if (computedHash !== receivedHash?.toUpperCase()) {
-      const sortedValues = Object.entries(params)
-        .filter(([key]) => key.toLowerCase() !== "hash")
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([, value]) => value)
-        .join("");
-      computedHash = await computeHash(sortedValues);
+    const reference = webhookData.merchantReference || webhookData.referenceNumber;
+    const pesepayStatus = (webhookData.transactionStatus || webhookData.status || "").toUpperCase();
+
+    if (!reference) {
+      console.error("No reference in webhook payload:", webhookData);
+      return new Response("Missing reference", { status: 400 });
     }
 
-    if (computedHash !== receivedHash?.toUpperCase()) {
-      console.error("Hash verification failed");
-      return new Response("Invalid hash", { status: 403 });
+    // Defense in depth: verify transaction via Pesepay API
+    const checkResponse = await fetch(
+      `https://api.pesepay.com/api/payments-engine/v1/payments/check-payment?referenceNumber=${encodeURIComponent(webhookData.referenceNumber || reference)}`,
+      {
+        headers: { Authorization: PESEPAY_API_KEY },
+      }
+    );
+    const checkData = await checkResponse.json();
+
+    let verifiedStatus = "PENDING";
+    if (checkData.payload) {
+      const decryptedCheck = await decryptPayload(checkData.payload, PESEPAY_ENCRYPTION_KEY);
+      verifiedStatus = (decryptedCheck.transactionStatus || "").toUpperCase();
     }
 
     const supabase = createClient(
@@ -64,25 +73,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Map Paynow status to our status
-    const paynowStatus = params.status?.toLowerCase();
+    // Map Pesepay status to our status
     let dbStatus: "pending" | "paid" | "failed" = "pending";
-
-    if (paynowStatus === "paid" || paynowStatus === "delivered") {
+    if (verifiedStatus === "SUCCESS" || verifiedStatus === "PAID") {
       dbStatus = "paid";
-    } else if (paynowStatus === "cancelled" || paynowStatus === "failed" || paynowStatus === "refunded") {
+    } else if (verifiedStatus === "FAILED" || verifiedStatus === "CANCELLED") {
       dbStatus = "failed";
     }
 
-    // Update payment by reference
-    const reference = params.reference;
-
-    // Atomic: only update if still pending (prevents TOCTOU race)
+    // Atomic: only update if still pending
     const { data: updated, error } = await supabase
       .from("payments")
       .update({
         status: dbStatus,
-        paynow_reference: params.paynowreference || null,
+        paynow_reference: webhookData.referenceNumber || null,
         updated_at: new Date().toISOString(),
       })
       .eq("reference", reference)
@@ -99,42 +103,35 @@ Deno.serve(async (req) => {
       return new Response("Already processed", { status: 200 });
     }
 
-    // If payment succeeded, mark the livestock item as sold and create notification
-    if (dbStatus === "paid") {
-      const payment = updated;
+    // If payment succeeded, mark the livestock item as sold and send notifications
+    if (dbStatus === "paid" && updated) {
+      await supabase
+        .from("livestock_items")
+        .update({ status: "sold" })
+        .eq("id", updated.livestock_id);
 
-      if (payment) {
-        // Mark item as sold
-        await supabase
-          .from("livestock_items")
-          .update({ status: "sold" })
-          .eq("id", payment.livestock_id);
+      await supabase.from("notifications").insert({
+        user_id: updated.user_id,
+        type: "payment",
+        title: "Payment Confirmed",
+        message: `Your payment of US$${updated.amount} has been confirmed.`,
+        priority: "high",
+      });
 
-        // Notify buyer
+      const { data: item } = await supabase
+        .from("livestock_items")
+        .select("seller_id, title")
+        .eq("id", updated.livestock_id)
+        .single();
+
+      if (item) {
         await supabase.from("notifications").insert({
-          user_id: payment.user_id,
+          user_id: item.seller_id,
           type: "payment",
-          title: "Payment Confirmed",
-          message: `Your payment of $${payment.amount} has been confirmed.`,
+          title: "Payment Received",
+          message: `Payment of US$${updated.amount} received for ${item.title}.`,
           priority: "high",
         });
-
-        // Notify seller
-        const { data: item } = await supabase
-          .from("livestock_items")
-          .select("seller_id, title")
-          .eq("id", payment.livestock_id)
-          .single();
-
-        if (item) {
-          await supabase.from("notifications").insert({
-            user_id: item.seller_id,
-            type: "payment",
-            title: "Payment Received",
-            message: `Payment of $${payment.amount} received for ${item.title}.`,
-            priority: "high",
-          });
-        }
       }
     }
 

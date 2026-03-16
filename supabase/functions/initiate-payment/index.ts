@@ -5,37 +5,89 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const PESEPAY_API_KEY = Deno.env.get("PESEPAY_API_KEY");
+const PESEPAY_ENCRYPTION_KEY = Deno.env.get("PESEPAY_ENCRYPTION_KEY");
+
+// Pesepay requires AES-256-CBC encryption of all payloads
+async function encryptPayload(payload: object, encryptionKey: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const plaintext = JSON.stringify(payload);
+
+  // Derive a 32-byte key from the encryption key using SHA-256
+  const keyData = await crypto.subtle.digest("SHA-256", encoder.encode(encryptionKey));
+  const key = await crypto.subtle.importKey("raw", keyData, { name: "AES-CBC" }, false, ["encrypt"]);
+
+  // Use first 16 bytes of the key hash as IV
+  const iv = new Uint8Array(keyData.slice(0, 16));
+
+  // Pad plaintext to AES block size (PKCS7)
+  const data = encoder.encode(plaintext);
+  const padLength = 16 - (data.length % 16);
+  const padded = new Uint8Array(data.length + padLength);
+  padded.set(data);
+  padded.fill(padLength, data.length);
+
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-CBC", iv }, key, padded);
+  // Return as base64
+  const bytes = new Uint8Array(encrypted);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+async function decryptPayload(encryptedBase64: string, encryptionKey: string): Promise<any> {
+  const encoder = new TextEncoder();
+
+  // Derive key and IV same way
+  const keyData = await crypto.subtle.digest("SHA-256", encoder.encode(encryptionKey));
+  const key = await crypto.subtle.importKey("raw", keyData, { name: "AES-CBC" }, false, ["decrypt"]);
+  const iv = new Uint8Array(keyData.slice(0, 16));
+
+  // Decode base64
+  const binary = atob(encryptedBase64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-CBC", iv }, key, bytes);
+  const decoded = new TextDecoder().decode(decrypted);
+
+  // Remove PKCS7 padding
+  const padLen = decoded.charCodeAt(decoded.length - 1);
+  const unpadded = decoded.slice(0, decoded.length - padLen);
+  return JSON.parse(unpadded);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { reference, amount, method, phone } = await req.json();
+    const { reference, amount, livestockTitle } = await req.json();
+    const origin = req.headers.get("origin") || "https://zimlivestock.co.zw";
 
     // Input validation
-    if (!reference || typeof reference !== 'string') {
+    if (!reference || typeof reference !== "string") {
       return new Response(
         JSON.stringify({ error: "Invalid reference" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (!amount || typeof amount !== 'number' || amount <= 0) {
+    if (!amount || typeof amount !== "number" || amount <= 0) {
       return new Response(
         JSON.stringify({ error: "Invalid amount" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (!['EcoCash', 'OneMoney', 'Card'].includes(method)) {
+
+    if (!PESEPAY_API_KEY || !PESEPAY_ENCRYPTION_KEY) {
       return new Response(
-        JSON.stringify({ error: "Invalid payment method" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    if ((method === 'EcoCash' || method === 'OneMoney') && !phone) {
-      return new Response(
-        JSON.stringify({ error: "Phone number required for mobile payments" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Pesepay not configured" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -71,7 +123,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify auction win and calculate correct amount
+    // Verify auction win
     const { data: winningBid } = await verifyClient
       .from("bids")
       .select("amount, livestock_id")
@@ -87,7 +139,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Verify listing status is 'ended' (not sold, cancelled, or active)
+    // Verify listing status
     const { data: listing } = await verifyClient
       .from("livestock_items")
       .select("status")
@@ -110,145 +162,69 @@ Deno.serve(async (req) => {
       );
     }
 
-    const integrationId = Deno.env.get("PAYNOW_INTEGRATION_ID");
-    const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
-    const resultUrl = Deno.env.get("PAYNOW_RESULT_URL");
-    const returnUrl = Deno.env.get("PAYNOW_RETURN_URL");
-
-    if (!integrationId || !integrationKey) {
-      return new Response(
-        JSON.stringify({ error: "Paynow not configured", reference }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Build Paynow initiate request
-    const values: Record<string, string> = {
-      id: integrationId,
-      reference,
-      amount: amount.toString(),
-      returnurl: returnUrl || `${req.headers.get("origin")}/payment-status/${reference}`,
-      resulturl: resultUrl || "",
-      status: "Message",
+    // Pesepay: Encrypt the payment payload
+    const paymentPayload = {
+      amountDetails: {
+        amount,
+        currencyCode: "USD",
+      },
+      reasonForPayment: livestockTitle || "Livestock Purchase",
+      resultUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook`,
+      returnUrl: `${origin}/payment-status/${reference}?method=card&amount=${amount}`,
+      merchantReference: reference,
     };
 
-    // Create hash
-    const hashString = Object.values(values).join("") + integrationKey;
-    const encoder = new TextEncoder();
-    const data = encoder.encode(hashString);
-    const hashBuffer = await crypto.subtle.digest("SHA-512", data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hash = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-    values.hash = hash.toUpperCase();
+    const encryptedPayload = await encryptPayload(paymentPayload, PESEPAY_ENCRYPTION_KEY);
 
-    // For mobile payments (EcoCash/OneMoney), use the mobile endpoint
-    if ((method === "EcoCash" || method === "OneMoney") && phone) {
-      values.phone = phone;
-      values.method = method === "EcoCash" ? "ecocash" : "onemoney";
-      values.authemail = ""; // Required field for mobile
-
-      const formBody = new URLSearchParams(values).toString();
-      const mobileController = new AbortController();
-      const mobileTimeout = setTimeout(() => mobileController.abort(), 15000);
-      let paynowResponse: Response;
-      try {
-        paynowResponse = await fetch(
-          "https://www.paynow.co.zw/interface/remotetransaction",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formBody,
-            signal: mobileController.signal,
-          }
-        );
-      } finally {
-        clearTimeout(mobileTimeout);
+    // POST to Pesepay initiate endpoint
+    const pesepayResponse = await fetch(
+      "https://api.pesepay.com/api/payments-engine/v1/payments/initiate",
+      {
+        method: "POST",
+        headers: {
+          Authorization: PESEPAY_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ payload: encryptedPayload }),
       }
+    );
 
-      const responseText = await paynowResponse.text();
-      const parsed = Object.fromEntries(new URLSearchParams(responseText));
+    const pesepayData = await pesepayResponse.json();
 
-      if (parsed.status?.toLowerCase() === "ok") {
-        // Update payment record with Paynow reference
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
+    if (pesepayData.payload) {
+      // Decrypt the response
+      const decryptedResponse = await decryptPayload(pesepayData.payload, PESEPAY_ENCRYPTION_KEY);
 
-        await supabase
+      if (decryptedResponse.redirectUrl) {
+        // Update payment record
+        await verifyClient
           .from("payments")
           .update({
-            paynow_reference: parsed.paynowreference,
             status: "pending",
+            paynow_reference: decryptedResponse.referenceNumber || null,
           })
           .eq("reference", reference);
 
         return new Response(
           JSON.stringify({
             status: "ok",
-            pollUrl: parsed.pollurl,
-            paynowReference: parsed.paynowreference,
-            instructions: parsed.instructions || "Check your phone for a USSD prompt",
+            redirectUrl: decryptedResponse.redirectUrl,
+            pesepayReference: decryptedResponse.referenceNumber,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      return new Response(
-        JSON.stringify({ error: parsed.error || "Paynow request failed" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
-    // Web payment — redirect to Paynow checkout
-    const formBody = new URLSearchParams(values).toString();
-    const webController = new AbortController();
-    const webTimeout = setTimeout(() => webController.abort(), 15000);
-    let paynowResponse: Response;
-    try {
-      paynowResponse = await fetch(
-        "https://www.paynow.co.zw/interface/initiatetransaction",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: formBody,
-          signal: webController.signal,
-        }
-      );
-    } finally {
-      clearTimeout(webTimeout);
-    }
-
-    const responseText = await paynowResponse.text();
-    const parsed = Object.fromEntries(new URLSearchParams(responseText));
-
-    if (parsed.status?.toLowerCase() === "ok") {
-      const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-
-      await supabase
-        .from("payments")
-        .update({ paynow_reference: parsed.paynowreference })
-        .eq("reference", reference);
-
-      return new Response(
-        JSON.stringify({
-          status: "ok",
-          redirectUrl: parsed.browserurl,
-          pollUrl: parsed.pollurl,
-          paynowReference: parsed.paynowreference,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    // Handle non-encrypted error responses
     return new Response(
-      JSON.stringify({ error: parsed.error || "Paynow request failed" }),
+      JSON.stringify({
+        error: pesepayData.message || pesepayData.error || "Pesepay request failed",
+      }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    console.error("Pesepay initiation error:", err);
     return new Response(
       JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

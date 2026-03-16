@@ -31,13 +31,11 @@ export function usePaymentStatus(reference: string | undefined) {
     enabled: !!reference,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      // Stop polling once payment is resolved
       if (status === 'paid' || status === 'failed') return false;
-      return 5000; // Poll every 5 seconds
+      return 5000;
     },
     queryFn: async () => {
       if (!isSupabaseConfigured) {
-        // Simulate payment going through after a delay
         return { status: 'pending' as const, reference };
       }
 
@@ -61,13 +59,11 @@ export function useInitiatePayment() {
     mutationFn: async ({
       livestockId,
       amount,
-      method,
-      phone,
+      livestockTitle,
     }: {
       livestockId: string;
       amount: number;
-      method: 'EcoCash' | 'OneMoney' | 'Card';
-      phone?: string;
+      livestockTitle: string;
     }) => {
       if (!user) throw new Error('Not authenticated');
 
@@ -77,7 +73,7 @@ export function useInitiatePayment() {
         return { reference, status: 'pending' as const };
       }
 
-      // Check for existing pending/paid payments to prevent duplicates
+      // Check for existing pending/paid payments
       const { data: existing } = await supabase
         .from('payments')
         .select('reference, status')
@@ -99,32 +95,30 @@ export function useInitiatePayment() {
           livestock_id: livestockId,
           reference,
           amount,
-          method,
-          phone: phone || null,
+          method: 'Card',
         })
         .select()
         .single();
 
       if (error) throw error;
 
-      // Call Edge Function to initiate Paynow payment
-      const { data: paynowResult, error: fnError } = await supabase.functions.invoke('initiate-payment', {
-        body: { reference, amount, method, phone },
+      // Call Edge Function to initiate Pesepay payment
+      const { data: pesepayResult, error: fnError } = await supabase.functions.invoke('initiate-payment', {
+        body: { reference, amount, livestockTitle },
       });
 
       if (fnError) {
-        // Clean up orphaned payment record
         await supabase.from('payments').delete().eq('reference', reference);
         throw new Error('Payment service unavailable. Please try again.');
       }
 
-      if (paynowResult?.error) {
+      if (pesepayResult?.error) {
         await supabase.from('payments').delete().eq('reference', reference);
-        throw new Error(paynowResult.error);
+        throw new Error(pesepayResult.error);
       }
 
-      if (paynowResult?.redirectUrl && method === 'Card') {
-        window.location.href = paynowResult.redirectUrl;
+      if (pesepayResult?.redirectUrl) {
+        window.location.href = pesepayResult.redirectUrl;
         return payment;
       }
 
