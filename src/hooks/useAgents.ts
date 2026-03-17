@@ -236,20 +236,27 @@ export function useAddGoal() {
   });
 }
 
+const FUNCTION_MAP: Record<AgentType, string> = {
+  buyer: 'buyer-agent',
+  seller: 'seller-agent',
+  market_intel: 'market-intel',
+  sniper: 'auction-sniper',
+};
+
+const ACTION_MAP: Record<AgentType, string> = {
+  buyer: 'run_cycle',
+  seller: 'analyze_listings',
+  market_intel: 'generate_report',
+  sniper: 'scan_ending_soon',
+};
+
 // Run an agent (invoke Edge Function)
 export function useRunAgent() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ agent, action }: { agent: Agent; action: string }) => {
-      const functionMap: Record<AgentType, string> = {
-        buyer: 'buyer-agent',
-        seller: 'seller-agent',
-        market_intel: 'market-intel',
-        sniper: 'auction-sniper',
-      };
-
-      const { data, error } = await supabase.functions.invoke(functionMap[agent.agent_type], {
+      const { data, error } = await supabase.functions.invoke(FUNCTION_MAP[agent.agent_type], {
         body: { action, agentId: agent.id },
       });
 
@@ -263,4 +270,51 @@ export function useRunAgent() {
       queryClient.invalidateQueries({ queryKey: ['market_intel'] });
     },
   });
+}
+
+// Auto-run all active agents on an interval
+export function useAutoRunAgents(intervalMs = 15000) {
+  const { data: agents } = useAgents();
+  const queryClient = useQueryClient();
+  const runningRef = useRef(false);
+
+  useEffect(() => {
+    if (!agents?.length) return;
+
+    const activeAgents = agents.filter(a => a.status === 'active');
+    if (!activeAgents.length) return;
+
+    const runAll = async () => {
+      if (runningRef.current) return;
+      runningRef.current = true;
+
+      for (const agent of activeAgents) {
+        try {
+          const action = ACTION_MAP[agent.agent_type];
+          const { data, error } = await supabase.functions.invoke(FUNCTION_MAP[agent.agent_type], {
+            body: { action, agentId: agent.id },
+          });
+          if (error) {
+            console.error(`[${agent.name}] Error:`, error);
+          } else {
+            console.log(`[${agent.name}] Result:`, data);
+          }
+        } catch (err) {
+          console.error(`[${agent.name}] Failed:`, err);
+        }
+      }
+
+      runningRef.current = false;
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.invalidateQueries({ queryKey: ['agent_activity'] });
+      queryClient.invalidateQueries({ queryKey: ['agent_decisions'] });
+    };
+
+    // Run immediately on mount
+    runAll();
+
+    // Then run on interval
+    const timer = setInterval(runAll, intervalMs);
+    return () => clearInterval(timer);
+  }, [agents?.map(a => `${a.id}:${a.status}`).join(','), intervalMs, queryClient]);
 }

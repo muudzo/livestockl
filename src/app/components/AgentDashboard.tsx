@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import {
   useAgents, useAgentActivity, useAgentDecisions, useAgentGoals,
-  useRunAgent, useUpdateAgentStatus, type Agent, type AgentType,
+  useRunAgent, useUpdateAgentStatus, useAutoRunAgents, type Agent, type AgentType,
 } from '../../hooks/useAgents';
 import {
   Bot, ShoppingCart, TrendingUp, Target, Crosshair,
@@ -223,6 +223,14 @@ export function AgentDashboard() {
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const selectedAgent = agents?.find(a => a.id === selectedAgentId);
 
+  // Auto-run active agents every 15 seconds
+  useAutoRunAgents(15000);
+
+  // Auto-select first agent if none selected
+  if (!selectedAgentId && agents?.length) {
+    setSelectedAgentId(agents[0].id);
+  }
+
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Bot className="w-8 h-8 animate-pulse" /></div>;
   }
@@ -239,12 +247,20 @@ export function AgentDashboard() {
             </p>
           </div>
         </div>
-        <Link
-          to="/agents/new"
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
-        >
-          <Plus className="w-4 h-4" /> New Agent
-        </Link>
+        <div className="flex items-center gap-3">
+          {agents?.some(a => a.status === 'active') && (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              Auto-running every 15s
+            </div>
+          )}
+          <Link
+            to="/agents/new"
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90"
+          >
+            <Plus className="w-4 h-4" /> New Agent
+          </Link>
+        </div>
       </div>
 
       {!agents?.length ? (
