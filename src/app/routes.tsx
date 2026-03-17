@@ -15,6 +15,8 @@ const PaymentHistory = lazy(() => import('./components/PaymentHistory').then(m =
 const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
 const MessagesScreen = lazy(() => import('./components/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
 const TestPaynowPayment = lazy(() => import('./components/TestPaynowPayment'));
+const AgentDashboard = lazy(() => import('./components/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
+const AgentSetup = lazy(() => import('./components/AgentSetup').then(m => ({ default: m.AgentSetup })));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -66,6 +68,14 @@ export const router = createBrowserRouter([
       {
         path: "messages/:conversationId",
         element: <ProtectedRoute><LazyLoad><MessagesScreen /></LazyLoad></ProtectedRoute>,
+      },
+      {
+        path: "agents",
+        element: <ProtectedRoute><LazyLoad><AgentDashboard /></LazyLoad></ProtectedRoute>,
+      },
+      {
+        path: "agents/new",
+        element: <ProtectedRoute><LazyLoad><AgentSetup /></LazyLoad></ProtectedRoute>,
       },
       {
         path: "*",

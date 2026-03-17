@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Home, Plus, List, Bell, MessageCircle, CreditCard, LogOut } from "lucide-react";
+import { Home, Plus, List, Bell, MessageCircle, CreditCard, LogOut, Bot } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
 
@@ -17,6 +17,7 @@ export function Root() {
     { icon: MessageCircle, label: 'Chat', path: '/messages' },
     { icon: Bell, label: 'Alert', path: '/notifications', badge: unreadCount || 0 },
     { icon: CreditCard, label: 'Pay', path: '/payments' },
+    { icon: Bot, label: 'Agents', path: '/agents' },
   ];
 
   const handleNavClick = async (path: string) => {
