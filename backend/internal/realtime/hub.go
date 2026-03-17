@@ -228,11 +228,11 @@ func (h *Hub) PublishToUser(userID, event string, payload any) {
 func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	userID := ""
 
-	// Try JWT first.
+	// Authenticate via JWT token in query param
 	if tokenStr := r.URL.Query().Get("token"); tokenStr != "" {
 		secret := os.Getenv("JWT_SECRET")
 		if secret == "" {
-			secret = "dev-secret-change-me"
+			secret = "zimlivestock-dev-secret-change-in-production"
 		}
 		claims, err := auth.ValidateToken(tokenStr, secret)
 		if err != nil {
@@ -240,9 +240,8 @@ func (h *Hub) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		userID = claims.UserID
-	} else if uid := r.URL.Query().Get("user_id"); uid != "" {
-		userID = uid
 	}
+	// No user_id fallback — removed to prevent impersonation (security fix)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {

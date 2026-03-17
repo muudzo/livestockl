@@ -10,7 +10,7 @@ type Profile struct {
 	FirstName    string    `json:"first_name"`
 	LastName     string    `json:"last_name"`
 	Phone        string    `json:"phone"`
-	PasswordHash string    `json:"password_hash"`
+	PasswordHash string    `json:"-"`
 	Verified     bool      `json:"verified"`
 	Rating       float64   `json:"rating"`
 	SalesCount   int       `json:"sales_count"`

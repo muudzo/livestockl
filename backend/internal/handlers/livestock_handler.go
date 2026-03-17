@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -144,7 +145,9 @@ func (h *LivestockHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	// Increment view count in the background.
 	go func() {
-		_, _ = h.db.Pool.Exec(r.Context(),
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = h.db.Pool.Exec(ctx,
 			`UPDATE livestock_items SET view_count = view_count + 1 WHERE id = $1`, id)
 	}()
 

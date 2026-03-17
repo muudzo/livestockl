@@ -46,8 +46,8 @@ func NewRouter(db *database.DB, jwtSecret string) http.Handler {
 	mux.Handle("POST /api/agents", authMW(http.HandlerFunc(agentH.CreateAgent)))
 	mux.Handle("PUT /api/agents/{id}/status", authMW(http.HandlerFunc(agentH.UpdateStatus)))
 	mux.Handle("POST /api/agents/{id}/goals", authMW(http.HandlerFunc(agentH.AddGoal)))
-	mux.HandleFunc("GET /api/agents/{id}/activity", agentH.GetActivity)
-	mux.HandleFunc("GET /api/agents/{id}/decisions", agentH.GetDecisions)
+	mux.Handle("GET /api/agents/{id}/activity", authMW(http.HandlerFunc(agentH.GetActivity)))
+	mux.Handle("GET /api/agents/{id}/decisions", authMW(http.HandlerFunc(agentH.GetDecisions)))
 
 	// Apply global middleware: CORS first, then logging.
 	var handler http.Handler = mux

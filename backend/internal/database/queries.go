@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -112,6 +113,10 @@ func (db *DB) PlaceBid(ctx context.Context, livestockID, userID string, amount f
 
 	if item.Status != "active" {
 		return nil, fmt.Errorf("auction is not active")
+	}
+
+	if time.Now().After(item.EndTime) {
+		return nil, fmt.Errorf("auction has expired")
 	}
 
 	if item.SellerID == userID {
