@@ -327,12 +327,83 @@ serve(async (req: Request) => {
         }
       }
 
+      // Check for auction wins — ended auctions where agent has highest bid
+      const { data: wonAuctions } = await supabase
+        .from("livestock_items")
+        .select("id, title, current_bid")
+        .eq("status", "ended")
+        .in("id", [
+          ...allBids.map((b: any) => b.listing_id),
+          // Also check previously bid items
+          ...(await supabase
+            .from("agent_bids")
+            .select("livestock_id")
+            .eq("agent_id", agentId)
+            .eq("status", "placed")
+            .then((r: any) => r.data?.map((b: any) => b.livestock_id) || []))
+        ]);
+
+      const paymentsInitiated: any[] = [];
+      if (wonAuctions?.length) {
+        for (const won of wonAuctions) {
+          // Check if we have the highest bid
+          const { data: highestBid } = await supabase
+            .from("bids")
+            .select("user_id, amount")
+            .eq("livestock_id", won.id)
+            .order("amount", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (highestBid && highestBid.user_id === agent.user_id) {
+            // Check if payment already exists
+            const { data: existingPayment } = await supabase
+              .from("agent_payment_orders")
+              .select("id")
+              .eq("livestock_id", won.id)
+              .eq("agent_id", agentId)
+              .limit(1);
+
+            if (!existingPayment?.length) {
+              // Trigger payment orchestrator
+              const paymentUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/payment-orchestrator";
+              const payRes = await fetch(paymentUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "initiate_payment",
+                  agentId,
+                  livestockId: won.id,
+                  amount: highestBid.amount,
+                }),
+              });
+              const payResult = await payRes.json();
+              paymentsInitiated.push({ livestock: won.title, amount: highestBid.amount, result: payResult });
+
+              // Update agent bid status
+              await supabase
+                .from("agent_bids")
+                .update({ status: "won" })
+                .eq("agent_id", agentId)
+                .eq("livestock_id", won.id);
+
+              await supabase.from("agent_activity_log").insert({
+                agent_id: agentId,
+                event_type: "bid_won",
+                message: `Won auction for "${won.title}" at US$${highestBid.amount} — payment ${payResult.status || "initiated"}`,
+                metadata: { livestock_id: won.id, amount: highestBid.amount, payment: payResult },
+              });
+            }
+          }
+        }
+      }
+
       // Log scan complete
       await supabase.from("agent_activity_log").insert({
         agent_id: agentId,
         event_type: "scan_completed",
-        message: `Cycle complete: ${allDecisions.length} evaluated, ${allBids.length} bid(s) placed`,
-        metadata: { decisions: allDecisions.length, bids: allBids.length },
+        message: `Cycle complete: ${allDecisions.length} evaluated, ${allBids.length} bid(s) placed, ${paymentsInitiated.length} payment(s) initiated`,
+        metadata: { decisions: allDecisions.length, bids: allBids.length, payments: paymentsInitiated.length },
       });
 
       // Update last_run_at
@@ -342,7 +413,8 @@ serve(async (req: Request) => {
         message: "Buyer agent cycle complete",
         decisions: allDecisions.length,
         bids: allBids.length,
-        details: { decisions: allDecisions, bids: allBids },
+        payments: paymentsInitiated.length,
+        details: { decisions: allDecisions, bids: allBids, payments: paymentsInitiated },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

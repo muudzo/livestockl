@@ -156,6 +156,24 @@ export function useAgentActivity(agentId: string | undefined) {
   return query;
 }
 
+// Payment orders for an agent
+export function useAgentPayments(agentId: string | undefined) {
+  return useQuery({
+    queryKey: ['agent_payments', agentId],
+    enabled: !!agentId && isSupabaseConfigured,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('agent_payment_orders')
+        .select('*, settlement_ledger(*)')
+        .eq('agent_id', agentId!)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
 // Market intel data
 export function useMarketIntel() {
   return useQuery({
@@ -236,11 +254,12 @@ export function useAddGoal() {
   });
 }
 
-const FUNCTION_MAP: Record<AgentType, string> = {
+const FUNCTION_MAP: Record<AgentType | 'payment', string> = {
   buyer: 'buyer-agent',
   seller: 'seller-agent',
   market_intel: 'market-intel',
   sniper: 'auction-sniper',
+  payment: 'payment-orchestrator',
 };
 
 const ACTION_MAP: Record<AgentType, string> = {
