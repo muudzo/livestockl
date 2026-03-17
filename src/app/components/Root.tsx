@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Home, MessageCircle, CreditCard, Bot, Menu, X, Plus, List, Bell, LogOut } from "lucide-react";
+import { Plus, List, Bell, LogOut, ChevronRight } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
 
@@ -12,18 +12,16 @@ export function Root() {
   const logout = useAuthStore((s) => s.logout);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Primary nav — the 4 most important features
   const primaryNav = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Bot, label: 'Agents', path: '/agents' },
-    { icon: CreditCard, label: 'Pay', path: '/payments' },
-    { icon: MessageCircle, label: 'Chat', path: '/messages' },
+    { label: 'Home', path: '/' },
+    { label: 'Agents', path: '/agents' },
+    { label: 'Pay', path: '/payments' },
+    { label: 'Chat', path: '/messages' },
   ];
 
-  // Secondary — lives in the drawer
   const secondaryNav = [
-    { icon: Plus, label: 'Post a Listing', path: '/post' },
-    { icon: List, label: 'My Listings', path: '/my-listings' },
+    { icon: Plus, label: 'Post a listing', path: '/post' },
+    { icon: List, label: 'My listings', path: '/my-listings' },
     { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount || 0 },
   ];
 
@@ -47,103 +45,101 @@ export function Root() {
         <Outlet />
       </div>
 
-      {/* Bottom nav — clean, 5 items max */}
-      <nav className="border-t border-border/40 bg-card" aria-label="Main navigation">
-        <div className="flex items-center h-14">
+      {/* Nav — text only, Dutch confidence */}
+      <nav className="bg-card border-t border-foreground/5" aria-label="Main navigation">
+        <div className="flex items-baseline h-12 px-1">
           {primaryNav.map((item) => {
-            const Icon = item.icon;
             const active = isActive(item.path);
-
             return (
               <button
                 key={item.path}
                 onClick={() => handleNav(item.path)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  active ? 'text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground'
+                className={`flex-1 text-center py-3 transition-all ${
+                  active
+                    ? 'text-foreground font-bold text-[13px]'
+                    : 'text-muted-foreground/40 font-medium text-[12px] hover:text-muted-foreground/70'
                 }`}
               >
-                <Icon className="w-5 h-5" strokeWidth={active ? 2.2 : 1.5} />
-                <span className={`text-[10px] mt-0.5 tracking-wide uppercase ${active ? 'font-semibold' : 'font-normal'}`}>
-                  {item.label}
-                </span>
+                {item.label}
               </button>
             );
           })}
 
-          {/* Menu button */}
+          {/* More — same typographic treatment */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Menu"
-            className={`flex flex-col items-center justify-center flex-1 h-full transition-colors relative ${
-              menuOpen ? 'text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground'
+            aria-label="More options"
+            className={`flex-1 text-center py-3 relative transition-all ${
+              menuOpen
+                ? 'text-foreground font-bold text-[13px]'
+                : 'text-muted-foreground/40 font-medium text-[12px] hover:text-muted-foreground/70'
             }`}
           >
-            {/* Notification badge on menu icon */}
             {!menuOpen && unreadCount && unreadCount > 0 && (
-              <span className="absolute top-2 right-1/4 w-1.5 h-1.5 bg-red-500 rounded-full" />
+              <span className="absolute top-2.5 right-[28%] w-1 h-1 bg-foreground rounded-full" />
             )}
-            {menuOpen ? <X className="w-5 h-5" strokeWidth={1.5} /> : <Menu className="w-5 h-5" strokeWidth={1.5} />}
-            <span className="text-[10px] mt-0.5 tracking-wide uppercase font-normal">More</span>
+            More
           </button>
         </div>
       </nav>
 
-      {/* Drawer overlay */}
+      {/* Drawer */}
       {menuOpen && (
         <>
           <div
-            className="fixed inset-0 bg-black/20 z-40"
+            className="fixed inset-0 z-40"
             onClick={() => setMenuOpen(false)}
           />
-          <div className="fixed bottom-14 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-50">
-            <div className="mx-3 mb-2 bg-card border border-border/40 rounded-xl shadow-xl overflow-hidden">
-              {/* User info */}
+          <div className="fixed bottom-12 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-50">
+            <div className="mx-4 mb-1 bg-card border border-foreground/5 rounded-lg overflow-hidden shadow-2xl">
+              {/* User */}
               {user && (
-                <div className="px-5 pt-4 pb-3 border-b border-border/30">
-                  <p className="text-sm font-semibold tracking-tight">{user.first_name} {user.last_name}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                <div className="px-5 pt-5 pb-4">
+                  <p className="text-base font-bold tracking-tight leading-none">{user.first_name} {user.last_name}</p>
+                  <p className="text-[11px] text-muted-foreground/50 mt-1 font-mono">{user.email}</p>
                 </div>
               )}
 
-              {/* Secondary nav items */}
-              <div className="py-1">
-                {secondaryNav.map((item) => {
-                  const Icon = item.icon;
-                  const active = isActive(item.path);
+              <div className="h-px bg-foreground/5" />
 
-                  return (
-                    <button
-                      key={item.path}
-                      onClick={() => handleNav(item.path)}
-                      className={`w-full flex items-center gap-4 px-5 py-3 text-left transition-colors ${
-                        active ? 'text-foreground bg-muted/50' : 'text-foreground/80 hover:bg-muted/30'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" strokeWidth={1.5} />
-                      <span className="text-sm tracking-tight">{item.label}</span>
+              {/* Links */}
+              {secondaryNav.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.path}
+                    onClick={() => handleNav(item.path)}
+                    className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-foreground/[0.02] transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-3.5 h-3.5 text-muted-foreground/40" strokeWidth={1.5} />
+                      <span className="text-[13px] text-foreground/80 group-hover:text-foreground transition-colors">{item.label}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
                       {item.badge && item.badge > 0 && (
-                        <span className="ml-auto text-xs bg-red-500 text-white px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                        <span className="text-[10px] font-bold text-foreground bg-foreground/10 px-1.5 py-0.5 rounded">
                           {item.badge}
                         </span>
                       )}
-                    </button>
-                  );
-                })}
-              </div>
+                      <ChevronRight className="w-3 h-3 text-muted-foreground/20" />
+                    </div>
+                  </button>
+                );
+              })}
+
+              <div className="h-px bg-foreground/5" />
 
               {/* Logout */}
               {user && (
-                <div className="border-t border-border/30 py-1">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-4 px-5 py-3 text-left text-foreground/60 hover:text-red-500 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" strokeWidth={1.5} />
-                    <span className="text-sm tracking-tight">Log out</span>
-                  </button>
-                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left text-muted-foreground/40 hover:text-foreground/60 transition-colors"
+                >
+                  <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
+                  <span className="text-[13px]">Log out</span>
+                </button>
               )}
             </div>
           </div>
