@@ -316,7 +316,7 @@ export function PostListing() {
         <div className="space-y-4">
           <h3 className="font-semibold">AUCTION DETAILS</h3>
           <div className="space-y-2">
-            <Label htmlFor="price">Starting Price ($)</Label>
+            <Label htmlFor="price">Starting Price (US$)</Label>
             <Input id="price" type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} required disabled={isEditMode && hasBids} />
           </div>
           {!isEditMode && (
@@ -331,9 +331,9 @@ export function PostListing() {
             </div>
           )}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-1 text-sm">
-            <p className="flex items-center gap-2"><span>ℹ️</span><span>5% platform fee</span></p>
-            <p className="flex items-center gap-2"><span>ℹ️</span><span>48hr payment window</span></p>
-            <p className="flex items-center gap-2"><span>ℹ️</span><span>Inspection allowed</span></p>
+            <p className="flex items-center gap-2"><span className="text-muted-foreground">—</span><span>5% platform fee</span></p>
+            <p className="flex items-center gap-2"><span className="text-muted-foreground">—</span><span>48hr payment window</span></p>
+            <p className="flex items-center gap-2"><span className="text-muted-foreground">—</span><span>Inspection allowed</span></p>
           </div>
         </div>
 

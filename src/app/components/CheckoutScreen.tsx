@@ -175,7 +175,7 @@ export function CheckoutScreen() {
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">📱</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">+263</span>
               <Input id="phone" type="tel" placeholder="0771 234 567" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="pl-10" required />
             </div>
           </div>
@@ -183,7 +183,7 @@ export function CheckoutScreen() {
 
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex gap-2">
-            <span className="text-blue-600">ℹ️</span>
+            <Lock className="w-3.5 h-3.5 text-muted-foreground inline" />
             <p className="text-sm text-blue-900">{getInstructions()}</p>
           </div>
         </div>

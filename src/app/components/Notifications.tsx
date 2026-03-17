@@ -53,10 +53,10 @@ export function Notifications() {
 
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
-      case 'high': return '🔴';
-      case 'medium': return '🟡';
-      case 'low': return '🔵';
-      default: return '🔵';
+      case 'high': return <span className="inline-block w-2 h-2 rounded-full bg-red-500" />;
+      case 'medium': return <span className="inline-block w-2 h-2 rounded-full bg-yellow-500" />;
+      case 'low': return <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />;
+      default: return <span className="inline-block w-2 h-2 rounded-full bg-blue-500" />;
     }
   };
 
@@ -71,7 +71,7 @@ export function Notifications() {
             )}
           </div>
           <Button variant="ghost" size="sm" onClick={handleMarkAllRead} disabled={unreadCount === 0}>
-            <CheckCheck className="w-4 h-4 mr-1" />Mark all ✓
+            <CheckCheck className="w-4 h-4 mr-1" />Mark all read
           </Button>
         </div>
 

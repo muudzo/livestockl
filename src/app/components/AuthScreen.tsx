@@ -67,7 +67,7 @@ export function AuthScreen() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 to-amber-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="text-4xl mb-2">🐄</div>
+          <div className="text-2xl font-bold tracking-tight mb-1">ZL</div>
           <CardTitle className="text-2xl">ZimLivestock</CardTitle>
           <CardDescription>Your livestock marketplace</CardDescription>
         </CardHeader>
@@ -151,7 +151,7 @@ export function AuthScreen() {
                     <Input
                       id="first-name"
                       type="text"
-                      placeholder="John"
+                      placeholder="Tatenda"
                       value={signupData.firstName}
                       onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
                       required
@@ -162,7 +162,7 @@ export function AuthScreen() {
                     <Input
                       id="last-name"
                       type="text"
-                      placeholder="Doe"
+                      placeholder="Moyo"
                       value={signupData.lastName}
                       onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
                       required

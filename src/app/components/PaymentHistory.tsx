@@ -6,7 +6,7 @@ export function PaymentHistory() {
   const { data: payments, isLoading } = usePaymentHistory();
 
   const formatDate = (date: Date | string) => {
-    return new Intl.DateTimeFormat('en-US', {
+    return new Intl.DateTimeFormat('en-GB', {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
@@ -46,12 +46,12 @@ export function PaymentHistory() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold">${payment.amount.toLocaleString()}</p>
+                  <p className="text-lg font-bold">US${payment.amount.toLocaleString()}</p>
                   <Badge
                     variant={payment.status === 'paid' ? 'default' : payment.status === 'pending' ? 'secondary' : 'destructive'}
                     className="mt-1"
                   >
-                    {payment.status === 'paid' ? 'Paid ✓' : payment.status === 'pending' ? 'Pending' : 'Failed'}
+                    {payment.status === 'paid' ? 'Paid' : payment.status === 'pending' ? 'Pending' : 'Failed'}
                   </Badge>
                 </div>
               </div>

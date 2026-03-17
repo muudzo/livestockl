@@ -65,7 +65,7 @@ export function MyListings() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{item.title}</h3>
-                    <p className="text-lg font-bold text-primary">${getCurrentBid(item).toLocaleString()}</p>
+                    <p className="text-lg font-bold text-primary">US${getCurrentBid(item).toLocaleString()}</p>
                     <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>
                       {item.status === 'active' ? 'Active' : 'Ended'}
                     </Badge>
@@ -114,7 +114,7 @@ export function MyListings() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{item.title}</h3>
-                    <p className="text-lg font-bold text-primary">Won at ${getCurrentBid(item).toLocaleString()}</p>
+                    <p className="text-lg font-bold text-primary">Won at US${getCurrentBid(item).toLocaleString()}</p>
                     <p className="text-sm text-muted-foreground">{item.location} • {item.breed}</p>
                   </div>
                 </div>

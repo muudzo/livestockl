@@ -154,7 +154,7 @@ export function HomeFeed() {
                     <Badge className="bg-black/70 text-white border-0">{item.breed}</Badge>
                   </div>
                   <div className="absolute bottom-2 right-2">
-                    <Badge variant="destructive" className="font-semibold">{getTimeLeft(item)} ⏱</Badge>
+                    <Badge variant="destructive" className="font-semibold">{getTimeLeft(item)}</Badge>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}

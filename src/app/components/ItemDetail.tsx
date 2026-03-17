@@ -192,7 +192,7 @@ export function ItemDetail() {
             <Badge className="bg-black/70 text-white border-0">{item.breed}</Badge>
           </div>
           <div className="absolute bottom-3 right-3">
-            <Badge variant="destructive" className="font-semibold">{getTimeLeft()} ⏱</Badge>
+            <Badge variant="destructive" className="font-semibold">{getTimeLeft()}</Badge>
           </div>
         </div>
 
@@ -227,7 +227,7 @@ export function ItemDetail() {
                 <div>
                   <div className="flex items-center gap-1">
                     <span className="font-semibold">{seller.name}</span>
-                    {seller.verified && <Badge variant="secondary" className="text-xs">✓</Badge>}
+                    {seller.verified && <Badge variant="secondary" className="text-xs">Verified</Badge>}
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />

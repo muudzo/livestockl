@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import {
   useAgents, useAgentActivity, useAgentDecisions, useAgentGoals, useAgentPayments,
@@ -105,7 +105,7 @@ function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSelected: 
         <div className="flex gap-1 shrink-0">
           <button
             onClick={handleToggle}
-            className="p-1.5 rounded hover:bg-muted"
+            className="p-2.5 rounded hover:bg-muted min-w-[44px] min-h-[44px] flex items-center justify-center"
             title={agent.status === 'active' ? 'Pause' : 'Activate'}
           >
             {agent.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -113,7 +113,7 @@ function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSelected: 
           <button
             onClick={handleRun}
             disabled={runAgent.isPending}
-            className="p-1.5 rounded hover:bg-muted disabled:opacity-50"
+            className="p-2.5 rounded hover:bg-muted disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Run now"
           >
             <Zap className={`w-4 h-4 ${runAgent.isPending ? 'animate-pulse text-yellow-500' : ''}`} />
@@ -294,9 +294,11 @@ export function AgentDashboard() {
   useAutoRunAgents(15000);
 
   // Auto-select first agent if none selected
-  if (!selectedAgentId && agents?.length) {
-    setSelectedAgentId(agents[0].id);
-  }
+  useEffect(() => {
+    if (!selectedAgentId && agents?.length) {
+      setSelectedAgentId(agents[0].id);
+    }
+  }, [agents, selectedAgentId]);
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Bot className="w-8 h-8 animate-pulse" /></div>;
