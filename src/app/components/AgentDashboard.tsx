@@ -71,9 +71,12 @@ function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSelected: 
   };
 
   return (
-    <button
+    <div
       onClick={onSelect}
-      className={`w-full text-left p-4 rounded-lg border transition-all ${
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && onSelect()}
+      className={`w-full text-left p-4 rounded-lg border transition-all cursor-pointer ${
         isSelected ? 'border-primary shadow-md bg-primary/5' : 'border-border hover:border-primary/50'
       }`}
     >
@@ -117,7 +120,19 @@ function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSelected: 
           </button>
         </div>
       </div>
-    </button>
+      {/* Stats bar */}
+      <div className="flex gap-3 mt-2 pt-2 border-t border-border/50 text-xs">
+        <span className="text-muted-foreground">
+          <DollarSign className="w-3 h-3 inline -mt-0.5" /> US${agent.stats.total_spent || 0}
+        </span>
+        <span className="text-muted-foreground">
+          {agent.stats.total_bids || 0} bids
+        </span>
+        <span className={agent.stats.wins > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+          <CheckCircle2 className="w-3 h-3 inline -mt-0.5" /> {agent.stats.wins || 0} wins
+        </span>
+      </div>
+    </div>
   );
 }
 
