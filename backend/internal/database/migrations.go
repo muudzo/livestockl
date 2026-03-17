@@ -15,7 +15,7 @@ func RunMigrations(db *DB) error {
 	statements := []string{
 		// ── profiles ────────────────────────────────────────────────
 		`CREATE TABLE IF NOT EXISTS profiles (
-			id            uuid PRIMARY KEY,
+			id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 			email         text NOT NULL,
 			first_name    text NOT NULL,
 			last_name     text NOT NULL,

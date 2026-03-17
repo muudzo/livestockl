@@ -58,7 +58,7 @@ func (h *LivestockHandler) List(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT id, title, category, breed, age, weight, description, location, health,
 	                 starting_price, current_bid, bid_count, view_count, image_urls,
 	                 seller_id, status, duration_days, end_time, created_at
-	          FROM livestock
+	          FROM livestock_items
 	          WHERE status = 'active' AND end_time > now()`
 
 	args := []any{}
@@ -124,7 +124,7 @@ func (h *LivestockHandler) Get(w http.ResponseWriter, r *http.Request) {
 		`SELECT id, title, category, breed, age, weight, description, location, health,
 		        starting_price, current_bid, bid_count, view_count, image_urls,
 		        seller_id, status, duration_days, end_time, created_at
-		 FROM livestock WHERE id = $1`, id,
+		 FROM livestock_items WHERE id = $1`, id,
 	).Scan(
 		&item.ID, &item.Title, &item.Category, &item.Breed, &item.Age,
 		&item.Weight, &item.Description, &item.Location, &item.Health,
@@ -145,7 +145,7 @@ func (h *LivestockHandler) Get(w http.ResponseWriter, r *http.Request) {
 	// Increment view count in the background.
 	go func() {
 		_, _ = h.db.Pool.Exec(r.Context(),
-			`UPDATE livestock SET view_count = view_count + 1 WHERE id = $1`, id)
+			`UPDATE livestock_items SET view_count = view_count + 1 WHERE id = $1`, id)
 	}()
 
 	// Fetch seller info.
@@ -191,9 +191,13 @@ func (h *LivestockHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	endTime := time.Now().Add(time.Duration(req.DurationDays) * 24 * time.Hour)
 
+	if req.ImageURLs == nil {
+		req.ImageURLs = []string{}
+	}
+
 	var item models.LivestockItem
 	err := h.db.Pool.QueryRow(r.Context(),
-		`INSERT INTO livestock
+		`INSERT INTO livestock_items
 		 (title, category, breed, age, weight, description, location, health,
 		  starting_price, current_bid, image_urls, seller_id, status, duration_days, end_time)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'active',$13,$14)
@@ -235,7 +239,7 @@ func (h *LivestockHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.db.Pool.Exec(r.Context(),
-		`DELETE FROM livestock WHERE id = $1 AND seller_id = $2`, id, claims.UserID)
+		`DELETE FROM livestock_items WHERE id = $1 AND seller_id = $2`, id, claims.UserID)
 	if err != nil {
 		slog.Error("failed to delete livestock", "id", id, "error", err)
 		writeJSON(w, http.StatusInternalServerError, errorBody("internal server error"))

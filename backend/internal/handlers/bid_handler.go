@@ -95,7 +95,7 @@ func (h *BidHandler) Place(w http.ResponseWriter, r *http.Request) {
 	var endTime time.Time
 
 	err := h.db.Pool.QueryRow(r.Context(),
-		`SELECT seller_id, status, current_bid, end_time FROM livestock WHERE id = $1`,
+		`SELECT seller_id, status, current_bid, end_time FROM livestock_items WHERE id = $1`,
 		req.LivestockID,
 	).Scan(&sellerID, &status, &currentBid, &endTime)
 	if err != nil {
