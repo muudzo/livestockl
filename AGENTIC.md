@@ -219,6 +219,42 @@ This is the headline number for Paynow: autonomous retry and fallback recovers t
 
 ---
 
+## QA Agent Team
+
+Three automated testing agents validate the system's integrity before every deployment.
+
+### Consistency Checker — 6/6 PASS (healthy)
+
+| Check | Status | What it validates |
+|-------|--------|------------------|
+| Orphaned bids | PASS | No bids reference non-existent listings |
+| Double payments | PASS | No livestock paid for twice by same agent |
+| Sold without payment | PASS | All sold items have a paid payment order |
+| Missing settlement ledger | PASS | Every payment order has audit trail entries |
+| Agent bid references | PASS | All agent_bids link to real bid records |
+| Bid price consistency | PASS | current_bid matches actual highest bid on all 24 active listings |
+
+### Security Agent — 11/11 PASS (Grade A)
+
+| Test | Severity | Status |
+|------|----------|--------|
+| Anon read agents | Critical | PASS — RLS enforced |
+| Anon read payments | Critical | PASS — RLS enforced |
+| Anon read settlement ledger | Critical | PASS — RLS enforced |
+| Anon read decisions | High | PASS — RLS enforced |
+| Anon create agent | Critical | PASS — RLS enforced |
+| Anon write activity log | High | PASS — RLS enforced |
+| Market intel public | Low | PASS — public by design |
+| Invalid agent status | Medium | PASS — check constraint blocks |
+| Invalid payment status | Medium | PASS — check constraint blocks |
+| Invalid decision type | Medium | PASS — check constraint blocks |
+| Service role isolation | Critical | PASS — only in Edge Functions |
+
+### Chaos Test Agent
+Runs on demand — fires concurrent bids, injects payment failures, tests edge cases (zero amounts, negative bids, invalid categories). Validates DB state after each scenario.
+
+---
+
 ## File Map
 
 ```
@@ -239,6 +275,9 @@ supabase/
     market-intel/index.ts         — Price reports + anomaly detection
     auction-sniper/index.ts       — Last-second bidding
     payment-orchestrator/index.ts — Payment execution + retry + fallback + settlement
+    chaos-test/index.ts           — QA: concurrent stress + edge cases
+    consistency-checker/index.ts  — QA: data integrity validation (6 checks)
+    security-agent/index.ts       — QA: RLS + constraint pen-testing (11 tests)
 ```
 
 ---
