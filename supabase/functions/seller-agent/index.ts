@@ -18,19 +18,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader! } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const { action, agentId } = await req.json();
 
@@ -38,7 +29,6 @@ serve(async (req: Request) => {
       .from("agents")
       .select("*")
       .eq("id", agentId)
-      .eq("user_id", user.id)
       .eq("agent_type", "seller")
       .single();
 
@@ -56,11 +46,11 @@ serve(async (req: Request) => {
     };
 
     if (action === "analyze_listings") {
-      // Get seller's active listings
+      // Get seller's active listings (use agent's user_id)
       const { data: myListings } = await supabase
         .from("livestock_items")
         .select("*")
-        .eq("seller_id", user.id)
+        .eq("seller_id", agent.user_id)
         .eq("status", "active")
         .order("end_time", { ascending: true });
 

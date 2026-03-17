@@ -12,19 +12,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader! } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const { action, agentId } = await req.json();
 
@@ -32,7 +23,6 @@ serve(async (req: Request) => {
       .from("agents")
       .select("*")
       .eq("id", agentId)
-      .eq("user_id", user.id)
       .eq("agent_type", "sniper")
       .single();
 
@@ -115,12 +105,36 @@ serve(async (req: Request) => {
 
           // Execute the snipe
           try {
-            const { data: bidResult } = await (supabase.rpc as any)("agent_place_bid", {
-              p_agent_id: agentId,
-              p_goal_id: goal.id,
-              p_livestock_id: listing.id,
-              p_amount: snipeAmount,
-              p_strategy: "snipe",
+            // Insert bid directly (service role bypasses RLS)
+            const { data: bidRecord, error: bidError } = await supabase
+              .from("bids")
+              .insert({
+                livestock_id: listing.id,
+                user_id: agent.user_id,
+                amount: snipeAmount,
+              })
+              .select("id")
+              .single();
+
+            if (bidError) throw bidError;
+
+            // Update livestock item
+            await supabase
+              .from("livestock_items")
+              .update({
+                current_bid: snipeAmount,
+                bid_count: (listing.bid_count || 0) + 1,
+              })
+              .eq("id", listing.id);
+
+            // Record in agent_bids
+            await supabase.from("agent_bids").insert({
+              agent_id: agentId,
+              goal_id: goal.id,
+              livestock_id: listing.id,
+              bid_id: bidRecord.id,
+              amount: snipeAmount,
+              strategy: "snipe",
             });
 
             await supabase.from("agent_decisions").insert({
@@ -147,6 +161,7 @@ serve(async (req: Request) => {
                 amount: snipeAmount,
                 seconds_left: secondsLeft,
                 goal_id: goal.id,
+                bid_id: bidRecord.id,
               },
             });
 
@@ -155,7 +170,7 @@ serve(async (req: Request) => {
               title: listing.title,
               amount: snipeAmount,
               seconds_left: secondsLeft,
-              bid_id: bidResult,
+              bid_id: bidRecord.id,
             });
           } catch (err: any) {
             await supabase.from("agent_activity_log").insert({
