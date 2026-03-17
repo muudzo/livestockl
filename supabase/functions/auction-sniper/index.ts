@@ -118,14 +118,8 @@ serve(async (req: Request) => {
 
             if (bidError) throw bidError;
 
-            // Update livestock item
-            await supabase
-              .from("livestock_items")
-              .update({
-                current_bid: snipeAmount,
-                bid_count: (listing.bid_count || 0) + 1,
-              })
-              .eq("id", listing.id);
+            // Atomically sync listing with actual highest bid (prevents race conditions)
+            await (supabase.rpc as any)("sync_listing_bid", { p_livestock_id: listing.id });
 
             // Record in agent_bids
             await supabase.from("agent_bids").insert({

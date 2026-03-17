@@ -72,6 +72,9 @@ serve(async (req: Request) => {
           const successes = bidResults.filter(r => r.status === "fulfilled" && !(r.value as any).error).length;
           const failures = bidResults.filter(r => r.status === "rejected" || (r.status === "fulfilled" && (r.value as any).error)).length;
 
+          // Sync the listing to reflect actual highest bid (same as agents do)
+          await (supabase.rpc as any)("sync_listing_bid", { p_livestock_id: listing.id });
+
           // Check: current_bid should be the highest bid
           const { data: updated } = await supabase
             .from("livestock_items")
