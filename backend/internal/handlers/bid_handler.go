@@ -124,18 +124,13 @@ func (h *BidHandler) Place(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Place bid atomically using the place_bid function.
-	var bid models.Bid
-	err = h.db.Pool.QueryRow(r.Context(),
-		`SELECT id, livestock_id, user_id, amount, is_winner, created_at
-		 FROM place_bid($1, $2, $3)`,
-		req.LivestockID, claims.UserID, req.Amount,
-	).Scan(&bid.ID, &bid.LivestockID, &bid.UserID, &bid.Amount, &bid.IsWinner, &bid.CreatedAt)
+	// Place bid atomically
+	bid, err := h.db.PlaceBid(r.Context(), req.LivestockID, claims.UserID, req.Amount)
 	if err != nil {
 		slog.Error("place_bid failed", "livestock_id", req.LivestockID, "user_id", claims.UserID, "error", err)
-		writeJSON(w, http.StatusConflict, errorBody("failed to place bid: auction may have ended or bid is too low"))
+		writeJSON(w, http.StatusConflict, errorBody("failed to place bid: "+err.Error()))
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, placeBidResponse{Bid: bid})
+	writeJSON(w, http.StatusCreated, placeBidResponse{Bid: *bid})
 }

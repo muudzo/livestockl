@@ -145,9 +145,9 @@ func (h *AgentHandler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validStatuses := map[string]bool{"idle": true, "active": true, "paused": true, "stopped": true}
+	validStatuses := map[string]bool{"idle": true, "running": true, "paused": true, "error": true}
 	if !validStatuses[req.Status] {
-		writeJSON(w, http.StatusBadRequest, errorBody("invalid status: must be idle, active, paused, or stopped"))
+		writeJSON(w, http.StatusBadRequest, errorBody("invalid status: must be idle, running, paused, or error"))
 		return
 	}
 

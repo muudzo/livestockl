@@ -247,7 +247,14 @@ func (h *LivestockHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if result.RowsAffected() == 0 {
-		writeJSON(w, http.StatusNotFound, errorBody("listing not found or not owned by you"))
+		// Check if listing exists but belongs to someone else
+		var exists bool
+		h.db.Pool.QueryRow(r.Context(), `SELECT EXISTS(SELECT 1 FROM livestock_items WHERE id = $1)`, id).Scan(&exists)
+		if exists {
+			writeJSON(w, http.StatusForbidden, errorBody("you can only delete your own listings"))
+			return
+		}
+		writeJSON(w, http.StatusNotFound, errorBody("listing not found"))
 		return
 	}
 
