@@ -49,8 +49,9 @@ func NewRouter(db *database.DB, jwtSecret string) http.Handler {
 	mux.Handle("GET /api/agents/{id}/activity", authMW(http.HandlerFunc(agentH.GetActivity)))
 	mux.Handle("GET /api/agents/{id}/decisions", authMW(http.HandlerFunc(agentH.GetDecisions)))
 
-	// Apply global middleware: CORS first, then logging.
+	// Apply global middleware: body limit, CORS, then logging.
 	var handler http.Handler = mux
+	handler = middleware.MaxBody(1 << 20)(handler) // 1MB request body limit
 	handler = middleware.Logging()(handler)
 	handler = middleware.CORS()(handler)
 

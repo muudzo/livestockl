@@ -65,6 +65,7 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 	broadcast  chan *Message
+	stop       chan struct{}
 	mu         sync.RWMutex // protects clients and channels maps
 }
 
@@ -76,7 +77,13 @@ func NewHub() *Hub {
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		broadcast:  make(chan *Message, 256),
+		stop:       make(chan struct{}),
 	}
+}
+
+// Shutdown gracefully stops the hub's Run loop.
+func (h *Hub) Shutdown() {
+	close(h.stop)
 }
 
 // Run processes register, unregister, and broadcast operations. Intended to be
@@ -84,6 +91,17 @@ func NewHub() *Hub {
 func (h *Hub) Run() {
 	for {
 		select {
+		case <-h.stop:
+			// Graceful shutdown: close all client connections
+			h.mu.Lock()
+			for client := range h.clients {
+				close(client.send)
+			}
+			h.clients = make(map[*Client]bool)
+			h.channels = make(map[string]map[*Client]bool)
+			h.mu.Unlock()
+			return
+
 		case client := <-h.register:
 			h.mu.Lock()
 			h.clients[client] = true
@@ -326,22 +344,17 @@ func (c *Client) writePump() {
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
+			// Send each message as its own WebSocket frame (valid JSON per frame)
+			if err := c.conn.WriteMessage(websocket.TextMessage, message); err != nil {
 				return
 			}
-			w.Write(message)
 
-			// Drain any queued messages into the same write to reduce
-			// syscalls and frame overhead.
+			// Drain any queued messages — each as a separate frame
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write([]byte("\n"))
-				w.Write(<-c.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
+				if err := c.conn.WriteMessage(websocket.TextMessage, <-c.send); err != nil {
+					return
+				}
 			}
 
 		case <-ticker.C:

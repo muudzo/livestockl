@@ -241,10 +241,11 @@ func (h *LivestockHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Soft-delete: cancel instead of hard delete to preserve bid history
 	result, err := h.db.Pool.Exec(r.Context(),
-		`DELETE FROM livestock_items WHERE id = $1 AND seller_id = $2`, id, claims.UserID)
+		`UPDATE livestock_items SET status = 'cancelled' WHERE id = $1 AND seller_id = $2 AND status IN ('active', 'ended')`, id, claims.UserID)
 	if err != nil {
-		slog.Error("failed to delete livestock", "id", id, "error", err)
+		slog.Error("failed to cancel livestock", "id", id, "error", err)
 		writeJSON(w, http.StatusInternalServerError, errorBody("internal server error"))
 		return
 	}

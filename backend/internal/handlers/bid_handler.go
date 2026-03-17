@@ -42,7 +42,7 @@ func (h *BidHandler) List(w http.ResponseWriter, r *http.Request) {
 		`SELECT id, livestock_id, user_id, amount, is_winner, created_at
 		 FROM bids
 		 WHERE livestock_id = $1
-		 ORDER BY amount DESC`, livestockID,
+		 ORDER BY amount DESC LIMIT 100`, livestockID,
 	)
 	if err != nil {
 		slog.Error("failed to list bids", "livestock_id", livestockID, "error", err)

@@ -101,6 +101,9 @@ func main() {
 	// Stop agent scheduler
 	scheduler.Stop()
 
+	// Stop realtime hub
+	hub.Shutdown()
+
 	// Shutdown HTTP server with 10s timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
