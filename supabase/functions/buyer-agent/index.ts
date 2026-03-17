@@ -204,12 +204,31 @@ serve(async (req: Request) => {
       for (const goal of goals as AgentGoal[]) {
         if (goal.quantity_fulfilled >= goal.quantity) continue;
 
-        // Scan for matching listings
-        const { data: listings } = await (supabase.rpc as any)("agent_scan_listings", {
-          p_agent_id: agentId,
-          p_goal_id: goal.id,
-        });
+        // Scan for matching listings (direct query, service role bypasses RLS)
+        let query = supabase
+          .from("livestock_items")
+          .select("*")
+          .eq("status", "active")
+          .gt("end_time", new Date().toISOString())
+          .eq("category", goal.category)
+          .lte("starting_price", goal.max_price)
+          .neq("seller_id", agent.user_id)
+          .order("end_time", { ascending: true })
+          .limit(20);
 
+        if (goal.preferred_location) {
+          query = query.eq("location", goal.preferred_location);
+        }
+        if (goal.preferred_breed) {
+          query = query.ilike("breed", `%${goal.preferred_breed}%`);
+        }
+        if (goal.min_health === "Excellent") {
+          query = query.eq("health", "Excellent");
+        } else if (goal.min_health === "Good") {
+          query = query.in("health", ["Good", "Excellent"]);
+        }
+
+        const { data: listings } = await query;
         if (!listings?.length) continue;
 
         // Log findings

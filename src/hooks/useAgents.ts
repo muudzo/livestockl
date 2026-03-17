@@ -291,11 +291,15 @@ export function useAutoRunAgents(intervalMs = 15000) {
       for (const agent of activeAgents) {
         try {
           const action = ACTION_MAP[agent.agent_type];
-          const { data, error } = await supabase.functions.invoke(FUNCTION_MAP[agent.agent_type], {
+          const fnName = FUNCTION_MAP[agent.agent_type];
+          console.log(`[${agent.name}] Running ${fnName} with action=${action}...`);
+          const { data, error } = await supabase.functions.invoke(fnName, {
             body: { action, agentId: agent.id },
           });
           if (error) {
-            console.error(`[${agent.name}] Error:`, error);
+            // Try to get the actual error body
+            const body = typeof error === 'object' && 'context' in error ? (error as any).context : error;
+            console.error(`[${agent.name}] Error:`, error.message, body);
           } else {
             console.log(`[${agent.name}] Result:`, data);
           }
