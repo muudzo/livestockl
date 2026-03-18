@@ -6,17 +6,19 @@ import (
 
 	"github.com/zimlivestock/backend/internal/database"
 	"github.com/zimlivestock/backend/internal/middleware"
+	"github.com/zimlivestock/backend/internal/payments"
 )
 
 // NewRouter creates and returns the top-level HTTP handler with all routes wired up.
 // It uses Go 1.22+ ServeMux pattern matching with method prefixes.
-func NewRouter(db *database.DB, jwtSecret string) http.Handler {
+func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient) http.Handler {
 	mux := http.NewServeMux()
 
 	authH := NewAuthHandler(db, jwtSecret)
 	livestockH := NewLivestockHandler(db)
 	bidH := NewBidHandler(db)
 	agentH := NewAgentHandler(db)
+	paymentH := NewPaymentHandler(db, paynow)
 
 	authMW := middleware.Auth(jwtSecret)
 
@@ -40,6 +42,13 @@ func NewRouter(db *database.DB, jwtSecret string) http.Handler {
 
 	// ── Bids (protected writes) ──────────────────────────────────────
 	mux.Handle("POST /api/bids", authMW(http.HandlerFunc(bidH.Place)))
+
+	// ── Payments ────────────────────────────────────────────────────
+	mux.Handle("POST /api/payments/initiate-web", authMW(http.HandlerFunc(paymentH.InitiateWebPayment)))
+	mux.Handle("POST /api/payments/initiate-mobile", authMW(http.HandlerFunc(paymentH.InitiateMobilePayment)))
+	mux.HandleFunc("POST /api/payments/webhook", paymentH.PaymentWebhook) // Public — Paynow calls this
+	mux.Handle("POST /api/payments/poll", authMW(http.HandlerFunc(paymentH.PollPaymentStatus)))
+	mux.Handle("GET /api/payments/ref/{reference}", authMW(http.HandlerFunc(paymentH.GetPaymentByReference)))
 
 	// ── Agents (all protected except activity/decisions which are read-only) ──
 	mux.Handle("GET /api/agents", authMW(http.HandlerFunc(agentH.ListAgents)))

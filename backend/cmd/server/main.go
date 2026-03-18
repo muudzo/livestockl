@@ -57,8 +57,8 @@ func main() {
 	}
 	scheduler := agents.NewScheduler(db, paymentOrchestrator, interval)
 
-	// Router
-	router := handlers.NewRouter(db, jwtSecret)
+	// Router (pass Paynow client for payment endpoints — may be nil in simulation mode)
+	router := handlers.NewRouter(db, jwtSecret, paymentOrchestrator.PaynowClient())
 
 	// Add WebSocket route
 	mux := http.NewServeMux()

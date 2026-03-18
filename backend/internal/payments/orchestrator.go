@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"os"
 	"time"
 
 	"github.com/zimlivestock/backend/internal/database"
@@ -14,12 +15,44 @@ import (
 // Orchestrator manages payment processing with retry logic and method fallback.
 // It replicates the payment-orchestrator Edge Function in Go.
 type Orchestrator struct {
-	db *database.DB
+	db     *database.DB
+	paynow *PaynowClient // nil = simulation mode (for dev/testing)
 }
 
 // NewOrchestrator creates a new payment orchestrator backed by the given database.
+// If PAYNOW_INTEGRATION_ID and PAYNOW_INTEGRATION_KEY are set, it uses the real
+// Paynow API. Otherwise it falls back to simulation mode.
 func NewOrchestrator(db *database.DB) *Orchestrator {
-	return &Orchestrator{db: db}
+	o := &Orchestrator{db: db}
+
+	integrationID := os.Getenv("PAYNOW_INTEGRATION_ID")
+	integrationKey := os.Getenv("PAYNOW_INTEGRATION_KEY")
+	resultURL := os.Getenv("PAYNOW_RESULT_URL")
+	returnURL := os.Getenv("PAYNOW_RETURN_URL")
+
+	if integrationID != "" && integrationKey != "" {
+		slog.Info("paynow credentials found — using LIVE payment gateway",
+			"integration_id", integrationID,
+			"result_url", resultURL,
+		)
+		o.paynow = NewPaynowClient(PaynowConfig{
+			IntegrationID:  integrationID,
+			IntegrationKey: integrationKey,
+			ResultURL:      resultURL,
+			ReturnURL:      returnURL,
+		})
+	} else {
+		slog.Warn("paynow credentials not set — using SIMULATION mode",
+			"hint", "set PAYNOW_INTEGRATION_ID and PAYNOW_INTEGRATION_KEY to enable live payments",
+		)
+	}
+
+	return o
+}
+
+// PaynowClient returns the underlying Paynow client (may be nil in simulation mode).
+func (o *Orchestrator) PaynowClient() *PaynowClient {
+	return o.paynow
 }
 
 // PaymentMetrics holds aggregate statistics for the payment attempt cycle.
@@ -176,7 +209,7 @@ func (o *Orchestrator) executePayment(ctx context.Context, order *models.AgentPa
 				"total_attempts", totalAttempts,
 			)
 
-			success, reference, errMsg := simulatePaynow(method, attempt)
+			success, reference, errMsg := o.callPaynow(ctx, order, method, attempt)
 
 			if success {
 				slog.Info("payment succeeded",
@@ -323,10 +356,96 @@ func (o *Orchestrator) executePayment(ctx context.Context, order *models.AgentPa
 	}, nil
 }
 
+// callPaynow routes to the real Paynow API or simulation depending on config.
+func (o *Orchestrator) callPaynow(ctx context.Context, order *models.AgentPaymentOrder, method string, attempt int) (success bool, reference string, errMsg string) {
+	if o.paynow == nil {
+		return simulatePaynow(method, attempt)
+	}
+
+	// Use real Paynow API via mobile (express) checkout.
+	mobileMethod, ok := MethodToMobile(method)
+	if !ok {
+		// Card payments don't have a mobile method — fall back to web checkout.
+		// For agent-initiated payments, we can only do mobile push, so Card is simulated.
+		slog.Info("no mobile method for Card — simulating", "order_id", order.ID)
+		return simulatePaynow(method, attempt)
+	}
+
+	// We need a phone number and email. Pull from the user's profile.
+	var phone, email string
+	err := o.db.Pool.QueryRow(ctx,
+		`SELECT COALESCE(phone, ''), COALESCE(email, '') FROM profiles WHERE id = $1`,
+		order.UserID,
+	).Scan(&phone, &email)
+	if err != nil || phone == "" || email == "" {
+		slog.Warn("missing user phone/email for live payment, falling back to simulation",
+			"order_id", order.ID, "user_id", order.UserID, "error", err)
+		return simulatePaynow(method, attempt)
+	}
+
+	ref := fmt.Sprintf("ZL-AGT-%s-%d", order.ID[:8], time.Now().UnixMilli())
+	amount := fmt.Sprintf("%.2f", order.Amount)
+	info := fmt.Sprintf("ZimLivestock agent payment for item %s", order.LivestockID)
+
+	result, err := o.paynow.InitMobileTransaction(ctx, ref, amount, info, email, phone, mobileMethod)
+	if err != nil {
+		slog.Error("live paynow init failed",
+			"order_id", order.ID,
+			"method", method,
+			"attempt", attempt,
+			"error", err,
+		)
+		return false, "", err.Error()
+	}
+
+	// Poll for result (up to 120s with 5s intervals).
+	if result.PollURL != "" {
+		pollResult, pollErr := o.pollUntilTerminal(ctx, result.PollURL, 120*time.Second, 5*time.Second)
+		if pollErr != nil {
+			return false, "", fmt.Sprintf("poll failed: %s", pollErr.Error())
+		}
+		if IsPaid(pollResult.Status) {
+			return true, pollResult.PaynowReference, ""
+		}
+		return false, "", fmt.Sprintf("paynow status: %s", pollResult.Status)
+	}
+
+	return false, "", "no poll URL returned from Paynow"
+}
+
+// pollUntilTerminal polls the Paynow transaction until it reaches a terminal state or times out.
+func (o *Orchestrator) pollUntilTerminal(ctx context.Context, pollURL string, timeout, interval time.Duration) (*PaynowPollResponse, error) {
+	deadline := time.Now().Add(timeout)
+
+	for time.Now().Before(deadline) {
+		result, err := o.paynow.PollTransaction(ctx, pollURL)
+		if err != nil {
+			return nil, err
+		}
+
+		if IsTerminalStatus(result.Status) {
+			return result, nil
+		}
+
+		slog.Info("payment not yet terminal, waiting...",
+			"status", result.Status,
+			"poll_url", pollURL,
+		)
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(interval):
+			// Continue polling.
+		}
+	}
+
+	return nil, fmt.Errorf("polling timed out after %s", timeout)
+}
+
 // simulatePaynow simulates a Paynow payment gateway call with realistic
-// Zimbabwe-specific failure rates and error messages.
+// Zimbabwe-specific failure rates and error messages (used when no credentials are set).
 func simulatePaynow(method string, attempt int) (success bool, reference string, errMsg string) {
-	// Base success rates and error pools per method.
 	var baseRate float64
 	var errors []string
 
@@ -344,7 +463,6 @@ func simulatePaynow(method string, attempt int) (success bool, reference string,
 		return false, "", "unsupported payment method"
 	}
 
-	// +10% success rate per retry attempt.
 	successRate := baseRate + float64(attempt-1)*0.10
 	if successRate > 1.0 {
 		successRate = 1.0
@@ -355,7 +473,6 @@ func simulatePaynow(method string, attempt int) (success bool, reference string,
 		return true, ref, ""
 	}
 
-	// Pick a random error message.
 	msg := errors[rand.Intn(len(errors))]
 	return false, "", msg
 }
