@@ -148,23 +148,35 @@ export function CheckoutScreen() {
             <div className="space-y-3">
               <label htmlFor="ecocash" className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition-colors ${paymentMethod === 'ecocash' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'}`}>
                 <RadioGroupItem value="ecocash" id="ecocash" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded bg-[#00A651] flex items-center justify-center text-white font-bold text-xs">EC</div>
-                  <span className="font-medium">EcoCash</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/ecocash-badge.svg" alt="EcoCash" className="h-8 w-8 object-contain" />
+                  <div>
+                    <span className="font-medium">EcoCash</span>
+                    <p className="text-xs text-muted-foreground">Pay via USSD on your phone</p>
+                  </div>
                 </div>
               </label>
               <label htmlFor="onemoney" className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition-colors ${paymentMethod === 'onemoney' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'}`}>
                 <RadioGroupItem value="onemoney" id="onemoney" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded bg-[#0072BC] flex items-center justify-center text-white font-bold text-xs">OM</div>
-                  <span className="font-medium">OneMoney</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/onemoney-badge.svg" alt="OneMoney" className="h-8 w-8 object-contain" />
+                  <div>
+                    <span className="font-medium">OneMoney</span>
+                    <p className="text-xs text-muted-foreground">Pay via USSD on your phone</p>
+                  </div>
                 </div>
               </label>
               <label htmlFor="card" className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'}`}>
                 <RadioGroupItem value="card" id="card" />
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold text-xs">PN</div>
-                  <span className="font-medium">Pay Online (Card)</span>
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="flex gap-1">
+                    <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/visa-badge.svg" alt="Visa" className="h-6" />
+                    <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/mastercard-badge.svg" alt="Mastercard" className="h-6" />
+                  </div>
+                  <div>
+                    <span className="font-medium">Pay Online (Card)</span>
+                    <p className="text-xs text-muted-foreground">Visa, Mastercard via Paynow</p>
+                  </div>
                 </div>
               </label>
             </div>
@@ -187,6 +199,45 @@ export function CheckoutScreen() {
             <p className="text-sm text-blue-900">{getInstructions()}</p>
           </div>
         </div>
+
+        {/* Paynow Official Trust Badge */}
+        <div className="flex flex-col items-center gap-3 pt-2">
+          <img
+            src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/paynow-badge.png"
+            alt="Pay securely with Paynow — EcoCash, OneMoney, Visa, Mastercard, ZimSwitch"
+            className="h-14 object-contain"
+          />
+          <div className="flex items-center gap-2">
+            {paymentMethod === 'ecocash' && (
+              <img
+                src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/ecocash-badge.svg"
+                alt="EcoCash"
+                className="h-8"
+              />
+            )}
+            {paymentMethod === 'onemoney' && (
+              <img
+                src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/onemoney-badge.svg"
+                alt="OneMoney"
+                className="h-8"
+              />
+            )}
+            {paymentMethod === 'card' && (
+              <>
+                <img
+                  src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/visa-badge.svg"
+                  alt="Visa"
+                  className="h-6"
+                />
+                <img
+                  src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/mastercard-badge.svg"
+                  alt="Mastercard"
+                  className="h-6"
+                />
+              </>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="fixed bottom-16 left-0 right-0 bg-card border-t shadow-lg max-w-[480px] mx-auto">
@@ -196,8 +247,14 @@ export function CheckoutScreen() {
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
             ) : `Pay US$${total.toLocaleString()}`}
           </Button>
-          <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
-            <Lock className="w-3 h-3" /><span>Secured by Paynow</span>
+          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Lock className="w-3 h-3" />
+            <span>Secured by</span>
+            <img
+              src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/icon.png"
+              alt="Paynow"
+              className="h-4 inline-block"
+            />
           </div>
         </div>
       </div>
