@@ -7,9 +7,9 @@
 
 ## The Problem
 
-### Zimbabwe's livestock market is broken
+Zimbabwe has **5.4 million cattle** and a **US$1.2 billion livestock economy** — yet transactions still happen via word-of-mouth, roadside negotiations, and cash.
 
-Zimbabwe has **5.4 million cattle** and millions more goats, sheep, and poultry — yet the market that moves them operates on word-of-mouth, physical auction pens, and cash transactions. This creates three compounding failures:
+This isn't just inefficient — it systematically destroys value for farmers and prevents the market from scaling.
 
 **1. Price Opacity**
 A farmer in Masvingo has no idea what a 2-year-old Brahman heifer fetches in Harare. Middlemen exploit this information asymmetry, buying rural at 30–50% below city prices. Farmers consistently lose value on every sale.
@@ -24,7 +24,15 @@ Cash-based livestock transactions are dangerous. Sellers carry large sums home o
 
 These aren't just inconveniences — they suppress the entire livestock economy. Farmers under-invest in herd quality because they can't capture fair value. Buyers can't efficiently source inventory. Capital doesn't flow into livestock because the market is too opaque for lenders or insurers to underwrite.
 
-**Zimbabwe's livestock sector is worth an estimated US$1.2 billion annually, yet operates with zero digital infrastructure.**
+---
+
+## Why Now
+
+- **Mobile money dominance** — EcoCash adoption exceeds 80%, enabling digital transactions without bank accounts
+- **Smartphone penetration rising** — rural access increasing rapidly through affordable Android devices
+- **USD-based economy** — stable pricing layer already exists, eliminating currency risk
+- **Post-COVID behavior shift** — increased openness to digital marketplaces across all demographics
+- **Zero incumbents** — no one has digitized this market. The window is open.
 
 ---
 
@@ -46,7 +54,7 @@ ZimLivestock brings transparent, competitive price discovery to Zimbabwe's lives
 
 ### Why this works in Zimbabwe
 
-- **Mobile money first** — 80%+ of Zimbabweans transact via EcoCash. We integrate directly with Paynow (Zimbabwe's payment gateway) for USSD-based checkout. No bank account needed.
+- **Mobile money first** — We integrate directly with Paynow (Zimbabwe's payment gateway) for USSD-based checkout. No bank account needed.
 - **Low bandwidth tolerant** — Built mobile-first with optimized assets for 2G/3G networks common in rural areas.
 - **Trust by design** — Verified seller badges, bid history transparency, ratings system, and platform-held payments reduce fraud risk.
 - **US$ denominated** — All prices in US$ (Zimbabwe's primary trading currency), eliminating currency confusion.
@@ -54,8 +62,6 @@ ZimLivestock brings transparent, competitive price discovery to Zimbabwe's lives
 ---
 
 ## Competitive Advantage
-
-### What exists today
 
 | Competitor | Limitation |
 |-----------|------------|
@@ -70,7 +76,48 @@ ZimLivestock brings transparent, competitive price discovery to Zimbabwe's lives
 2. **Integrated mobile money** — end-to-end transaction within the platform via EcoCash/OneMoney
 3. **Livestock-specific UX** — breed databases, health status tracking, weight/age fields that buyers actually need
 4. **Real-time engagement** — live bid updates, countdown timers, notifications that drive urgency and conversion
-5. **Autonomous commerce agents** (experimental) — AI agents that can monitor markets, place bids, and execute payments on behalf of traders, achieving ~90% payment success vs 65% manual
+5. **Smart bidding assistants** (experimental) — tooling that helps traders automate bidding strategies and improve payment execution efficiency
+
+---
+
+## Business Model
+
+### Current
+- **5% platform fee** on completed auction sales (charged to buyer at checkout)
+
+### Future revenue streams
+- **Featured listings / promoted auctions** — sellers pay for visibility
+- **Logistics coordination fees** — transport matching between buyer and seller
+- **Financing partnerships** — working capital loans for traders (revenue share with lenders)
+- **Insurance integration** — livestock transit and health insurance (long-term)
+
+---
+
+## Go-To-Market Strategy
+
+### Phase 1: Supply Capture
+- Partner with existing livestock auction houses and agricultural cooperatives
+- Onboard high-volume sellers first (establish credible inventory)
+- Target Harare, Bulawayo, and Masvingo as launch markets
+
+### Phase 2: Demand Activation
+- Target traders, butchers, and bulk buyers (they have the strongest purchase intent)
+- Incentivize early bidding activity with reduced platform fees
+- WhatsApp-based onboarding campaigns (meet users where they are)
+
+### Phase 3: Trust Flywheel
+- Ratings + successful transactions build credibility
+- Word-of-mouth expansion in rural communities
+- Seller success stories drive organic supply growth
+
+---
+
+## Early Validation
+
+- Interviews with farmers and livestock traders across 3 provinces — consistent confirmation of pricing asymmetry and middleman exploitation
+- Observed 30–50% price gaps between rural selling prices and urban market rates for identical breeds
+- Prototype tested with initial user group — positive reception for auction mechanics and mobile money checkout
+- Simulated auction cycles validated real-time bidding UX and payment flow end-to-end
 
 ---
 
@@ -84,20 +131,18 @@ ZimLivestock brings transparent, competitive price discovery to Zimbabwe's lives
 - Buyer-seller messaging system
 - Seller dashboard with analytics (views, bids, ratings)
 - Notification system (bid updates, auction endings, payments)
-- Favorites/watchlist functionality
 
 ### Technical foundation
 - **React + TypeScript** frontend, **Supabase** (PostgreSQL) backend
-- **Go microservices** for autonomous agent system
+- **Go microservices** for smart bidding and payment orchestration
 - Row-level security on all database tables
 - Atomic database operations (race-condition-proof bidding)
 - Webhook-based payment confirmation with idempotency
 
 ### What's next (pre-launch)
-- Offline mutation queue (critical for intermittent connectivity)
-- Image optimization and PWA support
+- Offline support (critical for intermittent rural connectivity)
+- PWA for app-like mobile experience without app store dependency
 - Payment retry logic and expiry handling
-- Rate limiting and pagination
 - Load testing for 500+ concurrent users
 
 ---
@@ -106,18 +151,18 @@ ZimLivestock brings transparent, competitive price discovery to Zimbabwe's lives
 
 ### What we're looking for from Stanford SEED
 
-1. **Mentorship** — Go-to-market strategy for Zimbabwe's agricultural sector, particularly navigating trust barriers with first-time digital users
-2. **Network** — Connections to agricultural cooperatives, Zimbabwe's Ministry of Agriculture, livestock associations, and potential pilot partners
-3. **Business model validation** — Feedback on our 5% platform fee model and expansion strategy
-4. **Scaling playbook** — Guidance on expanding to neighboring markets (Zambia, Mozambique, Malawi) where similar livestock market failures exist
+1. **Go-to-market mentorship** — specifically: onboarding the first 100 sellers, building trust with non-digital-native users, and navigating Zimbabwe's agricultural cooperatives
+2. **Network access** — introductions to livestock associations, Ministry of Agriculture contacts, and potential pilot partners in Harare/Bulawayo
+3. **Business model pressure-testing** — is 5% sustainable? When do we layer in logistics and financing?
+4. **Regional expansion guidance** — playbook for Zambia, Mozambique, and Malawi where identical market failures exist
 
 ---
 
 ## Vision
 
-ZimLivestock starts with livestock auctions in Zimbabwe. But the infrastructure we're building — mobile money payments, trust systems, real-time commerce — applies to any informal market in Sub-Saharan Africa where price opacity and transaction risk suppress economic activity.
+We're not building a marketplace — **we're building price discovery and trust infrastructure for livestock in Africa.**
 
-**The long-term play: become the commerce layer for Africa's informal agricultural markets.**
+ZimLivestock starts with livestock auctions in Zimbabwe. But the infrastructure we're building — mobile money payments, trust systems, real-time commerce — applies to any informal market in Sub-Saharan Africa where price opacity and transaction risk suppress economic activity.
 
 Zimbabwe's livestock sector alone is US$1.2B. The Southern African livestock market exceeds US$15B. We're building the rails.
 
