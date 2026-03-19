@@ -7,7 +7,7 @@
 
 ## 1. Barrier to Entry: US$1,000 Bidding Deposit
 
-Every potential buyer must pay a **US$1,000 deposit** before they can place a single bid. This is non-negotiable — no deposit, no paddle.
+Every potential buyer must pay a **US$1,000 deposit** before they can place a single bid. No deposit, no paddle.
 
 **What it achieves:** Filters out non-serious participants and guarantees sellers that winning bids are backed by cash.
 
@@ -61,9 +61,9 @@ The auction was packed on a Wednesday — a working day. The crowd is primarily:
 
 **Who's NOT there:**
 - Employed people who can't take a Wednesday off
-- Rural smallholders who can't afford transport to the venue
+- Rural smallholders outside the geographic catchment
 - Diaspora Zimbabweans buying for family back home
-- Anyone outside the auction's geographic catchment
+- Anyone priced out by the US$1,000 deposit
 
 **Our real market:** The people who *want* cattle but *can't attend*. This is our wedge — geographic and schedule accessibility.
 
