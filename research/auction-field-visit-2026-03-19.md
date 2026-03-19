@@ -139,9 +139,18 @@ The entire auction experience is built on physical presence:
 - Diaspora buyers
 - Anyone priced out by the US$1,000 deposit
 
+### Real Numbers: Active Bidders vs. Spectators
+
+The highest bid card observed was **45** — meaning the maximum number of active bidders in the room was around 30-50. The rest of the crowd (easily 150+) are spectators: sellers scoping prices, first-timers learning the process, and people there for the social event.
+
+**What this means for us:**
+- We don't need 200 users to match an auction house. We need **~45 serious bidders** per auction. That's achievable.
+- Spectators still matter — they create the *feeling* of competition. A buyer bids more aggressively when 200 people are watching. We lose that psychological pressure on a screen.
+- **Product implication:** "X people watching this auction" badges and real-time bid counts can partially recreate crowd energy digitally.
+
 ### Biggest Risk
-**Liquidity.** An auction house wins because 200 buyers are in one room. We need critical mass of both buyers and sellers. Transport partnerships expand geographic reach (more potential buyers per listing), and lower fees attract price-sensitive sellers.
+**Liquidity.** But the bar is lower than it looks. We don't need to fill a room — we need ~45 active bidders per listing. Transport partnerships expand geographic reach (more potential buyers per listing), and lower fees attract price-sensitive sellers.
 
 ---
 
-*Field research conducted 19 March 2026. These observations should inform product roadmap, pricing strategy, and go-to-market positioning.*
+*Field research conducted 19 March 2026. Updated with bid card data from same visit. These observations should inform product roadmap, pricing strategy, and go-to-market positioning.*
