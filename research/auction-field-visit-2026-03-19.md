@@ -77,11 +77,21 @@ Neither the auction house nor the buyer/seller ecosystem has a clean transport s
 - Loading/offloading labour
 - Police clearance for moving livestock
 
-**Our opportunity:** Don't build a logistics company. Instead:
-- Integrate a **verified transporter directory** into the platform
-- Let buyers book transport at checkout
-- Take a small referral fee
-- This solves the "how do I get cattle from Masvingo to Harare" problem and expands our buyer pool geographically
+**Our opportunity:** Don't build a logistics company. Partner with existing operators.
+
+**Real lead:** Met two independent truckers at the auction who cold-approach farmers offering transport services. They already have trucks, routes, and farmer relationships — they just lack consistent deal flow.
+
+**Staged approach:**
+
+1. **Now (MVP):** Get their numbers. When a buyer wins an auction and needs transport, introduce them via WhatsApp manually. Zero code. Prove the demand.
+2. **Soon:** If buyers consistently ask for transport help, add a "Transport available" option at checkout — buyer sees "Masvingo → Harare: ~US$X" and can request a booking.
+3. **Later:** Verified transporter directory, booking through the platform, small referral cut (5-10% of transport fee).
+
+**Why transport is a strategic lever, not just a feature:**
+- Solves the **geographic liquidity problem** — a Harare buyer can bid on Masvingo cattle
+- Increases **average transaction value** (auction + transport in one flow)
+- Creates **switching costs** — the auction house doesn't offer this
+- Gives truckers guaranteed business instead of cold approaches — they become evangelists for the platform
 
 ---
 
@@ -89,10 +99,15 @@ Neither the auction house nor the buyer/seller ecosystem has a clean transport s
 
 A policewoman is stationed at the auction to issue clearance for every animal sold. This is a ZRP requirement to prevent cattle theft — you cannot legally move livestock without it.
 
-**We cannot skip this.** But we can digitize it:
-- Start with **photo upload** of the physical clearance certificate
-- Long-term: work with ZRP to issue digital clearance certificates linked to platform listings
-- This becomes a trust feature, not a burden ("Every animal on ZimLivestock has verified police clearance")
+**We cannot skip this.** But we can make it our advantage instead of a burden.
+
+**Staged approach:**
+
+1. **Now (MVP):** Seller uploads a photo of their stock card + brand mark when creating a listing. Buyer gets a copy. Both parties still handle physical ZRP clearance at handoff. We're just a marketplace, not liable.
+2. **Soon:** Partner with a vet or livestock agent in each region who verifies animals before listing. "ZimLivestock Verified" badge — something Facebook/WhatsApp literally cannot offer.
+3. **Long-term:** Approach ZRP about being an authorized digital clearance channel. Even one station piloting digital certificates linked to our listings creates a moat no competitor can easily copy.
+
+**Key decision:** Don't try to solve clearance at launch. Require stock card photo upload and move on. Solve it properly when volume demands it.
 
 ---
 
