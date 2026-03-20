@@ -107,6 +107,36 @@ func main() {
 		}
 	}()
 
+	// Sync drifted bid prices every 5 minutes
+	go func() {
+		syncTicker := time.NewTicker(5 * time.Minute)
+		defer syncTicker.Stop()
+		for {
+			select {
+			case <-syncTicker.C:
+				syncCtx, syncCancel := context.WithTimeout(context.Background(), 30*time.Second)
+				tag, err := db.Pool.Exec(syncCtx, `
+					UPDATE livestock_items li SET
+						current_bid = COALESCE(sub.max_bid, 0),
+						bid_count = COALESCE(sub.bid_count, 0)
+					FROM (
+						SELECT livestock_id, MAX(amount) as max_bid, COUNT(*) as bid_count
+						FROM bids GROUP BY livestock_id
+					) sub
+					WHERE sub.livestock_id = li.id
+					  AND (li.current_bid != COALESCE(sub.max_bid, 0) OR li.bid_count != sub.bid_count)`)
+				if err != nil {
+					slog.Error("bid sync failed", "error", err)
+				} else if tag.RowsAffected() > 0 {
+					slog.Info("synced drifted bid prices", "count", tag.RowsAffected())
+				}
+				syncCancel()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
 	// Start server in goroutine
 	go func() {
 		slog.Info("server starting", "port", port)
