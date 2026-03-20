@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/zimlivestock/backend/internal/database"
 	"github.com/zimlivestock/backend/internal/middleware"
@@ -87,6 +88,36 @@ func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient,
 
 	// ── Upload ──────────────────────────────────────────────────────
 	mux.Handle("POST /api/upload", authMW(http.HandlerFunc(uploadH.Upload)))
+
+	// ── Health check (public) ───────────────────────────────────────
+	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
+		// Check DB connectivity
+		err := db.Pool.Ping(r.Context())
+		if err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"status":    "unhealthy",
+				"error":     err.Error(),
+				"timestamp": time.Now().UTC(),
+			})
+			return
+		}
+
+		// Count active resources
+		var listingCount, agentCount, userCount int
+		db.Pool.QueryRow(r.Context(), "SELECT COUNT(*) FROM livestock_items WHERE status = 'active'").Scan(&listingCount)
+		db.Pool.QueryRow(r.Context(), "SELECT COUNT(*) FROM agents").Scan(&agentCount)
+		db.Pool.QueryRow(r.Context(), "SELECT COUNT(*) FROM profiles").Scan(&userCount)
+
+		writeJSON(w, http.StatusOK, map[string]any{
+			"status":    "healthy",
+			"timestamp": time.Now().UTC(),
+			"stats": map[string]int{
+				"active_listings": listingCount,
+				"agents":          agentCount,
+				"users":           userCount,
+			},
+		})
+	})
 
 	// ── Serve uploaded files ────────────────────────────────────────
 	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))

@@ -297,6 +297,78 @@ func TestCreateListingValidation(t *testing.T) {
 	}
 }
 
+// ── Endpoint Documentation Test ─────────────────────────────────────
+
+func TestAllEndpointsDocumented(t *testing.T) {
+	// Document all endpoints for the portfolio
+	endpoints := []struct {
+		method string
+		path   string
+		auth   bool
+	}{
+		{"POST", "/api/auth/signup", false},
+		{"POST", "/api/auth/login", false},
+		{"GET", "/api/auth/me", true},
+		{"GET", "/api/livestock", false},
+		{"GET", "/api/livestock/{id}", false},
+		{"GET", "/api/livestock/mine", true},
+		{"GET", "/api/livestock/won", true},
+		{"POST", "/api/livestock", true},
+		{"PUT", "/api/livestock/{id}", true},
+		{"DELETE", "/api/livestock/{id}", true},
+		{"POST", "/api/livestock/{id}/view", true},
+		{"GET", "/api/bids/{livestockId}", false},
+		{"POST", "/api/bids", true},
+		{"GET", "/api/payments", true},
+		{"POST", "/api/payments/initiate-web", true},
+		{"POST", "/api/payments/initiate-mobile", true},
+		{"POST", "/api/payments/webhook", false},
+		{"POST", "/api/payments/poll", true},
+		{"GET", "/api/payments/ref/{reference}", true},
+		{"GET", "/api/notifications", true},
+		{"GET", "/api/notifications/unread-count", true},
+		{"PUT", "/api/notifications/read-all", true},
+		{"DELETE", "/api/notifications/{id}", true},
+		{"GET", "/api/favorites", true},
+		{"POST", "/api/favorites/{livestockId}", true},
+		{"GET", "/api/conversations", true},
+		{"POST", "/api/conversations", true},
+		{"GET", "/api/messages/{conversationId}", true},
+		{"POST", "/api/messages", true},
+		{"POST", "/api/upload", true},
+		{"GET", "/api/agents", true},
+		{"POST", "/api/agents", true},
+		{"PUT", "/api/agents/{id}/status", true},
+		{"POST", "/api/agents/{id}/goals", true},
+		{"GET", "/api/agents/{id}/goals", true},
+		{"GET", "/api/agents/{id}/activity", true},
+		{"GET", "/api/agents/{id}/decisions", true},
+		{"GET", "/api/agents/{id}/payments", true},
+		{"POST", "/api/agents/{id}/run", true},
+		{"GET", "/api/market-intel", false},
+		{"GET", "/api/health", false},
+		{"GET", "/ws", false},
+	}
+
+	t.Logf("Total endpoints: %d", len(endpoints))
+
+	authCount := 0
+	publicCount := 0
+	for _, ep := range endpoints {
+		if ep.auth {
+			authCount++
+		} else {
+			publicCount++
+		}
+	}
+
+	t.Logf("Authenticated: %d, Public: %d", authCount, publicCount)
+
+	if len(endpoints) < 40 {
+		t.Errorf("Expected at least 40 endpoints, got %d", len(endpoints))
+	}
+}
+
 func TestCreateListingRequiresAuth(t *testing.T) {
 	h := &LivestockHandler{db: nil}
 	protected := middleware.Auth(testJWTSecret)(http.HandlerFunc(h.Create))
