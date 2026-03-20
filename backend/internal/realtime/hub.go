@@ -43,9 +43,19 @@ type Message struct {
 }
 
 // clientAction is a subscription/unsubscription request read from the client.
+// Supports both {"action": "subscribe"} and {"type": "subscribe"} formats.
 type clientAction struct {
 	Action  string `json:"action"`
+	Type    string `json:"type"`
 	Channel string `json:"channel"`
+}
+
+// effectiveAction returns the action, preferring "action" field but falling back to "type".
+func (a clientAction) effectiveAction() string {
+	if a.Action != "" {
+		return a.Action
+	}
+	return a.Type
 }
 
 // Client is a middleman between the WebSocket connection and the Hub.
@@ -240,6 +250,36 @@ func (h *Hub) PublishToUser(userID, event string, payload any) {
 	}
 }
 
+// Broadcast sends an arbitrary JSON-serializable message to all subscribers of a channel.
+// This is a lower-level method than Publish — it sends the message exactly as given.
+func (h *Hub) Broadcast(channel string, message any) {
+	data, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("realtime: failed to marshal broadcast: %v", err)
+		return
+	}
+
+	h.mu.RLock()
+	subs, exists := h.channels[channel]
+	if !exists {
+		h.mu.RUnlock()
+		return
+	}
+	targets := make([]*Client, 0, len(subs))
+	for c := range subs {
+		targets = append(targets, c)
+	}
+	h.mu.RUnlock()
+
+	for _, c := range targets {
+		select {
+		case c.send <- data:
+		default:
+			h.unregister <- c
+		}
+	}
+}
+
 // HandleWebSocket upgrades an HTTP request to a WebSocket connection.
 // It extracts the user identity from a "token" query parameter (JWT) or falls
 // back to a plain "user_id" query parameter for unauthenticated preview.
@@ -310,7 +350,8 @@ func (c *Client) readPump() {
 			continue
 		}
 
-		switch action.Action {
+		act := action.effectiveAction()
+		switch act {
 		case "subscribe":
 			if action.Channel != "" {
 				c.hub.subscribe(c, action.Channel)
@@ -319,8 +360,15 @@ func (c *Client) readPump() {
 			if action.Channel != "" {
 				c.hub.unsubscribe(c, action.Channel)
 			}
+		case "ping":
+			// Respond with pong
+			pong, _ := json.Marshal(map[string]string{"type": "pong"})
+			select {
+			case c.send <- pong:
+			default:
+			}
 		default:
-			log.Printf("realtime: unknown action %q from client %s", action.Action, c.userID)
+			log.Printf("realtime: unknown action %q from client %s", act, c.userID)
 		}
 	}
 }
