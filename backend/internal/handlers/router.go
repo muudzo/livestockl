@@ -11,7 +11,7 @@ import (
 
 // NewRouter creates and returns the top-level HTTP handler with all routes wired up.
 // It uses Go 1.22+ ServeMux pattern matching with method prefixes.
-func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient) http.Handler {
+func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient, uploadDir string) http.Handler {
 	mux := http.NewServeMux()
 
 	authH := NewAuthHandler(db, jwtSecret)
@@ -19,6 +19,11 @@ func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient)
 	bidH := NewBidHandler(db)
 	agentH := NewAgentHandler(db)
 	paymentH := NewPaymentHandler(db, paynow)
+	notifH := NewNotificationHandler(db)
+	favH := NewFavoriteHandler(db)
+	convH := NewConversationHandler(db)
+	msgH := NewMessageHandler(db)
+	uploadH := NewUploadHandler(uploadDir)
 
 	authMW := middleware.Auth(jwtSecret)
 
@@ -29,13 +34,19 @@ func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient)
 	// ── Auth (protected) ─────────────────────────────────────────────
 	mux.Handle("GET /api/auth/me", authMW(http.HandlerFunc(authH.Me)))
 
+	// ── Livestock (protected — must be before {id} routes) ──────────
+	mux.Handle("GET /api/livestock/mine", authMW(http.HandlerFunc(livestockH.Mine)))
+	mux.Handle("GET /api/livestock/won", authMW(http.HandlerFunc(livestockH.Won)))
+
 	// ── Livestock (public reads) ─────────────────────────────────────
 	mux.HandleFunc("GET /api/livestock", livestockH.List)
 	mux.HandleFunc("GET /api/livestock/{id}", livestockH.Get)
 
 	// ── Livestock (protected writes) ─────────────────────────────────
 	mux.Handle("POST /api/livestock", authMW(http.HandlerFunc(livestockH.Create)))
+	mux.Handle("PUT /api/livestock/{id}", authMW(http.HandlerFunc(livestockH.Update)))
 	mux.Handle("DELETE /api/livestock/{id}", authMW(http.HandlerFunc(livestockH.Delete)))
+	mux.Handle("POST /api/livestock/{id}/view", authMW(http.HandlerFunc(livestockH.IncrementView)))
 
 	// ── Bids (public reads) ──────────────────────────────────────────
 	mux.HandleFunc("GET /api/bids/{livestockId}", bidH.List)
@@ -49,6 +60,30 @@ func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient)
 	mux.HandleFunc("POST /api/payments/webhook", paymentH.PaymentWebhook) // Public — Paynow calls this
 	mux.Handle("POST /api/payments/poll", authMW(http.HandlerFunc(paymentH.PollPaymentStatus)))
 	mux.Handle("GET /api/payments/ref/{reference}", authMW(http.HandlerFunc(paymentH.GetPaymentByReference)))
+
+	// ── Notifications ───────────────────────────────────────────────
+	mux.Handle("GET /api/notifications", authMW(http.HandlerFunc(notifH.List)))
+	mux.Handle("GET /api/notifications/unread-count", authMW(http.HandlerFunc(notifH.UnreadCount)))
+	mux.Handle("PUT /api/notifications/read-all", authMW(http.HandlerFunc(notifH.MarkAllRead)))
+	mux.Handle("DELETE /api/notifications/{id}", authMW(http.HandlerFunc(notifH.Delete)))
+
+	// ── Favorites ───────────────────────────────────────────────────
+	mux.Handle("GET /api/favorites", authMW(http.HandlerFunc(favH.List)))
+	mux.Handle("POST /api/favorites/{livestockId}", authMW(http.HandlerFunc(favH.Toggle)))
+
+	// ── Conversations ───────────────────────────────────────────────
+	mux.Handle("GET /api/conversations", authMW(http.HandlerFunc(convH.List)))
+	mux.Handle("POST /api/conversations", authMW(http.HandlerFunc(convH.Start)))
+
+	// ── Messages ────────────────────────────────────────────────────
+	mux.Handle("GET /api/messages/{conversationId}", authMW(http.HandlerFunc(msgH.List)))
+	mux.Handle("POST /api/messages", authMW(http.HandlerFunc(msgH.Send)))
+
+	// ── Upload ──────────────────────────────────────────────────────
+	mux.Handle("POST /api/upload", authMW(http.HandlerFunc(uploadH.Upload)))
+
+	// ── Serve uploaded files ────────────────────────────────────────
+	mux.Handle("GET /uploads/", http.StripPrefix("/uploads/", http.FileServer(http.Dir(uploadDir))))
 
 	// ── Agents (all protected except activity/decisions which are read-only) ──
 	mux.Handle("GET /api/agents", authMW(http.HandlerFunc(agentH.ListAgents)))

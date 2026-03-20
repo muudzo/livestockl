@@ -325,3 +325,454 @@ func (db *DB) LogAgentActivity(ctx context.Context, agentID, eventType, message 
 	}
 	return nil
 }
+
+// ── Favorites ───────────────────────────────────────────────
+
+func (db *DB) GetFavoriteIDs(ctx context.Context, userID string) ([]string, error) {
+	rows, err := db.Pool.Query(ctx, `SELECT livestock_id FROM favorites WHERE user_id = $1`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("query favorites: %w", err)
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan favorite: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (db *DB) ToggleFavorite(ctx context.Context, userID, livestockID string) (bool, error) {
+	var exists bool
+	err := db.Pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM favorites WHERE user_id = $1 AND livestock_id = $2)`,
+		userID, livestockID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("check favorite: %w", err)
+	}
+	if exists {
+		_, err = db.Pool.Exec(ctx, `DELETE FROM favorites WHERE user_id = $1 AND livestock_id = $2`, userID, livestockID)
+		return false, err
+	}
+	_, err = db.Pool.Exec(ctx, `INSERT INTO favorites (user_id, livestock_id) VALUES ($1, $2)`, userID, livestockID)
+	return true, err
+}
+
+// ── Notifications ───────────────────────────────────────────
+
+func (db *DB) GetNotifications(ctx context.Context, userID string) ([]models.Notification, error) {
+	rows, err := db.Pool.Query(ctx, `
+		SELECT id, user_id, type, title, message, read, priority, created_at
+		FROM notifications WHERE user_id = $1 ORDER BY created_at DESC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("query notifications: %w", err)
+	}
+	defer rows.Close()
+	var notifs []models.Notification
+	for rows.Next() {
+		var n models.Notification
+		if err := rows.Scan(&n.ID, &n.UserID, &n.Type, &n.Title, &n.Message, &n.Read, &n.Priority, &n.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan notification: %w", err)
+		}
+		notifs = append(notifs, n)
+	}
+	return notifs, rows.Err()
+}
+
+func (db *DB) GetUnreadCount(ctx context.Context, userID string) (int, error) {
+	var count int
+	err := db.Pool.QueryRow(ctx, `SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND read = false`, userID).Scan(&count)
+	return count, err
+}
+
+func (db *DB) MarkAllNotificationsRead(ctx context.Context, userID string) error {
+	_, err := db.Pool.Exec(ctx, `UPDATE notifications SET read = true WHERE user_id = $1 AND read = false`, userID)
+	return err
+}
+
+func (db *DB) DeleteNotification(ctx context.Context, id, userID string) error {
+	tag, err := db.Pool.Exec(ctx, `DELETE FROM notifications WHERE id = $1 AND user_id = $2`, id, userID)
+	if err != nil {
+		return fmt.Errorf("delete notification: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("notification not found")
+	}
+	return nil
+}
+
+// ── My Listings ─────────────────────────────────────────────
+
+func (db *DB) GetMyListings(ctx context.Context, userID string, limit int) ([]models.LivestockItem, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	rows, err := db.Pool.Query(ctx, `
+		SELECT id, title, category, breed, age, weight, description, location,
+		       health, starting_price, current_bid, bid_count, view_count,
+		       image_urls, seller_id, status, duration_days, end_time, created_at
+		FROM livestock_items WHERE seller_id = $1
+		ORDER BY created_at DESC LIMIT $2`, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("query my listings: %w", err)
+	}
+	defer rows.Close()
+	var items []models.LivestockItem
+	for rows.Next() {
+		var item models.LivestockItem
+		if err := rows.Scan(
+			&item.ID, &item.Title, &item.Category, &item.Breed,
+			&item.Age, &item.Weight, &item.Description, &item.Location,
+			&item.Health, &item.StartingPrice, &item.CurrentBid,
+			&item.BidCount, &item.ViewCount, &item.ImageURLs,
+			&item.SellerID, &item.Status, &item.DurationDays,
+			&item.EndTime, &item.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan my listing: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+// ── Won Items ───────────────────────────────────────────────
+
+func (db *DB) GetWonItems(ctx context.Context, userID string) ([]models.LivestockItem, error) {
+	rows, err := db.Pool.Query(ctx, `
+		SELECT li.id, li.title, li.category, li.breed, li.age, li.weight,
+		       li.description, li.location, li.health, li.starting_price,
+		       li.current_bid, li.bid_count, li.view_count, li.image_urls,
+		       li.seller_id, li.status, li.duration_days, li.end_time, li.created_at
+		FROM bids b
+		JOIN livestock_items li ON li.id = b.livestock_id
+		WHERE b.user_id = $1 AND b.is_winner = true
+		ORDER BY b.created_at DESC LIMIT 50`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("query won items: %w", err)
+	}
+	defer rows.Close()
+	var items []models.LivestockItem
+	for rows.Next() {
+		var item models.LivestockItem
+		if err := rows.Scan(
+			&item.ID, &item.Title, &item.Category, &item.Breed,
+			&item.Age, &item.Weight, &item.Description, &item.Location,
+			&item.Health, &item.StartingPrice, &item.CurrentBid,
+			&item.BidCount, &item.ViewCount, &item.ImageURLs,
+			&item.SellerID, &item.Status, &item.DurationDays,
+			&item.EndTime, &item.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan won item: %w", err)
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+// ── Update Listing ──────────────────────────────────────────
+
+func (db *DB) UpdateListing(ctx context.Context, id, sellerID string, updates map[string]any) (*models.LivestockItem, error) {
+	// Build dynamic SET clause
+	allowed := map[string]bool{
+		"title": true, "breed": true, "age": true, "weight": true,
+		"description": true, "location": true, "health": true,
+		"starting_price": true, "image_urls": true,
+	}
+	setClauses := []string{}
+	args := []any{}
+	argIdx := 1
+
+	for key, val := range updates {
+		if !allowed[key] {
+			continue
+		}
+		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", key, argIdx))
+		args = append(args, val)
+		argIdx++
+	}
+
+	if len(setClauses) == 0 {
+		return nil, fmt.Errorf("no valid fields to update")
+	}
+
+	// If starting_price is being updated, check no bids exist
+	if _, ok := updates["starting_price"]; ok {
+		var bidCount int
+		err := db.Pool.QueryRow(ctx, `SELECT bid_count FROM livestock_items WHERE id = $1 AND seller_id = $2`, id, sellerID).Scan(&bidCount)
+		if err != nil {
+			return nil, fmt.Errorf("check bid count: %w", err)
+		}
+		if bidCount > 0 {
+			return nil, fmt.Errorf("cannot change starting price after bids have been placed")
+		}
+	}
+
+	query := fmt.Sprintf(`UPDATE livestock_items SET %s WHERE id = $%d AND seller_id = $%d
+		RETURNING id, title, category, breed, age, weight, description, location,
+		          health, starting_price, current_bid, bid_count, view_count,
+		          image_urls, seller_id, status, duration_days, end_time, created_at`,
+		joinStrings(setClauses, ", "), argIdx, argIdx+1)
+	args = append(args, id, sellerID)
+
+	var item models.LivestockItem
+	err := db.Pool.QueryRow(ctx, query, args...).Scan(
+		&item.ID, &item.Title, &item.Category, &item.Breed,
+		&item.Age, &item.Weight, &item.Description, &item.Location,
+		&item.Health, &item.StartingPrice, &item.CurrentBid,
+		&item.BidCount, &item.ViewCount, &item.ImageURLs,
+		&item.SellerID, &item.Status, &item.DurationDays,
+		&item.EndTime, &item.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("update listing: %w", err)
+	}
+	return &item, nil
+}
+
+func joinStrings(strs []string, sep string) string {
+	result := ""
+	for i, s := range strs {
+		if i > 0 {
+			result += sep
+		}
+		result += s
+	}
+	return result
+}
+
+// ── View Count ──────────────────────────────────────────────
+
+func (db *DB) IncrementViewCount(ctx context.Context, itemID string) error {
+	_, err := db.Pool.Exec(ctx, `UPDATE livestock_items SET view_count = view_count + 1 WHERE id = $1`, itemID)
+	return err
+}
+
+// ── Conversations ───────────────────────────────────────────
+
+func (db *DB) GetConversations(ctx context.Context, userID string) ([]models.Conversation, error) {
+	rows, err := db.Pool.Query(ctx, `
+		SELECT c.id, c.participant_1, c.participant_2, c.livestock_id,
+		       c.last_message_at, c.created_at,
+		       CASE WHEN c.participant_1 = $1 THEN p2.first_name ELSE p1.first_name END,
+		       CASE WHEN c.participant_1 = $1 THEN p2.last_name ELSE p1.last_name END,
+		       li.title
+		FROM conversations c
+		JOIN profiles p1 ON p1.id = c.participant_1
+		JOIN profiles p2 ON p2.id = c.participant_2
+		LEFT JOIN livestock_items li ON li.id = c.livestock_id
+		WHERE c.participant_1 = $1 OR c.participant_2 = $1
+		ORDER BY c.last_message_at DESC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("query conversations: %w", err)
+	}
+	defer rows.Close()
+
+	var convs []models.Conversation
+	for rows.Next() {
+		var c models.Conversation
+		var otherFirst, otherLast string
+		var livestockTitle *string
+		if err := rows.Scan(&c.ID, &c.Participant1, &c.Participant2, &c.LivestockID,
+			&c.LastMessageAt, &c.CreatedAt, &otherFirst, &otherLast, &livestockTitle); err != nil {
+			return nil, fmt.Errorf("scan conversation: %w", err)
+		}
+		c.OtherParticipant = &models.Profile{FirstName: otherFirst, LastName: otherLast}
+		c.LivestockTitle = livestockTitle
+		convs = append(convs, c)
+	}
+
+	// Fetch last messages
+	if len(convs) > 0 {
+		convIDs := make([]string, len(convs))
+		for i, c := range convs {
+			convIDs[i] = c.ID
+		}
+		msgRows, err := db.Pool.Query(ctx, `
+			SELECT DISTINCT ON (conversation_id) conversation_id, content
+			FROM messages WHERE conversation_id = ANY($1)
+			ORDER BY conversation_id, created_at DESC`, convIDs)
+		if err == nil {
+			defer msgRows.Close()
+			lastMsgs := map[string]string{}
+			for msgRows.Next() {
+				var convID, content string
+				if err := msgRows.Scan(&convID, &content); err == nil {
+					lastMsgs[convID] = content
+				}
+			}
+			for i := range convs {
+				convs[i].LastMessage = lastMsgs[convs[i].ID]
+			}
+		}
+	}
+
+	return convs, rows.Err()
+}
+
+func (db *DB) StartConversation(ctx context.Context, userID, sellerID string, livestockID *string) (*models.Conversation, error) {
+	// Ensure consistent ordering: lower UUID first
+	p1, p2 := userID, sellerID
+	if p1 > p2 {
+		p1, p2 = p2, p1
+	}
+
+	// Try find existing
+	var conv models.Conversation
+	var err error
+	if livestockID != nil {
+		err = db.Pool.QueryRow(ctx, `
+			SELECT id, participant_1, participant_2, livestock_id, last_message_at, created_at
+			FROM conversations WHERE participant_1 = $1 AND participant_2 = $2 AND livestock_id = $3`,
+			p1, p2, *livestockID).Scan(&conv.ID, &conv.Participant1, &conv.Participant2, &conv.LivestockID, &conv.LastMessageAt, &conv.CreatedAt)
+	} else {
+		err = db.Pool.QueryRow(ctx, `
+			SELECT id, participant_1, participant_2, livestock_id, last_message_at, created_at
+			FROM conversations WHERE participant_1 = $1 AND participant_2 = $2 AND livestock_id IS NULL`,
+			p1, p2).Scan(&conv.ID, &conv.Participant1, &conv.Participant2, &conv.LivestockID, &conv.LastMessageAt, &conv.CreatedAt)
+	}
+	if err == nil {
+		return &conv, nil
+	}
+
+	// Create new
+	id := uuid.New().String()
+	err = db.Pool.QueryRow(ctx, `
+		INSERT INTO conversations (id, participant_1, participant_2, livestock_id)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, participant_1, participant_2, livestock_id, last_message_at, created_at`,
+		id, p1, p2, livestockID).Scan(&conv.ID, &conv.Participant1, &conv.Participant2, &conv.LivestockID, &conv.LastMessageAt, &conv.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("create conversation: %w", err)
+	}
+	return &conv, nil
+}
+
+// ── Messages ────────────────────────────────────────────────
+
+func (db *DB) GetMessages(ctx context.Context, conversationID string) ([]models.Message, error) {
+	rows, err := db.Pool.Query(ctx, `
+		SELECT id, conversation_id, sender_id, content, read, created_at
+		FROM messages WHERE conversation_id = $1 ORDER BY created_at ASC`, conversationID)
+	if err != nil {
+		return nil, fmt.Errorf("query messages: %w", err)
+	}
+	defer rows.Close()
+	var msgs []models.Message
+	for rows.Next() {
+		var m models.Message
+		if err := rows.Scan(&m.ID, &m.ConversationID, &m.SenderID, &m.Content, &m.Read, &m.CreatedAt); err != nil {
+			return nil, fmt.Errorf("scan message: %w", err)
+		}
+		msgs = append(msgs, m)
+	}
+	return msgs, rows.Err()
+}
+
+func (db *DB) SendMessage(ctx context.Context, conversationID, senderID, content string) (*models.Message, error) {
+	id := uuid.New().String()
+	var msg models.Message
+	err := db.Pool.QueryRow(ctx, `
+		INSERT INTO messages (id, conversation_id, sender_id, content)
+		VALUES ($1, $2, $3, $4)
+		RETURNING id, conversation_id, sender_id, content, read, created_at`,
+		id, conversationID, senderID, content).Scan(&msg.ID, &msg.ConversationID, &msg.SenderID, &msg.Content, &msg.Read, &msg.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("send message: %w", err)
+	}
+	// Update conversation last_message_at
+	_, _ = db.Pool.Exec(ctx, `UPDATE conversations SET last_message_at = now() WHERE id = $1`, conversationID)
+	return &msg, nil
+}
+
+// ── Payment queries ─────────────────────────────────────────
+
+func (db *DB) GetPaymentsByUser(ctx context.Context, userID string, limit int) ([]models.Payment, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	rows, err := db.Pool.Query(ctx, `
+		SELECT id, user_id, livestock_id, reference, amount, method, status,
+		       paynow_reference, phone, created_at, updated_at
+		FROM payments WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("query payments: %w", err)
+	}
+	defer rows.Close()
+	var payments []models.Payment
+	for rows.Next() {
+		var p models.Payment
+		if err := rows.Scan(&p.ID, &p.UserID, &p.LivestockID, &p.Reference,
+			&p.Amount, &p.Method, &p.Status, &p.PaynowReference,
+			&p.Phone, &p.CreatedAt, &p.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan payment: %w", err)
+		}
+		payments = append(payments, p)
+	}
+	return payments, rows.Err()
+}
+
+func (db *DB) GetPaymentByReference(ctx context.Context, reference string) (*models.Payment, error) {
+	var p models.Payment
+	err := db.Pool.QueryRow(ctx, `
+		SELECT id, user_id, livestock_id, reference, amount, method, status,
+		       paynow_reference, phone, created_at, updated_at
+		FROM payments WHERE reference = $1`, reference).Scan(
+		&p.ID, &p.UserID, &p.LivestockID, &p.Reference,
+		&p.Amount, &p.Method, &p.Status, &p.PaynowReference,
+		&p.Phone, &p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("get payment by reference: %w", err)
+	}
+	return &p, nil
+}
+
+// ── Agent Payments & Market Intel ───────────────────────────
+
+func (db *DB) GetAgentPayments(ctx context.Context, agentID string, limit int) ([]models.AgentPaymentOrder, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 20
+	}
+	rows, err := db.Pool.Query(ctx, `
+		SELECT id, agent_id, agent_bid_id, livestock_id, user_id, amount, method,
+		       status, attempt_count, max_attempts, last_error, paynow_reference,
+		       created_at, paid_at, updated_at
+		FROM agent_payment_orders WHERE agent_id = $1
+		ORDER BY created_at DESC LIMIT $2`, agentID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("query agent payments: %w", err)
+	}
+	defer rows.Close()
+	var orders []models.AgentPaymentOrder
+	for rows.Next() {
+		var o models.AgentPaymentOrder
+		if err := rows.Scan(&o.ID, &o.AgentID, &o.AgentBidID, &o.LivestockID, &o.UserID,
+			&o.Amount, &o.Method, &o.Status, &o.AttemptCount, &o.MaxAttempts,
+			&o.LastError, &o.PaynowReference, &o.CreatedAt, &o.PaidAt, &o.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan agent payment: %w", err)
+		}
+		orders = append(orders, o)
+	}
+	return orders, rows.Err()
+}
+
+// ── Get Livestock with Seller Profile ───────────────────────
+
+func (db *DB) GetLivestockWithSeller(ctx context.Context, id string) (*models.LivestockItem, *models.Profile, error) {
+	item, err := db.GetLivestockByID(ctx, id)
+	if err != nil {
+		return nil, nil, err
+	}
+	var seller models.Profile
+	err = db.Pool.QueryRow(ctx, `
+		SELECT id, email, first_name, last_name, phone, verified, rating, sales_count, created_at
+		FROM profiles WHERE id = $1`, item.SellerID).Scan(
+		&seller.ID, &seller.Email, &seller.FirstName, &seller.LastName,
+		&seller.Phone, &seller.Verified, &seller.Rating, &seller.SalesCount, &seller.CreatedAt)
+	if err != nil {
+		return item, nil, nil // Return item without seller if profile query fails
+	}
+	return item, &seller, nil
+}

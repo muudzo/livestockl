@@ -264,3 +264,54 @@ func (h *LivestockHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "listing deleted"})
 }
+
+// Update handles PUT /api/livestock/{id}.
+func (h *LivestockHandler) Update(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(string)
+	id := r.PathValue("id")
+
+	var updates map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+		writeJSON(w, http.StatusBadRequest, errorBody("invalid request body"))
+		return
+	}
+
+	item, err := h.db.UpdateListing(r.Context(), id, userID, updates)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, errorBody(err.Error()))
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
+}
+
+// Mine handles GET /api/livestock/mine.
+func (h *LivestockHandler) Mine(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(string)
+	items, err := h.db.GetMyListings(r.Context(), userID, 50)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorBody(err.Error()))
+		return
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+// Won handles GET /api/livestock/won.
+func (h *LivestockHandler) Won(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value("user_id").(string)
+	items, err := h.db.GetWonItems(r.Context(), userID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorBody(err.Error()))
+		return
+	}
+	writeJSON(w, http.StatusOK, items)
+}
+
+// IncrementView handles POST /api/livestock/{id}/view.
+func (h *LivestockHandler) IncrementView(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if err := h.db.IncrementViewCount(r.Context(), id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, errorBody(err.Error()))
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}

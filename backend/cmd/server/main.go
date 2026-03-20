@@ -57,8 +57,15 @@ func main() {
 	}
 	scheduler := agents.NewScheduler(db, paymentOrchestrator, interval)
 
+	// Upload directory
+	uploadDir := "./uploads"
+	if err := os.MkdirAll(uploadDir, 0755); err != nil {
+		slog.Error("failed to create upload directory", "error", err)
+		os.Exit(1)
+	}
+
 	// Router (pass Paynow client for payment endpoints — may be nil in simulation mode)
-	router := handlers.NewRouter(db, jwtSecret, paymentOrchestrator.PaynowClient())
+	router := handlers.NewRouter(db, jwtSecret, paymentOrchestrator.PaynowClient(), uploadDir)
 
 	// Add WebSocket route
 	mux := http.NewServeMux()

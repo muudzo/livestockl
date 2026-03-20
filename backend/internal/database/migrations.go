@@ -182,6 +182,37 @@ func RunMigrations(db *DB) error {
 			created_at        timestamptz NOT NULL DEFAULT now()
 		)`,
 
+		// ── favorites ───────────────────────────────────────────────
+		`CREATE TABLE IF NOT EXISTS favorites (
+			id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id       uuid NOT NULL REFERENCES profiles(id),
+			livestock_id  uuid NOT NULL REFERENCES livestock_items(id) ON DELETE CASCADE,
+			created_at    timestamptz NOT NULL DEFAULT now(),
+			UNIQUE(user_id, livestock_id)
+		)`,
+
+		// ── conversations ───────────────────────────────────────────
+		`CREATE TABLE IF NOT EXISTS conversations (
+			id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			participant_1   uuid NOT NULL REFERENCES profiles(id),
+			participant_2   uuid NOT NULL REFERENCES profiles(id),
+			livestock_id    uuid REFERENCES livestock_items(id) ON DELETE SET NULL,
+			last_message_at timestamptz NOT NULL DEFAULT now(),
+			created_at      timestamptz NOT NULL DEFAULT now(),
+			UNIQUE(participant_1, participant_2, livestock_id),
+			CHECK (participant_1 < participant_2)
+		)`,
+
+		// ── messages ────────────────────────────────────────────────
+		`CREATE TABLE IF NOT EXISTS messages (
+			id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+			sender_id       uuid NOT NULL REFERENCES profiles(id),
+			content         text NOT NULL CHECK (char_length(content) <= 2000),
+			read            boolean NOT NULL DEFAULT false,
+			created_at      timestamptz NOT NULL DEFAULT now()
+		)`,
+
 		// ── indexes ─────────────────────────────────────────────────
 		// livestock
 		`CREATE INDEX IF NOT EXISTS idx_livestock_category ON livestock_items(category)`,
@@ -212,6 +243,16 @@ func RunMigrations(db *DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_agent_activity_log_agent ON agent_activity_log(agent_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_agent_payment_orders_agent ON agent_payment_orders(agent_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_settlement_ledger_order ON settlement_ledger(payment_order_id)`,
+
+		// favorites
+		`CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id)`,
+
+		// conversations
+		`CREATE INDEX IF NOT EXISTS idx_conversations_p1 ON conversations(participant_1)`,
+		`CREATE INDEX IF NOT EXISTS idx_conversations_p2 ON conversations(participant_2)`,
+
+		// messages
+		`CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id)`,
 	}
 
 	for i, stmt := range statements {

@@ -160,3 +160,31 @@ type SettlementLedger struct {
 	Details        map[string]any `json:"details"`
 	CreatedAt      time.Time      `json:"created_at"`
 }
+
+type Favorite struct {
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	LivestockID string    `json:"livestock_id"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type Conversation struct {
+	ID               string    `json:"id"`
+	Participant1     string    `json:"participant_1"`
+	Participant2     string    `json:"participant_2"`
+	LivestockID      *string   `json:"livestock_id"`
+	LastMessageAt    time.Time `json:"last_message_at"`
+	CreatedAt        time.Time `json:"created_at"`
+	OtherParticipant *Profile  `json:"other_participant,omitempty"`
+	LivestockTitle   *string   `json:"livestock_title,omitempty"`
+	LastMessage      string    `json:"last_message,omitempty"`
+}
+
+type Message struct {
+	ID             string    `json:"id"`
+	ConversationID string    `json:"conversation_id"`
+	SenderID       string    `json:"sender_id"`
+	Content        string    `json:"content"`
+	Read           bool      `json:"read"`
+	CreatedAt      time.Time `json:"created_at"`
+}
