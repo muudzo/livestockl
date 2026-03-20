@@ -258,6 +258,11 @@ func RunMigrations(db *DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_agent_payment_orders_agent ON agent_payment_orders(agent_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_settlement_ledger_order ON settlement_ledger(payment_order_id)`,
 
+		// agent_payment_orders: prevent duplicate paid orders for same agent+livestock
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_agent_livestock_paid
+		 ON agent_payment_orders (agent_id, livestock_id)
+		 WHERE status = 'paid'`,
+
 		// market_intel
 		`CREATE INDEX IF NOT EXISTS idx_market_intel_category ON market_intel(category)`,
 

@@ -340,7 +340,23 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_unique_active
 CREATE INDEX IF NOT EXISTS idx_payments_livestock
   ON public.payments(livestock_id);
 
+-- Prevent duplicate paid agent payments for same livestock
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_agent_livestock_paid
+  ON agent_payment_orders (agent_id, livestock_id)
+  WHERE status = 'paid';
+
 -- Prevent self-conversations
 ALTER TABLE public.conversations
   ADD CONSTRAINT no_self_conversation
   CHECK (participant_1 != participant_2);
+
+-- Sync a single listing's bid price/count from the bids table (repair drift)
+CREATE OR REPLACE FUNCTION public.sync_listing_bid(p_item_id uuid)
+RETURNS void AS $$
+BEGIN
+    UPDATE livestock_items SET
+        current_bid = COALESCE((SELECT MAX(amount) FROM bids WHERE livestock_id = p_item_id), 0),
+        bid_count = (SELECT COUNT(*) FROM bids WHERE livestock_id = p_item_id)
+    WHERE id = p_item_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

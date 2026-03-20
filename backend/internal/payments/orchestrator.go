@@ -113,9 +113,24 @@ func (o *Orchestrator) InitiatePayment(ctx context.Context, agentID, livestockID
 		"amount", amount,
 	)
 
+	// Check for existing paid order to prevent duplicates
+	var existingID string
+	err := o.db.Pool.QueryRow(ctx,
+		`SELECT id FROM agent_payment_orders
+		 WHERE agent_id = $1 AND livestock_id = $2 AND status = 'paid'
+		 LIMIT 1`,
+		agentID, livestockID,
+	).Scan(&existingID)
+	if err == nil {
+		return &PaymentResult{
+			Status:    "already_paid",
+			Reference: existingID,
+		}, nil
+	}
+
 	// Create the payment order in agent_payment_orders (pending, ecocash).
 	var orderID string
-	err := o.db.Pool.QueryRow(ctx,
+	err = o.db.Pool.QueryRow(ctx,
 		`INSERT INTO agent_payment_orders (agent_id, livestock_id, user_id, amount, method, status, attempt_count, max_attempts)
 		 VALUES ($1, $2, $3, $4, 'EcoCash', 'pending', 0, $5)
 		 RETURNING id`,
