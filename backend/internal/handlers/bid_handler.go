@@ -30,6 +30,14 @@ type placeBidResponse struct {
 	Bid models.Bid `json:"bid"`
 }
 
+type bidWithProfile struct {
+	models.Bid
+	Profiles *struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+	} `json:"profiles"`
+}
+
 // List handles GET /api/bids/{livestockId}.
 func (h *BidHandler) List(w http.ResponseWriter, r *http.Request) {
 	livestockID := r.PathValue("livestockId")
@@ -39,10 +47,12 @@ func (h *BidHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := h.db.Pool.Query(r.Context(),
-		`SELECT id, livestock_id, user_id, amount, is_winner, created_at
-		 FROM bids
-		 WHERE livestock_id = $1
-		 ORDER BY amount DESC LIMIT 100`, livestockID,
+		`SELECT b.id, b.livestock_id, b.user_id, b.amount, b.is_winner, b.created_at,
+		        p.first_name, p.last_name
+		 FROM bids b
+		 JOIN profiles p ON p.id = b.user_id
+		 WHERE b.livestock_id = $1
+		 ORDER BY b.amount DESC LIMIT 100`, livestockID,
 	)
 	if err != nil {
 		slog.Error("failed to list bids", "livestock_id", livestockID, "error", err)
@@ -51,14 +61,19 @@ func (h *BidHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
-	bids := []models.Bid{}
+	bids := []bidWithProfile{}
 	for rows.Next() {
-		var b models.Bid
-		if err := rows.Scan(&b.ID, &b.LivestockID, &b.UserID, &b.Amount, &b.IsWinner, &b.CreatedAt); err != nil {
+		var b bidWithProfile
+		var firstName, lastName string
+		if err := rows.Scan(&b.ID, &b.LivestockID, &b.UserID, &b.Amount, &b.IsWinner, &b.CreatedAt, &firstName, &lastName); err != nil {
 			slog.Error("failed to scan bid row", "error", err)
 			writeJSON(w, http.StatusInternalServerError, errorBody("internal server error"))
 			return
 		}
+		b.Profiles = &struct {
+			FirstName string `json:"first_name"`
+			LastName  string `json:"last_name"`
+		}{FirstName: firstName, LastName: lastName}
 		bids = append(bids, b)
 	}
 	if err := rows.Err(); err != nil {

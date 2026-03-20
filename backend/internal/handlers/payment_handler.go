@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/zimlivestock/backend/internal/database"
+	"github.com/zimlivestock/backend/internal/middleware"
+	"github.com/zimlivestock/backend/internal/models"
 	"github.com/zimlivestock/backend/internal/payments"
 )
 
@@ -29,6 +31,12 @@ func NewPaymentHandler(db *database.DB, paynow *payments.PaynowClient) *PaymentH
 // POST /api/payments/initiate-web
 // Body: { "livestock_id": "...", "amount": 850.00, "email": "buyer@example.com" }
 func (h *PaymentHandler) InitiateWebPayment(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, errorBody("unauthorized"))
+		return
+	}
+
 	var req struct {
 		LivestockID string  `json:"livestock_id"`
 		Amount      float64 `json:"amount"`
@@ -55,7 +63,7 @@ func (h *PaymentHandler) InitiateWebPayment(w http.ResponseWriter, r *http.Reque
 		`INSERT INTO payments (user_id, livestock_id, reference, amount, method, status, phone)
 		 VALUES ($1, $2, $3, $4, 'Web', 'pending', NULL)
 		 RETURNING id`,
-		r.Header.Get("X-User-ID"), req.LivestockID, reference, req.Amount,
+		claims.UserID, req.LivestockID, reference, req.Amount,
 	).Scan(&paymentID)
 	if err != nil {
 		slog.Error("failed to create payment record", "error", err)
@@ -99,6 +107,12 @@ func (h *PaymentHandler) InitiateWebPayment(w http.ResponseWriter, r *http.Reque
 // POST /api/payments/initiate-mobile
 // Body: { "livestock_id": "...", "amount": 850.00, "email": "...", "phone": "0771234567", "method": "ecocash" }
 func (h *PaymentHandler) InitiateMobilePayment(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, errorBody("unauthorized"))
+		return
+	}
+
 	var req struct {
 		LivestockID string  `json:"livestock_id"`
 		Amount      float64 `json:"amount"`
@@ -147,7 +161,7 @@ func (h *PaymentHandler) InitiateMobilePayment(w http.ResponseWriter, r *http.Re
 		`INSERT INTO payments (user_id, livestock_id, reference, amount, method, status, phone)
 		 VALUES ($1, $2, $3, $4, $5, 'pending', $6)
 		 RETURNING id`,
-		r.Header.Get("X-User-ID"), req.LivestockID, reference, req.Amount, dbMethod, req.Phone,
+		claims.UserID, req.LivestockID, reference, req.Amount, dbMethod, req.Phone,
 	).Scan(&paymentID)
 	if err != nil {
 		slog.Error("failed to create payment record", "error", err)
@@ -324,4 +338,26 @@ func (h *PaymentHandler) GetPaymentByReference(w http.ResponseWriter, r *http.Re
 	}
 
 	writeJSON(w, http.StatusOK, p)
+}
+
+// ListPayments returns all payments for the authenticated user.
+//
+// GET /api/payments
+func (h *PaymentHandler) ListPayments(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, errorBody("unauthorized"))
+		return
+	}
+
+	payments, err := h.db.GetPaymentsByUser(r.Context(), claims.UserID, 50)
+	if err != nil {
+		slog.Error("failed to list payments", "error", err)
+		writeJSON(w, http.StatusInternalServerError, errorBody("internal server error"))
+		return
+	}
+	if payments == nil {
+		payments = []models.Payment{}
+	}
+	writeJSON(w, http.StatusOK, payments)
 }

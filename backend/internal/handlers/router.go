@@ -11,7 +11,7 @@ import (
 
 // NewRouter creates and returns the top-level HTTP handler with all routes wired up.
 // It uses Go 1.22+ ServeMux pattern matching with method prefixes.
-func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient, uploadDir string) http.Handler {
+func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient, uploadDir string, wsHandler http.HandlerFunc) http.Handler {
 	mux := http.NewServeMux()
 
 	authH := NewAuthHandler(db, jwtSecret)
@@ -60,6 +60,12 @@ func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient,
 	mux.HandleFunc("POST /api/payments/webhook", paymentH.PaymentWebhook) // Public — Paynow calls this
 	mux.Handle("POST /api/payments/poll", authMW(http.HandlerFunc(paymentH.PollPaymentStatus)))
 	mux.Handle("GET /api/payments/ref/{reference}", authMW(http.HandlerFunc(paymentH.GetPaymentByReference)))
+	mux.Handle("GET /api/payments", authMW(http.HandlerFunc(paymentH.ListPayments)))
+
+	// ── WebSocket ──────────────────────────────────────────────────
+	if wsHandler != nil {
+		mux.HandleFunc("GET /ws", wsHandler)
+	}
 
 	// ── Notifications ───────────────────────────────────────────────
 	mux.Handle("GET /api/notifications", authMW(http.HandlerFunc(notifH.List)))

@@ -43,8 +43,8 @@ func main() {
 	slog.Info("migrations complete")
 
 	// Realtime hub
-	hub := realtime.NewHub()
-	go hub.Run()
+	rt := realtime.NewSetup()
+	defer rt.Hub.Shutdown()
 	slog.Info("realtime hub started")
 
 	// Payment orchestrator
@@ -65,17 +65,12 @@ func main() {
 	}
 
 	// Router (pass Paynow client for payment endpoints — may be nil in simulation mode)
-	router := handlers.NewRouter(db, jwtSecret, paymentOrchestrator.PaynowClient(), uploadDir)
-
-	// Add WebSocket route
-	mux := http.NewServeMux()
-	mux.Handle("/", router)
-	mux.HandleFunc("GET /ws", hub.HandleWebSocket)
+	router := handlers.NewRouter(db, jwtSecret, paymentOrchestrator.PaynowClient(), uploadDir, rt.WSHandler)
 
 	// Server
 	server := &http.Server{
 		Addr:         ":" + port,
-		Handler:      mux,
+		Handler:      router,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -88,6 +83,29 @@ func main() {
 	// Start agent scheduler
 	scheduler.Start(ctx)
 	slog.Info("agent scheduler started", "interval", interval)
+
+	// End expired auctions periodically
+	go func() {
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				execCtx, execCancel := context.WithTimeout(context.Background(), 30*time.Second)
+				tag, err := db.Pool.Exec(execCtx,
+					`UPDATE livestock_items SET status = 'ended'
+					 WHERE status = 'active' AND end_time <= now()`)
+				if err != nil {
+					slog.Error("failed to end expired auctions", "error", err)
+				} else if tag.RowsAffected() > 0 {
+					slog.Info("ended expired auctions", "count", tag.RowsAffected())
+				}
+				execCancel()
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// Start server in goroutine
 	go func() {
@@ -107,9 +125,6 @@ func main() {
 
 	// Stop agent scheduler
 	scheduler.Stop()
-
-	// Stop realtime hub
-	hub.Shutdown()
 
 	// Shutdown HTTP server with 10s timeout
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
