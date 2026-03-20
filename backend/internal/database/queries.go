@@ -758,6 +758,50 @@ func (db *DB) GetAgentPayments(ctx context.Context, agentID string, limit int) (
 	return orders, rows.Err()
 }
 
+// ── Market Intel ────────────────────────────────────────────
+
+func (db *DB) GetMarketIntel(ctx context.Context, limit int) ([]map[string]any, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	// Generate live market intel from current data
+	rows, err := db.Pool.Query(ctx, `
+		SELECT category,
+		       COUNT(*) as total_listings,
+		       COALESCE(AVG(current_bid), 0) as avg_price,
+		       COALESCE(SUM(bid_count), 0) as total_bids,
+		       MODE() WITHIN GROUP (ORDER BY location) as top_location
+		FROM livestock_items
+		WHERE status = 'active' AND end_time > now()
+		GROUP BY category
+		ORDER BY total_listings DESC
+		LIMIT $1`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("query market intel: %w", err)
+	}
+	defer rows.Close()
+	var results []map[string]any
+	for rows.Next() {
+		var category, topLocation string
+		var totalListings, totalBids int
+		var avgPrice float64
+		if err := rows.Scan(&category, &totalListings, &avgPrice, &totalBids, &topLocation); err != nil {
+			return nil, fmt.Errorf("scan market intel: %w", err)
+		}
+		results = append(results, map[string]any{
+			"category":       category,
+			"total_listings": totalListings,
+			"avg_price":      avgPrice,
+			"total_bids":     totalBids,
+			"top_location":   topLocation,
+		})
+	}
+	if results == nil {
+		results = []map[string]any{}
+	}
+	return results, rows.Err()
+}
+
 // ── Get Livestock with Seller Profile ───────────────────────
 
 func (db *DB) GetLivestockWithSeller(ctx context.Context, id string) (*models.LivestockItem, *models.Profile, error) {

@@ -92,6 +92,10 @@ func NewRouter(db *database.DB, jwtSecret string, paynow *payments.PaynowClient,
 	mux.Handle("POST /api/agents/{id}/goals", authMW(http.HandlerFunc(agentH.AddGoal)))
 	mux.Handle("GET /api/agents/{id}/activity", authMW(http.HandlerFunc(agentH.GetActivity)))
 	mux.Handle("GET /api/agents/{id}/decisions", authMW(http.HandlerFunc(agentH.GetDecisions)))
+	mux.Handle("GET /api/agents/{id}/goals", authMW(http.HandlerFunc(agentH.GetGoals)))
+	mux.Handle("GET /api/agents/{id}/payments", authMW(http.HandlerFunc(agentH.GetAgentPayments)))
+	mux.Handle("POST /api/agents/{id}/run", authMW(http.HandlerFunc(agentH.RunAgent)))
+	mux.HandleFunc("GET /api/market-intel", agentH.GetMarketIntel)
 
 	// Apply global middleware: body limit, CORS, then logging.
 	var handler http.Handler = mux

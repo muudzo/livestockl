@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/zimlivestock/backend/internal/agents"
 	"github.com/zimlivestock/backend/internal/database"
 	"github.com/zimlivestock/backend/internal/middleware"
 	"github.com/zimlivestock/backend/internal/models"
@@ -320,4 +321,127 @@ func (h *AgentHandler) GetDecisions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, decisions)
+}
+
+// GetGoals handles GET /api/agents/{id}/goals.
+func (h *AgentHandler) GetGoals(w http.ResponseWriter, r *http.Request) {
+	agentID := r.PathValue("id")
+	if agentID == "" {
+		writeJSON(w, http.StatusBadRequest, errorBody("missing agent id"))
+		return
+	}
+
+	goals, err := h.db.GetAgentGoals(r.Context(), agentID)
+	if err != nil {
+		slog.Error("failed to get agent goals", "agent_id", agentID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, errorBody("internal server error"))
+		return
+	}
+	if goals == nil {
+		goals = []models.AgentGoal{}
+	}
+	writeJSON(w, http.StatusOK, goals)
+}
+
+// GetAgentPayments handles GET /api/agents/{id}/payments.
+func (h *AgentHandler) GetAgentPayments(w http.ResponseWriter, r *http.Request) {
+	agentID := r.PathValue("id")
+	if agentID == "" {
+		writeJSON(w, http.StatusBadRequest, errorBody("missing agent id"))
+		return
+	}
+
+	payments, err := h.db.GetAgentPayments(r.Context(), agentID, 20)
+	if err != nil {
+		slog.Error("failed to get agent payments", "agent_id", agentID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, errorBody("internal server error"))
+		return
+	}
+	writeJSON(w, http.StatusOK, payments)
+}
+
+// RunAgent handles POST /api/agents/{id}/run.
+// Triggers a one-off agent cycle for buyer or sniper agents.
+func (h *AgentHandler) RunAgent(w http.ResponseWriter, r *http.Request) {
+	claims, ok := middleware.GetUserFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusUnauthorized, errorBody("unauthorized"))
+		return
+	}
+
+	agentID := r.PathValue("id")
+	if agentID == "" {
+		writeJSON(w, http.StatusBadRequest, errorBody("missing agent id"))
+		return
+	}
+
+	// Verify ownership
+	var ownerID, agentType string
+	err := h.db.Pool.QueryRow(r.Context(),
+		`SELECT user_id, agent_type FROM agents WHERE id = $1`, agentID,
+	).Scan(&ownerID, &agentType)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, errorBody("agent not found"))
+		return
+	}
+	if ownerID != claims.UserID {
+		writeJSON(w, http.StatusForbidden, errorBody("not your agent"))
+		return
+	}
+
+	var req struct {
+		Action string `json:"action"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, errorBody("invalid request body"))
+		return
+	}
+
+	// Update agent status to running
+	h.db.Pool.Exec(r.Context(),
+		`UPDATE agents SET status = 'running', last_run_at = now(), updated_at = now() WHERE id = $1`, agentID)
+
+	var result any
+	var runErr error
+
+	executor := agents.NewBidExecutor(h.db)
+
+	switch agentType {
+	case "buyer":
+		buyer := agents.NewBuyerAgent(h.db, executor)
+		result, runErr = buyer.RunCycle(r.Context(), agentID)
+	case "sniper":
+		sniper := agents.NewSniperAgent(h.db, executor)
+		result, runErr = sniper.ScanEndingSoon(r.Context(), agentID)
+	default:
+		// For seller/market_intel, just log activity
+		_ = h.db.LogAgentActivity(r.Context(), agentID, req.Action, "Agent cycle triggered via API", map[string]any{"action": req.Action})
+		result = map[string]string{"status": "completed", "action": req.Action}
+	}
+
+	// Reset status to idle
+	h.db.Pool.Exec(r.Context(),
+		`UPDATE agents SET status = 'idle', updated_at = now() WHERE id = $1`, agentID)
+
+	if runErr != nil {
+		slog.Error("agent run failed", "agent_id", agentID, "error", runErr)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error":    runErr.Error(),
+			"agent_id": agentID,
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// GetMarketIntel handles GET /api/market-intel.
+func (h *AgentHandler) GetMarketIntel(w http.ResponseWriter, r *http.Request) {
+	data, err := h.db.GetMarketIntel(r.Context(), 50)
+	if err != nil {
+		slog.Error("failed to get market intel", "error", err)
+		writeJSON(w, http.StatusInternalServerError, errorBody("internal server error"))
+		return
+	}
+	writeJSON(w, http.StatusOK, data)
 }

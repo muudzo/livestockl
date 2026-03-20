@@ -213,6 +213,20 @@ func RunMigrations(db *DB) error {
 			created_at      timestamptz NOT NULL DEFAULT now()
 		)`,
 
+		// ── market_intel ────────────────────────────────────────────
+		`CREATE TABLE IF NOT EXISTS market_intel (
+			id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+			category text NOT NULL,
+			avg_price numeric NOT NULL DEFAULT 0,
+			total_listings integer NOT NULL DEFAULT 0,
+			total_bids integer NOT NULL DEFAULT 0,
+			top_location text,
+			period_start timestamptz NOT NULL DEFAULT now(),
+			period_end timestamptz NOT NULL DEFAULT now(),
+			metadata jsonb NOT NULL DEFAULT '{}',
+			created_at timestamptz NOT NULL DEFAULT now()
+		)`,
+
 		// ── indexes ─────────────────────────────────────────────────
 		// livestock
 		`CREATE INDEX IF NOT EXISTS idx_livestock_category ON livestock_items(category)`,
@@ -243,6 +257,9 @@ func RunMigrations(db *DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_agent_activity_log_agent ON agent_activity_log(agent_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_agent_payment_orders_agent ON agent_payment_orders(agent_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_settlement_ledger_order ON settlement_ledger(payment_order_id)`,
+
+		// market_intel
+		`CREATE INDEX IF NOT EXISTS idx_market_intel_category ON market_intel(category)`,
 
 		// favorites
 		`CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id)`,
