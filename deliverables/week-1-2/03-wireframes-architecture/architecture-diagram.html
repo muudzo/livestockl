@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZimLivestock — System Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0e1a;
+    color: #e0e6f0;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ─────────────────────────────────────── */
+  .header {
+    text-align: center;
+    padding: 36px 20px 12px;
+    position: relative;
+  }
+  .header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .header .subtitle {
+    font-size: 1rem;
+    color: #94a3b8;
+    margin-top: 6px;
+    font-weight: 400;
+  }
+
+  /* ── Stats bar ──────────────────────────────────── */
+  .stats-bar {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    padding: 16px 20px 8px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+  .stat .num {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #e0e6f0;
+  }
+  .stat .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* ── Diagram container ──────────────────────────── */
+  .diagram {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 10px 20px 20px;
+    position: relative;
+  }
+
+  svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* ── Tooltip ────────────────────────────────────── */
+  .tooltip {
+    position: fixed;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1000;
+    max-width: 340px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    line-height: 1.5;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip h4 {
+    font-size: 0.95rem;
+    color: #f1f5f9;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .tooltip ul { padding-left: 16px; margin: 4px 0; }
+  .tooltip li { margin: 2px 0; }
+  .tooltip .tag {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+
+  /* ── Legend ──────────────────────────────────────── */
+  .legend {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    background: rgba(15,23,42,0.92);
+    border: 1px solid #1e293b;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 0.78rem;
+    z-index: 10;
+  }
+  .legend h4 {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 5px 0;
+    color: #cbd5e1;
+  }
+  .legend-swatch {
+    width: 14px; height: 14px; border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .legend-line {
+    width: 28px; height: 0;
+    border-top: 2px solid;
+    flex-shrink: 0;
+  }
+  .legend-line.dashed {
+    border-top-style: dashed;
+  }
+
+  /* hover glow on boxes */
+  .box:hover { filter: brightness(1.15); cursor: pointer; }
+  .box { transition: filter 0.2s; }
+
+  /* connection hover */
+  .conn:hover { stroke-width: 2.5 !important; }
+  .conn { transition: stroke-width 0.15s; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ZimLivestock — System Architecture</h1>
+  <p class="subtitle">Livestock Marketplace with Autonomous Agent Commerce</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><span class="dot" style="background:#34d399"></span><span class="num">42</span> REST Endpoints</div>
+  <div class="stat"><span class="dot" style="background:#60a5fa"></span><span class="num">16</span> DB Tables</div>
+  <div class="stat"><span class="dot" style="background:#818cf8"></span><span class="num">18</span> Edge Functions</div>
+  <div class="stat"><span class="dot" style="background:#f59e0b"></span><span class="num">125</span> Tests</div>
+  <div class="stat"><span class="dot" style="background:#fb7185"></span><span class="num">7,925</span> Go LOC</div>
+</div>
+
+<div class="diagram" style="position:relative">
+
+<svg viewBox="0 0 1360 980" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow-blue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#3b82f6" />
+    </marker>
+    <marker id="arrow-green" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#22c55e" />
+    </marker>
+    <marker id="arrow-gray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#64748b" />
+    </marker>
+    <marker id="arrow-orange" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#f59e0b" />
+    </marker>
+    <marker id="arrow-red" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6" fill="#ef4444" />
+    </marker>
+
+    <!-- Glow filters -->
+    <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" /><feFlood flood-color="#3b82f6" flood-opacity="0.15" result="color" /><feComposite in="color" in2="blur" operator="in" result="shadow" /><feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" /><feFlood flood-color="#22c55e" flood-opacity="0.15" result="color" /><feComposite in="color" in2="blur" operator="in" result="shadow" /><feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+    <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" /><feFlood flood-color="#f59e0b" flood-opacity="0.15" result="color" /><feComposite in="color" in2="blur" operator="in" result="shadow" /><feMerge><feMergeNode in="shadow" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
+  </defs>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- TIER LABELS                                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <text x="20" y="38" fill="#475569" font-size="11" font-weight="600" letter-spacing="2" font-family="monospace">TIER 1 — CLIENTS</text>
+  <text x="20" y="218" fill="#475569" font-size="11" font-weight="600" letter-spacing="2" font-family="monospace">TIER 2 — BACKEND SERVICES</text>
+  <text x="20" y="648" fill="#475569" font-size="11" font-weight="600" letter-spacing="2" font-family="monospace">TIER 3 — EXTERNAL / DATA</text>
+  <text x="900" y="218" fill="#475569" font-size="11" font-weight="600" letter-spacing="2" font-family="monospace">TIER 4 — AGENT SYSTEM</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- TIER 1: CLIENTS                                 -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <!-- React Frontend -->
+  <g class="box" data-tip="react">
+    <rect x="140" y="54" width="260" height="72" rx="12" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" filter="url(#glow-blue)" />
+    <text x="270" y="82" text-anchor="middle" fill="#60a5fa" font-size="13" font-weight="700">React Frontend</text>
+    <text x="270" y="102" text-anchor="middle" fill="#94a3b8" font-size="10.5">Vite + TypeScript + Tailwind + shadcn/ui</text>
+    <text x="270" y="117" text-anchor="middle" fill="#64748b" font-size="9.5">13 routes | React Query + Zustand</text>
+  </g>
+
+  <!-- Mobile Browser -->
+  <g class="box" data-tip="mobile">
+    <rect x="450" y="54" width="180" height="72" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="1" />
+    <text x="540" y="82" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">Mobile Browser</text>
+    <text x="540" y="102" text-anchor="middle" fill="#64748b" font-size="10.5">Responsive PWA</text>
+    <text x="540" y="117" text-anchor="middle" fill="#64748b" font-size="9.5">Same React app</text>
+  </g>
+
+  <!-- WhatsApp -->
+  <g class="box" data-tip="whatsapp">
+    <rect x="680" y="54" width="180" height="72" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="1" />
+    <text x="770" y="82" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">WhatsApp</text>
+    <text x="770" y="102" text-anchor="middle" fill="#64748b" font-size="10.5">Manual ops channel</text>
+    <text x="770" y="117" text-anchor="middle" fill="#64748b" font-size="9.5">Seller notifications</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- TIER 2 LEFT: SUPABASE                           -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g class="box" data-tip="supabase">
+    <rect x="40" y="235" width="400" height="370" rx="14" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5" filter="url(#glow-blue)" />
+    <text x="240" y="263" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="700">Supabase Platform</text>
+    <text x="240" y="280" text-anchor="middle" fill="#475569" font-size="10">Production BaaS</text>
+  </g>
+
+  <!-- Sub-boxes inside Supabase -->
+  <g class="box" data-tip="supabase-auth">
+    <rect x="60" y="295" width="170" height="48" rx="8" fill="#1a2744" stroke="#3b82f6" stroke-width="1" />
+    <text x="145" y="316" text-anchor="middle" fill="#93c5fd" font-size="11.5" font-weight="600">Supabase Auth</text>
+    <text x="145" y="333" text-anchor="middle" fill="#64748b" font-size="9.5">JWT + OAuth2</text>
+  </g>
+
+  <g class="box" data-tip="postgres-supa">
+    <rect x="250" y="295" width="170" height="48" rx="8" fill="#1a2744" stroke="#3b82f6" stroke-width="1" />
+    <text x="335" y="316" text-anchor="middle" fill="#93c5fd" font-size="11.5" font-weight="600">PostgreSQL</text>
+    <text x="335" y="333" text-anchor="middle" fill="#64748b" font-size="9.5">16 tables</text>
+  </g>
+
+  <g class="box" data-tip="rls">
+    <rect x="60" y="355" width="170" height="48" rx="8" fill="#1a2744" stroke="#3b82f6" stroke-width="1" />
+    <text x="145" y="376" text-anchor="middle" fill="#93c5fd" font-size="11.5" font-weight="600">Row Level Security</text>
+    <text x="145" y="393" text-anchor="middle" fill="#64748b" font-size="9.5">Per-user data isolation</text>
+  </g>
+
+  <g class="box" data-tip="realtime-supa">
+    <rect x="250" y="355" width="170" height="48" rx="8" fill="#1a2744" stroke="#3b82f6" stroke-width="1" />
+    <text x="335" y="376" text-anchor="middle" fill="#93c5fd" font-size="11.5" font-weight="600">Realtime</text>
+    <text x="335" y="393" text-anchor="middle" fill="#64748b" font-size="9.5">WebSocket subscriptions</text>
+  </g>
+
+  <g class="box" data-tip="edge-fns">
+    <rect x="60" y="415" width="170" height="48" rx="8" fill="#1a2744" stroke="#3b82f6" stroke-width="1" />
+    <text x="145" y="436" text-anchor="middle" fill="#93c5fd" font-size="11.5" font-weight="600">Edge Functions</text>
+    <text x="145" y="453" text-anchor="middle" fill="#64748b" font-size="9.5">18 Deno functions</text>
+  </g>
+
+  <g class="box" data-tip="storage">
+    <rect x="250" y="415" width="170" height="48" rx="8" fill="#1a2744" stroke="#3b82f6" stroke-width="1" />
+    <text x="335" y="436" text-anchor="middle" fill="#93c5fd" font-size="11.5" font-weight="600">Storage</text>
+    <text x="335" y="453" text-anchor="middle" fill="#64748b" font-size="9.5">Livestock images</text>
+  </g>
+
+  <!-- Atomic functions label -->
+  <g class="box" data-tip="atomic">
+    <rect x="60" y="475" width="360" height="40" rx="8" fill="#172040" stroke="#3b82f680" stroke-width="1" stroke-dasharray="4" />
+    <text x="240" y="499" text-anchor="middle" fill="#64748b" font-size="10">Atomic: place_bid() | end_expired_auctions() | increment_view_count()</text>
+  </g>
+
+  <!-- Supabase project ref label -->
+  <text x="240" y="540" text-anchor="middle" fill="#334155" font-size="9" font-family="monospace">ref: hmeieslclzycyjjjflfh</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- TIER 2 RIGHT: GO BACKEND                        -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g class="box" data-tip="go-backend">
+    <rect x="480" y="235" width="380" height="370" rx="14" fill="#0f172a" stroke="#22c55e" stroke-width="1.5" filter="url(#glow-green)" />
+    <text x="670" y="263" text-anchor="middle" fill="#4ade80" font-size="14" font-weight="700">Go Backend</text>
+    <text x="670" y="280" text-anchor="middle" fill="#475569" font-size="10">Portfolio Implementation</text>
+  </g>
+
+  <!-- Sub-boxes inside Go -->
+  <g class="box" data-tip="go-server">
+    <rect x="500" y="295" width="165" height="48" rx="8" fill="#132a1a" stroke="#22c55e" stroke-width="1" />
+    <text x="582" y="316" text-anchor="middle" fill="#86efac" font-size="11.5" font-weight="600">HTTP Server</text>
+    <text x="582" y="333" text-anchor="middle" fill="#64748b" font-size="9.5">Go 1.22+ ServeMux</text>
+  </g>
+
+  <g class="box" data-tip="go-auth">
+    <rect x="680" y="295" width="165" height="48" rx="8" fill="#132a1a" stroke="#22c55e" stroke-width="1" />
+    <text x="762" y="316" text-anchor="middle" fill="#86efac" font-size="11.5" font-weight="600">JWT Middleware</text>
+    <text x="762" y="333" text-anchor="middle" fill="#64748b" font-size="9.5">Auth + CORS + Logging</text>
+  </g>
+
+  <g class="box" data-tip="go-endpoints">
+    <rect x="500" y="355" width="165" height="48" rx="8" fill="#132a1a" stroke="#22c55e" stroke-width="1" />
+    <text x="582" y="376" text-anchor="middle" fill="#86efac" font-size="11.5" font-weight="600">42 REST Endpoints</text>
+    <text x="582" y="393" text-anchor="middle" fill="#64748b" font-size="9.5">9 resource groups</text>
+  </g>
+
+  <g class="box" data-tip="go-ws">
+    <rect x="680" y="355" width="165" height="48" rx="8" fill="#132a1a" stroke="#22c55e" stroke-width="1" />
+    <text x="762" y="376" text-anchor="middle" fill="#86efac" font-size="11.5" font-weight="600">WebSocket Hub</text>
+    <text x="762" y="393" text-anchor="middle" fill="#64748b" font-size="9.5">Realtime broadcast</text>
+  </g>
+
+  <g class="box" data-tip="go-payments">
+    <rect x="500" y="415" width="165" height="48" rx="8" fill="#132a1a" stroke="#22c55e" stroke-width="1" />
+    <text x="582" y="436" text-anchor="middle" fill="#86efac" font-size="11.5" font-weight="600">Payment Orchestrator</text>
+    <text x="582" y="453" text-anchor="middle" fill="#64748b" font-size="9.5">Retry + fallback chain</text>
+  </g>
+
+  <g class="box" data-tip="go-workers">
+    <rect x="680" y="415" width="165" height="48" rx="8" fill="#132a1a" stroke="#22c55e" stroke-width="1" />
+    <text x="762" y="436" text-anchor="middle" fill="#86efac" font-size="11.5" font-weight="600">Background Workers</text>
+    <text x="762" y="453" text-anchor="middle" fill="#64748b" font-size="9.5">Auction expiry + bid sync</text>
+  </g>
+
+  <!-- Go resource groups -->
+  <g class="box" data-tip="go-resources">
+    <rect x="500" y="475" width="345" height="40" rx="8" fill="#0f2918" stroke="#22c55e80" stroke-width="1" stroke-dasharray="4" />
+    <text x="672" y="499" text-anchor="middle" fill="#64748b" font-size="10">Auth | Livestock | Bids | Payments | Agents | Notifications | Favorites | Messages | Upload</text>
+  </g>
+
+  <text x="670" y="540" text-anchor="middle" fill="#334155" font-size="9" font-family="monospace">:8080 | pgx driver | slog | graceful shutdown</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- TIER 3: EXTERNAL                                -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <!-- Paynow -->
+  <g class="box" data-tip="paynow">
+    <rect x="80" y="670" width="320" height="90" rx="12" fill="#1e293b" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="6,4" />
+    <text x="240" y="698" text-anchor="middle" fill="#f87171" font-size="13" font-weight="700">Paynow Zimbabwe</text>
+    <text x="240" y="716" text-anchor="middle" fill="#94a3b8" font-size="10.5">EcoCash | OneMoney | Visa/Mastercard</text>
+    <!-- BLOCKED label -->
+    <rect x="150" y="726" width="180" height="22" rx="4" fill="#7f1d1d" />
+    <text x="240" y="741" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="700">BLOCKED: Cloudflare 403</text>
+  </g>
+
+  <!-- PostgreSQL shared -->
+  <g class="box" data-tip="postgres-shared">
+    <rect x="480" y="670" width="300" height="90" rx="12" fill="#1e293b" stroke="#64748b" stroke-width="1.5" />
+    <text x="630" y="698" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="700">PostgreSQL Database</text>
+    <text x="630" y="716" text-anchor="middle" fill="#94a3b8" font-size="10.5">Shared between Supabase + Go</text>
+    <text x="630" y="736" text-anchor="middle" fill="#64748b" font-size="9.5">16 tables | 8 indexes | 3 atomic functions</text>
+    <text x="630" y="750" text-anchor="middle" fill="#475569" font-size="9" font-family="monospace">postgres://...@db.hmeieslclz...supabase.co</text>
+  </g>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- TIER 4: AGENT SYSTEM (right panel)              -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <g class="box" data-tip="agent-system">
+    <rect x="895" y="235" width="440" height="520" rx="14" fill="#0f172a" stroke="#f59e0b" stroke-width="1.5" filter="url(#glow-orange)" />
+    <text x="1115" y="263" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="700">Agent System</text>
+    <text x="1115" y="280" text-anchor="middle" fill="#475569" font-size="10">Autonomous Commerce Engine</text>
+  </g>
+
+  <!-- Agent pipeline boxes -->
+  <g class="box" data-tip="buyer-agent">
+    <rect x="920" y="300" width="190" height="50" rx="8" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1" />
+    <text x="1015" y="321" text-anchor="middle" fill="#fcd34d" font-size="11.5" font-weight="600">Buyer Agent</text>
+    <text x="1015" y="339" text-anchor="middle" fill="#64748b" font-size="9.5">Scan + evaluate + bid</text>
+  </g>
+
+  <g class="box" data-tip="sniper-agent">
+    <rect x="1130" y="300" width="190" height="50" rx="8" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1" />
+    <text x="1225" y="321" text-anchor="middle" fill="#fcd34d" font-size="11.5" font-weight="600">Auction Sniper</text>
+    <text x="1225" y="339" text-anchor="middle" fill="#64748b" font-size="9.5">Last-second bids (5min)</text>
+  </g>
+
+  <g class="box" data-tip="seller-agent">
+    <rect x="920" y="362" width="190" height="50" rx="8" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1" />
+    <text x="1015" y="383" text-anchor="middle" fill="#fcd34d" font-size="11.5" font-weight="600">Seller Agent</text>
+    <text x="1015" y="401" text-anchor="middle" fill="#64748b" font-size="9.5">Reprice suggestions</text>
+  </g>
+
+  <g class="box" data-tip="market-intel">
+    <rect x="1130" y="362" width="190" height="50" rx="8" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1" />
+    <text x="1225" y="383" text-anchor="middle" fill="#fcd34d" font-size="11.5" font-weight="600">Market Intel</text>
+    <text x="1225" y="401" text-anchor="middle" fill="#64748b" font-size="9.5">Trends + anomalies</text>
+  </g>
+
+  <!-- Pipeline: Win Detector → Payment Orchestrator → Settlement -->
+  <g class="box" data-tip="win-detector">
+    <rect x="920" y="430" width="135" height="44" rx="8" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1" />
+    <text x="987" y="449" text-anchor="middle" fill="#fcd34d" font-size="10.5" font-weight="600">Win Detector</text>
+    <text x="987" y="465" text-anchor="middle" fill="#64748b" font-size="9">Auction end scan</text>
+  </g>
+
+  <g class="box" data-tip="payment-orch">
+    <rect x="1070" y="430" width="135" height="44" rx="8" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1" />
+    <text x="1137" y="449" text-anchor="middle" fill="#fcd34d" font-size="10.5" font-weight="600">Pay Orchestrator</text>
+    <text x="1137" y="465" text-anchor="middle" fill="#64748b" font-size="9">Retry + fallback</text>
+  </g>
+
+  <g class="box" data-tip="settlement">
+    <rect x="1220" y="430" width="100" height="44" rx="8" fill="#2a1f0a" stroke="#f59e0b" stroke-width="1" />
+    <text x="1270" y="449" text-anchor="middle" fill="#fcd34d" font-size="10.5" font-weight="600">Settlement</text>
+    <text x="1270" y="465" text-anchor="middle" fill="#64748b" font-size="9">Ledger audit</text>
+  </g>
+
+  <!-- Pipeline arrows -->
+  <line x1="1055" y1="452" x2="1068" y2="452" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+  <line x1="1205" y1="452" x2="1218" y2="452" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-orange)" />
+
+  <!-- Scheduler -->
+  <g class="box" data-tip="scheduler">
+    <rect x="920" y="492" width="400" height="44" rx="8" fill="#1f1a0a" stroke="#f59e0b80" stroke-width="1" stroke-dasharray="4" />
+    <text x="1120" y="510" text-anchor="middle" fill="#b45309" font-size="10.5" font-weight="600">Agent Scheduler (15s interval)</text>
+    <text x="1120" y="526" text-anchor="middle" fill="#64748b" font-size="9">Cron loop: scan marketplace → evaluate → bid → detect wins → pay → settle</text>
+  </g>
+
+  <!-- QA Agents -->
+  <g class="box" data-tip="qa-agents">
+    <rect x="920" y="552" width="400" height="80" rx="8" fill="#1a0f0f" stroke="#ef444480" stroke-width="1" />
+    <text x="1120" y="574" text-anchor="middle" fill="#fca5a5" font-size="11.5" font-weight="600">QA Agent Team</text>
+    <text x="990" y="594" text-anchor="middle" fill="#64748b" font-size="9.5">Consistency Checker (6/6)</text>
+    <text x="1170" y="594" text-anchor="middle" fill="#64748b" font-size="9.5">Security Agent (11/11)</text>
+    <text x="1120" y="614" text-anchor="middle" fill="#64748b" font-size="9.5">Chaos Test (concurrent stress + edge cases)</text>
+  </g>
+
+  <!-- Recovery stat -->
+  <g class="box" data-tip="recovery">
+    <rect x="920" y="646" width="400" height="42" rx="8" fill="#172040" stroke="#60a5fa60" stroke-width="1" />
+    <text x="1120" y="665" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="600">Payment Recovery: 50% first-attempt → 100% with retry (+25% recovered)</text>
+    <text x="1120" y="680" text-anchor="middle" fill="#475569" font-size="9">EcoCash ~70% | OneMoney ~60% | Card ~80% | +10%/retry</text>
+  </g>
+
+  <!-- Fallback chain visual -->
+  <g class="box" data-tip="fallback-chain">
+    <rect x="920" y="698" width="400" height="44" rx="8" fill="#0f172a" stroke="#f59e0b40" stroke-width="1" />
+    <text x="975" y="722" text-anchor="middle" fill="#86efac" font-size="9.5" font-weight="600">EcoCash</text>
+    <text x="1035" y="722" text-anchor="middle" fill="#64748b" font-size="12">→</text>
+    <text x="1070" y="722" text-anchor="middle" fill="#fca5a5" font-size="9">fail?</text>
+    <text x="1105" y="722" text-anchor="middle" fill="#64748b" font-size="12">→</text>
+    <text x="1150" y="722" text-anchor="middle" fill="#86efac" font-size="9.5" font-weight="600">OneMoney</text>
+    <text x="1210" y="722" text-anchor="middle" fill="#64748b" font-size="12">→</text>
+    <text x="1240" y="722" text-anchor="middle" fill="#fca5a5" font-size="9">fail?</text>
+    <text x="1275" y="722" text-anchor="middle" fill="#64748b" font-size="12">→</text>
+    <text x="1305" y="722" text-anchor="middle" fill="#86efac" font-size="9.5" font-weight="600">Card</text>
+  </g>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- CONNECTIONS                                     -->
+  <!-- ═══════════════════════════════════════════════ -->
+
+  <!-- Frontend → Supabase Auth (login/signup) -->
+  <path class="conn" d="M200,126 L200,170 Q200,185 190,190 L145,225 L145,293" stroke="#3b82f6" stroke-width="1.5" fill="none" marker-end="url(#arrow-blue)" />
+  <rect x="98" y="176" width="90" height="16" rx="3" fill="#0a0e1a" />
+  <text x="143" y="188" text-anchor="middle" fill="#60a5fa" font-size="8.5">login / signup</text>
+
+  <!-- Frontend → Supabase REST (CRUD) -->
+  <path class="conn" d="M280,126 L280,170 Q280,190 290,200 L335,235 L335,293" stroke="#3b82f6" stroke-width="1.5" fill="none" marker-end="url(#arrow-blue)" />
+  <rect x="286" y="176" width="86" height="16" rx="3" fill="#0a0e1a" />
+  <text x="329" y="188" text-anchor="middle" fill="#60a5fa" font-size="8.5">REST (CRUD)</text>
+
+  <!-- Frontend → Supabase Realtime -->
+  <path class="conn" d="M340,126 L340,170 Q340,190 355,195 L396,210 L396,235 Q396,250 390,260 L360,290 L360,293" stroke="#3b82f6" stroke-width="1.5" fill="none" marker-end="url(#arrow-blue)" opacity="0.7" />
+  <rect x="370" y="200" width="64" height="16" rx="3" fill="#0a0e1a" />
+  <text x="402" y="212" text-anchor="middle" fill="#60a5fa" font-size="8.5">Realtime</text>
+
+  <!-- Frontend → Go API (REST) -->
+  <path class="conn" d="M370,126 L370,170 Q370,185 400,190 L540,220 L580,240 L580,293" stroke="#22c55e" stroke-width="1.5" fill="none" marker-end="url(#arrow-green)" />
+  <rect x="438" y="192" width="84" height="16" rx="3" fill="#0a0e1a" />
+  <text x="480" y="204" text-anchor="middle" fill="#4ade80" font-size="8.5">REST (alt)</text>
+
+  <!-- Frontend → Go WebSocket -->
+  <path class="conn" d="M395,120 Q430,120 470,140 L710,210 L760,240 L760,293" stroke="#22c55e" stroke-width="1.2" fill="none" marker-end="url(#arrow-green)" opacity="0.6" />
+  <rect x="568" y="170" width="90" height="16" rx="3" fill="#0a0e1a" />
+  <text x="613" y="182" text-anchor="middle" fill="#4ade80" font-size="8.5">WebSocket (alt)</text>
+
+  <!-- Go Backend → PostgreSQL (pgx) -->
+  <path class="conn" d="M670,605 L670,640 L630,668" stroke="#22c55e" stroke-width="1.5" fill="none" marker-end="url(#arrow-green)" />
+  <rect x="625" y="625" width="70" height="16" rx="3" fill="#0a0e1a" />
+  <text x="660" y="637" text-anchor="middle" fill="#4ade80" font-size="8.5">pgx driver</text>
+
+  <!-- Supabase → PostgreSQL (internal) -->
+  <path class="conn" d="M240,605 L240,640 L430,680 L478,690" stroke="#3b82f6" stroke-width="1.5" fill="none" marker-end="url(#arrow-blue)" />
+  <rect x="310" y="640" width="60" height="16" rx="3" fill="#0a0e1a" />
+  <text x="340" y="652" text-anchor="middle" fill="#60a5fa" font-size="8.5">internal</text>
+
+  <!-- Edge Functions → Paynow (BLOCKED) -->
+  <path class="conn" d="M145,463 L145,510 L145,560 L145,600 L180,640 L210,668" stroke="#ef4444" stroke-width="1.5" fill="none" stroke-dasharray="6,4" marker-end="url(#arrow-red)" />
+  <rect x="80" y="588" width="80" height="16" rx="3" fill="#0a0e1a" />
+  <text x="120" y="600" text-anchor="middle" fill="#f87171" font-size="8.5">BLOCKED</text>
+
+  <!-- Go Backend → Paynow (BLOCKED) -->
+  <path class="conn" d="M582,463 L582,510 L500,580 L380,640 L350,668" stroke="#ef4444" stroke-width="1.5" fill="none" stroke-dasharray="6,4" marker-end="url(#arrow-red)" />
+  <rect x="434" y="590" width="80" height="16" rx="3" fill="#0a0e1a" />
+  <text x="474" y="602" text-anchor="middle" fill="#f87171" font-size="8.5">BLOCKED</text>
+
+  <!-- Agents → Edge Functions (invoke) -->
+  <path class="conn" d="M920,510 L460,510 L300,480 L200,463" stroke="#f59e0b" stroke-width="1.3" fill="none" marker-end="url(#arrow-orange)" stroke-dasharray="4,3" />
+  <rect x="530" y="498" width="100" height="16" rx="3" fill="#0a0e1a" />
+  <text x="580" y="510" text-anchor="middle" fill="#fbbf24" font-size="8.5">invoke functions</text>
+
+  <!-- QA Agents → All tables (read) -->
+  <path class="conn" d="M920,590 L870,620 L780,670 L780,710" stroke="#f87171" stroke-width="1" fill="none" marker-end="url(#arrow-red)" opacity="0.5" stroke-dasharray="3,3" />
+  <rect x="818" y="640" width="80" height="16" rx="3" fill="#0a0e1a" />
+  <text x="858" y="652" text-anchor="middle" fill="#fca5a5" font-size="8.5">read all tables</text>
+
+  <!-- Agents → Go Backend -->
+  <path class="conn" d="M920,340 L862,380" stroke="#f59e0b" stroke-width="1.3" fill="none" marker-end="url(#arrow-orange)" />
+  <rect x="858" y="342" width="50" height="16" rx="3" fill="#0a0e1a" />
+  <text x="883" y="354" text-anchor="middle" fill="#fbbf24" font-size="8.5">API</text>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- DECORATIVE: Animated pulse on active systems    -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <circle cx="920" cy="510" r="4" fill="#f59e0b" opacity="0.8">
+    <animate attributeName="r" values="3;7;3" dur="2s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="335" cy="375" r="3" fill="#3b82f6" opacity="0.8">
+    <animate attributeName="r" values="2;5;2" dur="2.5s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2.5s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="762" cy="375" r="3" fill="#22c55e" opacity="0.8">
+    <animate attributeName="r" values="2;5;2" dur="2.5s" repeatCount="indefinite" />
+    <animate attributeName="opacity" values="0.8;0.2;0.8" dur="2.5s" repeatCount="indefinite" />
+  </circle>
+
+  <!-- Bottom credits -->
+  <text x="680" y="966" text-anchor="middle" fill="#1e293b" font-size="9" font-family="monospace">ZimLivestock Architecture v1.0 — Tatenda Nyemudzo — 2026</text>
+</svg>
+
+<!-- ── Legend ──────────────────────────────────────── -->
+<div class="legend">
+  <h4>Legend</h4>
+  <div class="legend-item"><div class="legend-swatch" style="background:#3b82f6"></div> Supabase Platform</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#22c55e"></div> Go Backend</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b"></div> Agent System</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#ef4444"></div> Blocked / External</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#64748b"></div> Shared Infrastructure</div>
+  <div style="margin-top:8px; border-top:1px solid #1e293b; padding-top:8px;">
+    <div class="legend-item"><div class="legend-line" style="border-color:#60a5fa"></div> Active connection</div>
+    <div class="legend-item"><div class="legend-line dashed" style="border-color:#ef4444"></div> Blocked connection</div>
+    <div class="legend-item"><div class="legend-line dashed" style="border-color:#f59e0b"></div> Agent invocation</div>
+  </div>
+</div>
+
+</div>
+
+<!-- ── Tooltip element ────────────────────────────── -->
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const tips = {
+  "react": {
+    title: "React Frontend",
+    body: `<b>Stack:</b> React 18 + TypeScript + Vite + Tailwind + shadcn/ui<br>
+<b>State:</b> React Query (TanStack) + Zustand<br>
+<b>13 Routes:</b><ul>
+<li>/ — Home feed (browse livestock)</li>
+<li>/item/:id — Auction detail + bidding</li>
+<li>/checkout/:id — Payment checkout</li>
+<li>/payment-status/:ref — Payment tracking</li>
+<li>/post — Create listing</li>
+<li>/my-listings — Seller dashboard</li>
+<li>/payments — Payment history</li>
+<li>/notifications — Real-time alerts</li>
+<li>/messages — Buyer-seller chat</li>
+<li>/agents — Agent dashboard</li>
+<li>/agents/new — Agent setup wizard</li>
+<li>/auth — Login / signup</li>
+<li>/test-paynow — Payment testing</li>
+</ul>`
+  },
+  "mobile": {
+    title: "Mobile Browser",
+    body: "Responsive design via Tailwind breakpoints. Same React SPA served to mobile devices. PWA-ready layout with bottom nav."
+  },
+  "whatsapp": {
+    title: "WhatsApp Channel",
+    body: "Manual operations channel for seller notifications. Not API-integrated — used for human coordination in livestock markets where WhatsApp is the primary communication tool."
+  },
+  "supabase": {
+    title: "Supabase Platform (Production)",
+    body: `<b>Project:</b> hmeieslclzycyjjjflfh<br>
+<b>Services:</b> Auth, PostgreSQL, RLS, Realtime, Edge Functions, Storage<br>
+<b>Role:</b> Primary production backend (BaaS)<br>
+<b>Dual-mode:</b> Supabase + mock data fallback via isSupabaseConfigured`
+  },
+  "supabase-auth": {
+    title: "Supabase Auth",
+    body: "JWT-based authentication with OAuth2 support. Auto-creates profile on signup via database trigger (handle_new_user). Stores user metadata (name, phone)."
+  },
+  "postgres-supa": {
+    title: "PostgreSQL (via Supabase)",
+    body: `<b>16 Tables:</b><ul>
+<li>profiles — User accounts</li>
+<li>livestock_items — Auction listings</li>
+<li>bids — User bids</li>
+<li>payments — Payment records</li>
+<li>notifications — User alerts</li>
+<li>favorites — Saved listings</li>
+<li>conversations — Chat threads</li>
+<li>messages — Chat messages</li>
+<li>agents — Agent registry</li>
+<li>agent_goals — Buying criteria</li>
+<li>agent_decisions — Reasoning log</li>
+<li>agent_bids — Agent bid records</li>
+<li>agent_activity_log — Audit trail</li>
+<li>agent_payment_orders — Payment state machine</li>
+<li>settlement_ledger — Immutable audit</li>
+<li>market_intel — Price data</li>
+</ul>`
+  },
+  "rls": {
+    title: "Row Level Security",
+    body: "Per-user data isolation enforced at the database level. 11 security tests pass (Grade A). Prevents cross-user data access even if frontend is compromised."
+  },
+  "realtime-supa": {
+    title: "Supabase Realtime",
+    body: "WebSocket subscriptions on bids and notifications tables. Enables live bid updates and instant notification delivery without polling."
+  },
+  "edge-fns": {
+    title: "18 Edge Functions (Deno)",
+    body: `<b>Agent Functions:</b><ul>
+<li>buyer-agent — Scan + evaluate + bid</li>
+<li>auction-sniper — Last-second bids</li>
+<li>seller-agent — Reprice suggestions</li>
+<li>market-intel — Trend reports</li>
+<li>win-detector — Auction end scan</li>
+<li>bid-executor — Place bids</li>
+<li>payment-orchestrator — Retry + fallback</li>
+</ul>
+<b>QA Functions:</b><ul>
+<li>consistency-checker (6 checks)</li>
+<li>security-agent (11 tests)</li>
+<li>chaos-test (stress testing)</li>
+</ul>
+<b>Payment Functions:</b><ul>
+<li>initiate-payment</li>
+<li>payment-webhook</li>
+<li>end-auctions</li>
+</ul>
+<b>Benchmark:</b> test-paynow, test-stripe, test-paystack, test-flutterwave, test-pesepay`
+  },
+  "storage": {
+    title: "Supabase Storage",
+    body: "Public bucket 'livestock-images' for auction photos. Direct upload from frontend. CDN-served for fast loading."
+  },
+  "atomic": {
+    title: "Atomic Database Functions",
+    body: "<b>place_bid()</b> — Row-level lock prevents bid race conditions. Validates auction status, enforces minimum increment, auto-ends expired auctions.<br><b>end_expired_auctions()</b> — Batch update for past-due listings.<br><b>increment_view_count()</b> — Atomic counter update."
+  },
+  "go-backend": {
+    title: "Go Backend (Portfolio)",
+    body: `<b>Stack:</b> Go 1.22+ net/http ServeMux<br>
+<b>7,925 lines of Go</b><br>
+<b>Features:</b> JWT auth, CORS, request logging, 1MB body limit, graceful shutdown, structured logging (slog)<br>
+<b>Purpose:</b> Full backend reimplementation for portfolio — demonstrates Go proficiency alongside Supabase`
+  },
+  "go-server": {
+    title: "Go HTTP Server",
+    body: "Go 1.22+ ServeMux with method-based routing (GET /api/livestock, POST /api/bids). 15s read/write timeout, 60s idle timeout. Graceful shutdown on SIGINT/SIGTERM."
+  },
+  "go-auth": {
+    title: "JWT Auth Middleware",
+    body: "Custom middleware stack: Auth (JWT validation) → CORS (cross-origin) → Logging (structured slog) → MaxBody (1MB limit). Bearer token extracted from Authorization header."
+  },
+  "go-endpoints": {
+    title: "42 REST Endpoints",
+    body: `<b>9 Resource Groups:</b><ul>
+<li>Auth — signup, login, me (3)</li>
+<li>Livestock — list, get, create, update, delete, mine, won, view (8)</li>
+<li>Bids — list, place (2)</li>
+<li>Payments — initiate-web, initiate-mobile, webhook, poll, get-by-ref, list (6)</li>
+<li>Notifications — list, unread-count, read-all, delete (4)</li>
+<li>Favorites — list, toggle (2)</li>
+<li>Conversations — list, start (2)</li>
+<li>Messages — list, send (2)</li>
+<li>Agents — list, create, status, goals, activity, decisions, payments, run, market-intel (10)</li>
+<li>Upload — upload (1)</li>
+<li>Health — health check (1)</li>
+<li>WebSocket — /ws (1)</li>
+</ul>`
+  },
+  "go-ws": {
+    title: "WebSocket Hub",
+    body: "Real-time broadcast system using goroutines. Clients connect to /ws endpoint. Hub manages connections, broadcasts bid updates and notifications. Graceful shutdown with hub.Shutdown()."
+  },
+  "go-payments": {
+    title: "Payment Orchestrator",
+    body: `<b>Retry chain:</b> EcoCash → retry EcoCash → OneMoney → Card<br>
+<b>Success rates:</b> EcoCash ~70%, OneMoney ~60%, Card ~80% (+10%/retry)<br>
+<b>Result:</b> 50% first-attempt → 100% with retry<br>
+<b>Settlement ledger:</b> order_created → payment_initiated → ... → settlement_complete`
+  },
+  "go-workers": {
+    title: "Background Workers",
+    body: `<b>Auction Expiry:</b> Every 60s — marks past-due auctions as 'ended'<br>
+<b>Bid Sync:</b> Every 5min — reconciles current_bid and bid_count on livestock_items with actual bids table data. Fixes any drift from race conditions.`
+  },
+  "go-resources": {
+    title: "API Resource Groups",
+    body: "Auth | Livestock | Bids | Payments | Agents | Notifications | Favorites | Conversations + Messages | Upload. Each group has its own handler struct with database dependency injection."
+  },
+  "paynow": {
+    title: "Paynow Zimbabwe (BLOCKED)",
+    body: `<b>Methods:</b> EcoCash, OneMoney, Visa/Mastercard<br>
+<b>Status:</b> API blocked by Cloudflare 403 challenge<br>
+<b>Impact:</b> All payment integration runs in simulation mode<br>
+<b>Why:</b> Paynow API endpoints protected by Cloudflare browser verification — incompatible with server-to-server calls<br>
+<b>Currency:</b> US$ (Zimbabwe multi-currency)`
+  },
+  "postgres-shared": {
+    title: "PostgreSQL Database (Shared)",
+    body: `<b>16 Tables:</b> profiles, livestock_items, bids, payments, notifications, favorites, conversations, messages, agents, agent_goals, agent_decisions, agent_bids, agent_activity_log, agent_payment_orders, settlement_ledger, market_intel<br>
+<b>8 Indexes:</b> category, status, seller, end_time, bids(livestock), bids(user), payments(user), payments(reference)<br>
+<b>3 Atomic functions:</b> place_bid, end_expired_auctions, increment_view_count<br>
+<b>Access:</b> Supabase (internal) + Go backend (pgx driver)`
+  },
+  "agent-system": {
+    title: "Agent System — Autonomous Commerce",
+    body: `Full autonomous loop: Agent → scan marketplace → evaluate → bid → win auction → pay via Paynow → settle<br><br>
+<b>5 Commerce Agents:</b> Buyer, Sniper, Seller, Market Intel, Payment Orchestrator<br>
+<b>3 QA Agents:</b> Consistency (6/6), Security (11/11), Chaos Test<br>
+<b>Scheduler:</b> 15-second interval<br>
+<b>Key metric:</b> +25% payment recovery via retry`
+  },
+  "buyer-agent": {
+    title: "Buyer Agent",
+    body: `Scans marketplace, evaluates listings against user goals, places bids automatically.<br><br>
+<b>Scoring (0-100):</b><ul>
+<li>Price vs budget (0-30 pts)</li>
+<li>Location match (0-15 pts)</li>
+<li>Breed match (0-10 pts)</li>
+<li>Health rating (0-10 pts)</li>
+<li>Competition level</li>
+<li>Time urgency bonus</li>
+</ul>
+<b>Actions:</b> ignore | monitor | bid`
+  },
+  "sniper-agent": {
+    title: "Auction Sniper",
+    body: "Monitors auctions ending within 5-minute window. Places last-second bids at 3% above current price (minimum US$5 increment). Skips already-bid listings. Budget-aware."
+  },
+  "seller-agent": {
+    title: "Seller Agent",
+    body: "Analyzes active listings and suggests pricing optimizations.<br>No bids + ending soon → suggest reprice<br>Price above market → suggest reduction<br>High traction (5+ bids) → suggest promotion"
+  },
+  "market-intel": {
+    title: "Market Intel Agent",
+    body: "Generates market intelligence reports. Category-level averages, sell-through rates, overpriced/underpriced anomaly detection (>50% deviation from mean)."
+  },
+  "win-detector": {
+    title: "Win Detector",
+    body: "Scans for ended auctions where agent has the highest bid. Triggers payment orchestrator on win detection. Part of the autonomous commerce pipeline."
+  },
+  "payment-orch": {
+    title: "Payment Orchestrator (Agent)",
+    body: `Executes payments when agent wins. Full retry + fallback chain:<br>
+EcoCash → retry → OneMoney → retry → Card<br><br>
+<b>Settlement ledger events:</b> order_created → payment_initiated → payment_failed → retry_scheduled → retry_attempted → fallback_method → payment_succeeded → settlement_complete`
+  },
+  "settlement": {
+    title: "Settlement Ledger",
+    body: "Immutable audit log of every payment event. Each entry: order_id, event_type, method, amount, timestamp. Provides full auditability for agent commerce transactions."
+  },
+  "scheduler": {
+    title: "Agent Scheduler",
+    body: "15-second interval cron loop. Runs all active agents in sequence: scan → evaluate → bid → detect wins → initiate payment → settle. Configurable via AGENT_INTERVAL env var."
+  },
+  "qa-agents": {
+    title: "QA Agent Team",
+    body: `<b>Consistency Checker (6/6 PASS):</b> Orphaned bids, double payments, sold-without-payment, missing ledger entries, agent bid refs, bid price consistency<br><br>
+<b>Security Agent (11/11 PASS, Grade A):</b> Anon access tests, RLS enforcement, constraint validation, service role isolation<br><br>
+<b>Chaos Test:</b> Concurrent bids, payment failures, zero amounts, negative bids, invalid categories`
+  },
+  "recovery": {
+    title: "Payment Recovery Stats",
+    body: "Manual payments (no retry): ~65% success<br>Agent payments (with retry): ~90% success<br>Recovered by retry: +25% of transactions<br><br>Test run: 50% first-attempt → 100% with retry. 1 of 2 payments recovered by retry alone."
+  },
+  "fallback-chain": {
+    title: "Payment Fallback Chain",
+    body: "EcoCash (attempt 1) → fail → retry EcoCash (attempt 2) → fail → fallback OneMoney (attempt 3) → fail → fallback Card (attempt 4) → success<br><br>Simulates real Zimbabwe failure rates: EcoCash ~70%, OneMoney ~60%, Card ~80%. +10% boost per retry attempt."
+  }
+};
+
+const tooltip = document.getElementById('tooltip');
+let activeBox = null;
+
+document.querySelectorAll('.box').forEach(el => {
+  const key = el.dataset.tip;
+  if (!key || !tips[key]) return;
+
+  el.addEventListener('mouseenter', (e) => {
+    activeBox = key;
+    const t = tips[key];
+    tooltip.innerHTML = `<h4>${t.title}</h4>${t.body}`;
+    tooltip.classList.add('show');
+    positionTooltip(e);
+  });
+
+  el.addEventListener('mousemove', positionTooltip);
+
+  el.addEventListener('mouseleave', () => {
+    activeBox = null;
+    tooltip.classList.remove('show');
+  });
+});
+
+function positionTooltip(e) {
+  const pad = 16;
+  let x = e.clientX + pad;
+  let y = e.clientY + pad;
+  const rect = tooltip.getBoundingClientRect();
+  if (x + rect.width > window.innerWidth - pad) x = e.clientX - rect.width - pad;
+  if (y + rect.height > window.innerHeight - pad) y = e.clientY - rect.height - pad;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+</script>
+
+</body>
+</html>

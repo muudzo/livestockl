@@ -1,0 +1,1573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZimLivestock Wireframes</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; }
+
+  .header {
+    background: #fff; border-bottom: 1px solid #e0e0e0;
+    padding: 32px 48px; position: sticky; top: 0; z-index: 100;
+  }
+  .header h1 { font-size: 28px; font-weight: 700; }
+  .header p { color: #666; margin-top: 4px; font-size: 14px; }
+
+  .nav {
+    display: flex; gap: 8px; padding: 16px 48px; background: #fff;
+    border-bottom: 1px solid #e0e0e0; flex-wrap: wrap; position: sticky; top: 72px; z-index: 99;
+  }
+  .nav a {
+    padding: 6px 14px; border-radius: 20px; font-size: 13px;
+    text-decoration: none; color: #444; background: #f0f0f0;
+    transition: all 0.2s;
+  }
+  .nav a:hover, .nav a.active { background: #1a1a1a; color: #fff; }
+
+  .section {
+    padding: 48px; display: none;
+  }
+  .section.active { display: block; }
+
+  .section-title {
+    font-size: 22px; font-weight: 700; margin-bottom: 8px;
+  }
+  .section-desc {
+    color: #666; font-size: 14px; margin-bottom: 32px; max-width: 600px; line-height: 1.5;
+  }
+
+  .wireframe-row {
+    display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start;
+    margin-bottom: 48px;
+  }
+
+  .phone {
+    width: 320px; min-height: 568px;
+    background: #fff; border-radius: 24px;
+    border: 2px solid #1a1a1a;
+    overflow: hidden; position: relative;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    flex-shrink: 0;
+  }
+  .phone-status {
+    height: 28px; background: #1a1a1a; color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; font-size: 11px; font-weight: 600;
+  }
+  .phone-content {
+    padding: 0; min-height: 500px; position: relative;
+  }
+  .phone-nav {
+    display: flex; justify-content: space-around; align-items: center;
+    border-top: 1px solid #e0e0e0; padding: 10px 0 14px;
+    background: #fff; font-size: 10px; color: #999;
+  }
+  .phone-nav .nav-item { text-align: center; }
+  .phone-nav .nav-item.active { color: #1a1a1a; font-weight: 700; }
+  .phone-nav .nav-icon {
+    width: 20px; height: 20px; border-radius: 4px;
+    background: #ddd; margin: 0 auto 3px;
+  }
+  .phone-nav .nav-item.active .nav-icon { background: #1a1a1a; }
+
+  .annotation {
+    max-width: 280px; padding-top: 8px;
+  }
+  .annotation h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .annotation p { font-size: 13px; color: #555; line-height: 1.6; margin-bottom: 8px; }
+  .annotation ul { font-size: 13px; color: #555; line-height: 1.8; padding-left: 18px; }
+
+  /* Wireframe UI Elements */
+  .w-search {
+    margin: 12px; padding: 10px 14px; border-radius: 10px;
+    background: #f5f5f5; border: 1px solid #e0e0e0; font-size: 12px; color: #999;
+  }
+  .w-categories {
+    display: flex; gap: 6px; padding: 0 12px 8px; overflow-x: auto;
+  }
+  .w-cat {
+    padding: 5px 12px; border-radius: 16px; font-size: 11px;
+    background: #f0f0f0; white-space: nowrap; color: #555;
+  }
+  .w-cat.active { background: #1a1a1a; color: #fff; }
+
+  .w-card {
+    margin: 8px 12px; border-radius: 12px; border: 1px solid #e8e8e8;
+    overflow: hidden; background: #fff;
+  }
+  .w-card-img {
+    height: 140px; background: #e8e8e8; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    color: #bbb; font-size: 12px;
+  }
+  .w-card-img .heart {
+    position: absolute; top: 8px; right: 8px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,255,255,0.9); display: flex;
+    align-items: center; justify-content: center; font-size: 14px;
+  }
+  .w-card-img .badge-time {
+    position: absolute; bottom: 8px; left: 8px;
+    background: rgba(0,0,0,0.7); color: #fff; padding: 3px 8px;
+    border-radius: 6px; font-size: 10px;
+  }
+  .w-card-body { padding: 10px 12px; }
+  .w-card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .w-card-meta { font-size: 11px; color: #888; margin-bottom: 6px; }
+  .w-card-bottom {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .w-card-price { font-size: 15px; font-weight: 700; }
+  .w-card-bids { font-size: 11px; color: #888; }
+  .w-btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 12px;
+    font-weight: 600; text-align: center; cursor: pointer;
+  }
+  .w-btn-primary { background: #1a1a1a; color: #fff; }
+  .w-btn-outline { border: 1px solid #ddd; color: #333; background: #fff; }
+  .w-btn-full { display: block; margin: 12px; padding: 12px; }
+
+  .w-topbar {
+    display: flex; align-items: center; padding: 12px 16px;
+    border-bottom: 1px solid #eee; gap: 12px;
+  }
+  .w-back { font-size: 18px; cursor: pointer; }
+  .w-topbar-title { font-size: 15px; font-weight: 600; flex: 1; }
+
+  .w-img-carousel {
+    height: 200px; background: #e8e8e8; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    color: #bbb; font-size: 12px;
+  }
+  .w-dots {
+    display: flex; gap: 5px; justify-content: center;
+    position: absolute; bottom: 10px;
+  }
+  .w-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.5);
+  }
+  .w-dot.active { background: #fff; }
+
+  .w-detail-header { padding: 12px 16px; }
+  .w-detail-header h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+  .w-badges { display: flex; gap: 6px; margin-bottom: 8px; }
+  .w-badge {
+    padding: 3px 8px; border-radius: 10px; font-size: 10px;
+    background: #f0f0f0; color: #555;
+  }
+  .w-badge.green { background: #e8f5e9; color: #2e7d32; }
+  .w-badge.orange { background: #fff3e0; color: #e65100; }
+
+  .w-seller-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; margin: 0 12px;
+    border: 1px solid #eee; border-radius: 10px;
+  }
+  .w-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #e0e0e0; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 700; color: #666;
+  }
+  .w-seller-info { flex: 1; }
+  .w-seller-name { font-size: 13px; font-weight: 600; }
+  .w-seller-meta { font-size: 10px; color: #888; }
+
+  .w-bid-section {
+    margin: 12px 16px; padding: 12px;
+    background: #f9f9f9; border-radius: 10px;
+  }
+  .w-bid-label { font-size: 11px; color: #888; margin-bottom: 4px; }
+  .w-bid-amount { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+  .w-bid-input {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .w-input {
+    flex: 1; padding: 10px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 13px; background: #fff;
+  }
+
+  .w-specs {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; padding: 12px 16px;
+  }
+  .w-spec {
+    padding: 8px; background: #f5f5f5; border-radius: 8px;
+  }
+  .w-spec-label { font-size: 10px; color: #888; }
+  .w-spec-value { font-size: 12px; font-weight: 600; }
+
+  /* Auth */
+  .w-auth-tabs {
+    display: flex; border-bottom: 1px solid #eee;
+  }
+  .w-auth-tab {
+    flex: 1; text-align: center; padding: 12px;
+    font-size: 13px; font-weight: 600; color: #999;
+    border-bottom: 2px solid transparent;
+  }
+  .w-auth-tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+  .w-form { padding: 20px 16px; }
+  .w-form-group { margin-bottom: 14px; }
+  .w-form-label { font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block; }
+  .w-form-input {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 13px; background: #fafafa;
+  }
+  .w-form-row { display: flex; gap: 10px; }
+  .w-form-row .w-form-group { flex: 1; }
+
+  /* Checkout */
+  .w-summary {
+    margin: 12px 16px; padding: 14px;
+    background: #f9f9f9; border-radius: 10px;
+  }
+  .w-summary-row {
+    display: flex; justify-content: space-between;
+    font-size: 12px; margin-bottom: 6px; color: #555;
+  }
+  .w-summary-row.total {
+    font-weight: 700; font-size: 14px; color: #1a1a1a;
+    border-top: 1px solid #ddd; padding-top: 8px; margin-top: 8px;
+  }
+  .w-radio-group { padding: 0 16px; }
+  .w-radio {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px; border: 1px solid #eee; border-radius: 10px;
+    margin-bottom: 8px;
+  }
+  .w-radio.selected { border-color: #1a1a1a; background: #f9f9f9; }
+  .w-radio-dot {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid #ccc;
+  }
+  .w-radio.selected .w-radio-dot {
+    border-color: #1a1a1a; background: radial-gradient(#1a1a1a 40%, transparent 41%);
+  }
+  .w-radio-label { font-size: 13px; font-weight: 600; }
+  .w-radio-desc { font-size: 10px; color: #888; }
+
+  /* Post listing */
+  .w-photo-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr);
+    gap: 8px; padding: 12px 16px;
+  }
+  .w-photo-slot {
+    height: 90px; background: #f0f0f0; border-radius: 10px;
+    border: 2px dashed #ccc; display: flex;
+    align-items: center; justify-content: center;
+    font-size: 11px; color: #999;
+  }
+  .w-photo-slot.filled { background: #e0e0e0; border: none; color: #888; }
+
+  .w-select {
+    width: 100%; padding: 10px 12px; border: 1px solid #ddd;
+    border-radius: 8px; font-size: 13px; background: #fafafa;
+    appearance: none;
+  }
+
+  /* Messages */
+  .w-msg-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-bottom: 1px solid #f0f0f0;
+  }
+  .w-msg-content { flex: 1; }
+  .w-msg-name { font-size: 13px; font-weight: 600; }
+  .w-msg-preview { font-size: 11px; color: #888; }
+  .w-msg-time { font-size: 10px; color: #bbb; }
+
+  .w-chat-area { padding: 12px 16px; min-height: 280px; }
+  .w-bubble {
+    max-width: 75%; padding: 10px 14px; border-radius: 16px;
+    font-size: 12px; line-height: 1.4; margin-bottom: 8px;
+  }
+  .w-bubble.sent {
+    background: #1a1a1a; color: #fff; margin-left: auto;
+    border-bottom-right-radius: 4px;
+  }
+  .w-bubble.received {
+    background: #f0f0f0; color: #333;
+    border-bottom-left-radius: 4px;
+  }
+  .w-chat-input {
+    display: flex; gap: 8px; padding: 12px 16px;
+    border-top: 1px solid #eee;
+  }
+
+  /* Notifications */
+  .w-notif {
+    display: flex; gap: 10px; padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0; align-items: flex-start;
+  }
+  .w-notif-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    margin-top: 4px; flex-shrink: 0;
+  }
+  .w-notif-dot.high { background: #e53935; }
+  .w-notif-dot.med { background: #fb8c00; }
+  .w-notif-dot.low { background: #43a047; }
+  .w-notif-content { flex: 1; }
+  .w-notif-title { font-size: 13px; font-weight: 600; }
+  .w-notif-msg { font-size: 11px; color: #666; margin-top: 2px; }
+  .w-notif-time { font-size: 10px; color: #bbb; margin-top: 3px; }
+
+  /* My Listings */
+  .w-tabs {
+    display: flex; border-bottom: 1px solid #eee;
+  }
+  .w-tab {
+    flex: 1; text-align: center; padding: 12px;
+    font-size: 13px; font-weight: 600; color: #999;
+    border-bottom: 2px solid transparent;
+  }
+  .w-tab.active { color: #1a1a1a; border-bottom-color: #1a1a1a; }
+
+  .w-listing-card {
+    display: flex; gap: 10px; padding: 12px 16px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .w-listing-thumb {
+    width: 70px; height: 70px; border-radius: 8px;
+    background: #e8e8e8; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #bbb;
+  }
+  .w-listing-info { flex: 1; }
+  .w-listing-title { font-size: 13px; font-weight: 600; }
+  .w-listing-stats { font-size: 10px; color: #888; margin-top: 3px; }
+  .w-listing-actions {
+    display: flex; gap: 6px; margin-top: 6px;
+  }
+  .w-listing-actions .w-btn { padding: 4px 10px; font-size: 10px; }
+
+  /* Payment Status */
+  .w-status-center {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 400px; padding: 24px;
+    text-align: center;
+  }
+  .w-status-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin-bottom: 16px;
+  }
+  .w-status-icon.pending { background: #fff3e0; color: #e65100; }
+  .w-status-icon.success { background: #e8f5e9; color: #2e7d32; }
+  .w-status-h { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .w-status-p { font-size: 13px; color: #666; max-width: 260px; line-height: 1.5; }
+  .w-status-ref {
+    font-size: 12px; color: #888; margin-top: 16px;
+    padding: 8px 16px; background: #f5f5f5; border-radius: 8px;
+  }
+
+  /* Agent */
+  .w-agent-card {
+    margin: 8px 12px; padding: 14px;
+    border: 1px solid #eee; border-radius: 12px;
+  }
+  .w-agent-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .w-agent-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: #f0f0f0; display: flex; align-items: center;
+    justify-content: center; font-size: 16px;
+  }
+  .w-agent-name { font-size: 14px; font-weight: 700; }
+  .w-agent-type { font-size: 10px; color: #888; }
+  .w-agent-status {
+    padding: 3px 8px; border-radius: 10px; font-size: 10px;
+    margin-left: auto;
+  }
+  .w-agent-status.active { background: #e8f5e9; color: #2e7d32; }
+  .w-agent-status.idle { background: #f5f5f5; color: #999; }
+  .w-agent-goals { padding: 10px; background: #f9f9f9; border-radius: 8px; font-size: 11px; color: #555; line-height: 1.6; }
+
+  .w-agent-types {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 12px 16px;
+  }
+  .w-agent-type-card {
+    padding: 16px; border: 1px solid #eee; border-radius: 12px;
+    text-align: center;
+  }
+  .w-agent-type-card.selected { border-color: #1a1a1a; background: #f9f9f9; }
+  .w-agent-type-icon { font-size: 24px; margin-bottom: 6px; }
+  .w-agent-type-name { font-size: 12px; font-weight: 700; }
+  .w-agent-type-desc { font-size: 10px; color: #888; margin-top: 3px; }
+
+  /* Payment History */
+  .w-payment-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; border-bottom: 1px solid #f0f0f0;
+  }
+  .w-payment-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .w-payment-icon.paid { background: #e8f5e9; color: #2e7d32; }
+  .w-payment-icon.pending { background: #fff3e0; color: #e65100; }
+  .w-payment-icon.failed { background: #ffebee; color: #c62828; }
+  .w-payment-info { flex: 1; }
+  .w-payment-ref { font-size: 12px; font-weight: 600; }
+  .w-payment-method { font-size: 10px; color: #888; }
+  .w-payment-amount { font-size: 14px; font-weight: 700; text-align: right; }
+  .w-payment-date { font-size: 10px; color: #888; text-align: right; }
+
+  /* Flow diagram */
+  .flow-section { margin: 32px 0; }
+  .flow-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .flow {
+    display: flex; align-items: center; gap: 0;
+    flex-wrap: wrap; padding: 16px;
+    background: #fff; border-radius: 12px; border: 1px solid #eee;
+  }
+  .flow-step {
+    padding: 12px 20px; background: #f9f9f9; border-radius: 10px;
+    border: 1px solid #e0e0e0; text-align: center; min-width: 120px;
+  }
+  .flow-step-name { font-size: 13px; font-weight: 700; }
+  .flow-step-desc { font-size: 10px; color: #888; margin-top: 3px; }
+  .flow-arrow {
+    font-size: 18px; color: #ccc; padding: 0 8px;
+  }
+
+  .page-label {
+    font-size: 11px; font-weight: 700; color: #fff;
+    background: #1a1a1a; display: inline-block;
+    padding: 3px 10px; border-radius: 6px; margin-bottom: 12px;
+  }
+
+  @media print {
+    .nav { display: none; }
+    .section { display: block !important; page-break-inside: avoid; }
+    .phone { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ZimLivestock &mdash; Wireframes</h1>
+  <p>Mobile-first livestock auction marketplace &bull; March 2026 &bull; Tatenda Nyemudzo</p>
+</div>
+
+<div class="nav" id="nav">
+  <a href="#" data-section="flows" class="active">User Flows</a>
+  <a href="#" data-section="home">Home Feed</a>
+  <a href="#" data-section="detail">Item Detail</a>
+  <a href="#" data-section="auth">Auth</a>
+  <a href="#" data-section="post">Post Listing</a>
+  <a href="#" data-section="checkout">Checkout</a>
+  <a href="#" data-section="payment-status">Payment Status</a>
+  <a href="#" data-section="my-listings">My Listings</a>
+  <a href="#" data-section="payments">Payment History</a>
+  <a href="#" data-section="messages">Messages</a>
+  <a href="#" data-section="notifications">Notifications</a>
+  <a href="#" data-section="agents">Agents</a>
+</div>
+
+<!-- ==================== USER FLOWS ==================== -->
+<div class="section active" id="flows">
+  <div class="section-title">User Flows</div>
+  <div class="section-desc">Core journeys through the ZimLivestock marketplace. Each flow maps to the screens shown in the wireframes.</div>
+
+  <div class="flow-section">
+    <div class="flow-title">Buyer Journey: Browse &rarr; Bid &rarr; Pay</div>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-step-name">Home Feed</div><div class="flow-step-desc">Browse & filter</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Item Detail</div><div class="flow-step-desc">View & place bid</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Bid Confirmed</div><div class="flow-step-desc">Alert dialog</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Auction Ends</div><div class="flow-step-desc">Notification</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">My Listings</div><div class="flow-step-desc">Won tab</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Checkout</div><div class="flow-step-desc">Select payment</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Payment Status</div><div class="flow-step-desc">Confirm on phone</div></div>
+    </div>
+  </div>
+
+  <div class="flow-section">
+    <div class="flow-title">Seller Journey: List &rarr; Monitor &rarr; Settle</div>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-step-name">Post Listing</div><div class="flow-step-desc">Photos + details</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">My Listings</div><div class="flow-step-desc">Selling tab</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Notifications</div><div class="flow-step-desc">Bid alerts</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Auction Ends</div><div class="flow-step-desc">Auto-close</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Messages</div><div class="flow-step-desc">Coordinate pickup</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Payment History</div><div class="flow-step-desc">Verify settlement</div></div>
+    </div>
+  </div>
+
+  <div class="flow-section">
+    <div class="flow-title">Messaging Flow</div>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-step-name">Item Detail</div><div class="flow-step-desc">Tap message icon</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Chat View</div><div class="flow-step-desc">Send/receive</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Conversations</div><div class="flow-step-desc">All threads</div></div>
+    </div>
+  </div>
+
+  <div class="flow-section">
+    <div class="flow-title">Agent Automation Flow</div>
+    <div class="flow">
+      <div class="flow-step"><div class="flow-step-name">Agent Dashboard</div><div class="flow-step-desc">View agents</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">New Agent</div><div class="flow-step-desc">Pick type</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Configure</div><div class="flow-step-desc">Set goals</div></div>
+      <div class="flow-arrow">&rarr;</div>
+      <div class="flow-step"><div class="flow-step-name">Active Agent</div><div class="flow-step-desc">Monitor activity</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== HOME FEED ==================== -->
+<div class="section" id="home">
+  <div class="section-title">Home Feed</div>
+  <div class="section-desc">The marketplace landing page. Users browse livestock listings, filter by category, and search. Tapping a card opens the item detail.</div>
+
+  <div class="wireframe-row">
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span>ZimLivestock</span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-search">Search breed, location...</div>
+        <div class="w-categories">
+          <div class="w-cat active">All</div>
+          <div class="w-cat">Cattle</div>
+          <div class="w-cat">Goats</div>
+          <div class="w-cat">Sheep</div>
+          <div class="w-cat">Pigs</div>
+          <div class="w-cat">Poultry</div>
+        </div>
+
+        <div class="w-card">
+          <div class="w-card-img">
+            320 x 140
+            <div class="heart">&hearts;</div>
+            <div class="badge-time">2d 14h left</div>
+          </div>
+          <div class="w-card-body">
+            <div class="w-card-title">Brahman Heifer &mdash; 2 years</div>
+            <div class="w-card-meta">Harare &bull; Excellent health</div>
+            <div class="w-card-bottom">
+              <div class="w-card-price">US$850</div>
+              <div class="w-card-bids">12 bids</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-card">
+          <div class="w-card-img">
+            320 x 140
+            <div class="heart">&hearts;</div>
+            <div class="badge-time">6h 22m left</div>
+          </div>
+          <div class="w-card-body">
+            <div class="w-card-title">Boer Goat &mdash; Male, 18 months</div>
+            <div class="w-card-meta">Bulawayo &bull; Good health</div>
+            <div class="w-card-bottom">
+              <div class="w-card-price">US$220</div>
+              <div class="w-card-bids">5 bids</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-item active"><div class="nav-icon"></div>Home</div>
+        <div class="nav-item"><div class="nav-icon"></div>Agents</div>
+        <div class="nav-item"><div class="nav-icon"></div>Pay</div>
+        <div class="nav-item"><div class="nav-icon"></div>Chat</div>
+        <div class="nav-item"><div class="nav-icon"></div>More</div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/ (HomeFeed)</div>
+      <h3>Key Elements</h3>
+      <ul>
+        <li>Search bar with breed/location hints</li>
+        <li>Horizontal category filter badges (All, Cattle, Goats, Sheep, Pigs, Poultry)</li>
+        <li>Listing cards with: photo, countdown timer, heart/favorite, title, breed, location, health, current bid, bid count</li>
+        <li>Bottom navigation: Home, Agents, Pay, Chat, More</li>
+      </ul>
+      <p style="margin-top:12px;"><strong>Interactions:</strong> Tap card &rarr; Item Detail. Tap heart &rarr; toggle favorite. Tap category &rarr; filter. Tap search &rarr; keyboard.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ITEM DETAIL ==================== -->
+<div class="section" id="detail">
+  <div class="section-title">Item Detail</div>
+  <div class="section-desc">Full listing view with image carousel, seller info, specs, bid history, and bid placement. The core conversion screen.</div>
+
+  <div class="wireframe-row">
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-img-carousel">
+          Photo 1 of 4
+          <div class="w-dots">
+            <div class="w-dot active"></div>
+            <div class="w-dot"></div>
+            <div class="w-dot"></div>
+            <div class="w-dot"></div>
+          </div>
+        </div>
+        <div style="position:absolute;top:40px;left:12px;">
+          <div class="w-topbar" style="border:none;padding:0;">
+            <span class="w-back" style="background:rgba(255,255,255,0.8);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;">&larr;</span>
+          </div>
+        </div>
+
+        <div class="w-detail-header">
+          <div class="w-badges">
+            <div class="w-badge green">Active</div>
+            <div class="w-badge">Cattle</div>
+            <div class="w-badge orange">6h 22m</div>
+          </div>
+          <h2>Brahman Heifer &mdash; 2 years</h2>
+        </div>
+
+        <div class="w-seller-card">
+          <div class="w-avatar">TM</div>
+          <div class="w-seller-info">
+            <div class="w-seller-name">Tendai Moyo &nbsp;&#10003;</div>
+            <div class="w-seller-meta">&#9733; 4.8 &bull; 23 sales</div>
+          </div>
+          <div class="w-btn w-btn-outline" style="padding:5px 10px;font-size:10px;">Message</div>
+        </div>
+
+        <div class="w-bid-section">
+          <div class="w-bid-label">Current Bid</div>
+          <div class="w-bid-amount">US$850</div>
+          <div class="w-bid-input">
+            <div class="w-input">US$ Enter bid...</div>
+            <div class="w-btn w-btn-primary">Place Bid</div>
+          </div>
+        </div>
+
+        <div class="w-specs">
+          <div class="w-spec"><div class="w-spec-label">Age</div><div class="w-spec-value">2 years</div></div>
+          <div class="w-spec"><div class="w-spec-label">Weight</div><div class="w-spec-value">380 kg</div></div>
+          <div class="w-spec"><div class="w-spec-label">Location</div><div class="w-spec-value">Harare</div></div>
+          <div class="w-spec"><div class="w-spec-label">Health</div><div class="w-spec-value">Excellent</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/item/:id (ItemDetail)</div>
+      <h3>Key Elements</h3>
+      <ul>
+        <li>Image carousel with swipe + dot indicators</li>
+        <li>Back button overlay on image</li>
+        <li>Status badges: active/ended, category, time remaining</li>
+        <li>Seller card: avatar, name, verified badge, rating, sales count, message button</li>
+        <li>Bid section: current price, input field, place bid button</li>
+        <li>Specs grid: age, weight, location, health</li>
+        <li>Below fold: description text, bid history list, share/favorite buttons</li>
+      </ul>
+      <p style="margin-top:12px;"><strong>Interactions:</strong> Place Bid &rarr; confirmation dialog &rarr; real-time update. Message &rarr; opens chat. Swipe images. Heart &rarr; favorite.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== AUTH ==================== -->
+<div class="section" id="auth">
+  <div class="section-title">Authentication</div>
+  <div class="section-desc">Login and sign-up with email/password. Tabbed interface. Sign-up includes name, phone, and email fields.</div>
+
+  <div class="wireframe-row">
+    <!-- Login -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div style="padding:32px 16px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;">ZimLivestock</div>
+          <div style="font-size:12px;color:#888;margin-top:4px;">Buy & sell livestock with confidence</div>
+        </div>
+        <div class="w-auth-tabs">
+          <div class="w-auth-tab active">Login</div>
+          <div class="w-auth-tab">Sign Up</div>
+        </div>
+        <div class="w-form">
+          <div class="w-form-group">
+            <div class="w-form-label">Email</div>
+            <div class="w-form-input">you@example.com</div>
+          </div>
+          <div class="w-form-group">
+            <div class="w-form-label">Password</div>
+            <div class="w-form-input">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;</div>
+          </div>
+          <div style="text-align:right;margin-bottom:16px;">
+            <span style="font-size:12px;color:#666;">Forgot password?</span>
+          </div>
+          <div class="w-btn w-btn-primary w-btn-full">Login</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sign Up -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div style="padding:32px 16px 16px;text-align:center;">
+          <div style="font-size:22px;font-weight:800;">ZimLivestock</div>
+          <div style="font-size:12px;color:#888;margin-top:4px;">Create your account</div>
+        </div>
+        <div class="w-auth-tabs">
+          <div class="w-auth-tab">Login</div>
+          <div class="w-auth-tab active">Sign Up</div>
+        </div>
+        <div class="w-form">
+          <div class="w-form-row">
+            <div class="w-form-group">
+              <div class="w-form-label">First Name</div>
+              <div class="w-form-input">Tatenda</div>
+            </div>
+            <div class="w-form-group">
+              <div class="w-form-label">Last Name</div>
+              <div class="w-form-input">Moyo</div>
+            </div>
+          </div>
+          <div class="w-form-group">
+            <div class="w-form-label">Phone</div>
+            <div class="w-form-input">+263 7X XXX XXXX</div>
+          </div>
+          <div class="w-form-group">
+            <div class="w-form-label">Email</div>
+            <div class="w-form-input">you@example.com</div>
+          </div>
+          <div class="w-form-group">
+            <div class="w-form-label">Password</div>
+            <div class="w-form-input">Min 8 characters</div>
+          </div>
+          <div class="w-btn w-btn-primary w-btn-full">Create Account</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/auth (AuthScreen)</div>
+      <h3>Key Elements</h3>
+      <ul>
+        <li>Tabbed login/sign-up</li>
+        <li>Login: email + password + forgot password link</li>
+        <li>Sign-up: first name, last name, phone, email, password</li>
+        <li>Phone format: +263 prefix for Zimbabwe</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== POST LISTING ==================== -->
+<div class="section" id="post">
+  <div class="section-title">Post Listing</div>
+  <div class="section-desc">Create a new auction listing. Photos, breed details, health status, location, starting price, and auction duration.</div>
+
+  <div class="wireframe-row">
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-back">&larr;</span>
+          <span class="w-topbar-title">Post a Listing</span>
+        </div>
+
+        <div class="w-photo-grid">
+          <div class="w-photo-slot filled">Photo 1</div>
+          <div class="w-photo-slot filled">Photo 2</div>
+          <div class="w-photo-slot">+ Add</div>
+          <div class="w-photo-slot">+ Add</div>
+        </div>
+
+        <div class="w-form" style="padding-top:0;">
+          <div class="w-form-group">
+            <div class="w-form-label">Title</div>
+            <div class="w-form-input">e.g. Brahman Heifer, 2 years</div>
+          </div>
+          <div class="w-form-row">
+            <div class="w-form-group">
+              <div class="w-form-label">Category</div>
+              <div class="w-select" style="color:#999;">Select...</div>
+            </div>
+            <div class="w-form-group">
+              <div class="w-form-label">Breed</div>
+              <div class="w-form-input">e.g. Brahman</div>
+            </div>
+          </div>
+          <div class="w-form-row">
+            <div class="w-form-group">
+              <div class="w-form-label">Age</div>
+              <div class="w-form-input">e.g. 2 years</div>
+            </div>
+            <div class="w-form-group">
+              <div class="w-form-label">Weight (kg)</div>
+              <div class="w-form-input">e.g. 380</div>
+            </div>
+          </div>
+          <div class="w-form-row">
+            <div class="w-form-group">
+              <div class="w-form-label">Location</div>
+              <div class="w-select" style="color:#999;">Select city...</div>
+            </div>
+            <div class="w-form-group">
+              <div class="w-form-label">Health</div>
+              <div class="w-select" style="color:#999;">Select...</div>
+            </div>
+          </div>
+          <div class="w-form-group">
+            <div class="w-form-label">Description</div>
+            <div class="w-form-input" style="height:60px;">Describe the animal...</div>
+          </div>
+          <div class="w-form-row">
+            <div class="w-form-group">
+              <div class="w-form-label">Starting Price (US$)</div>
+              <div class="w-form-input">e.g. 500</div>
+            </div>
+            <div class="w-form-group">
+              <div class="w-form-label">Duration</div>
+              <div class="w-select" style="color:#999;">7 days</div>
+            </div>
+          </div>
+          <div class="w-btn w-btn-primary w-btn-full" style="margin:16px 0 0;">Post Listing</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/post (PostListing)</div>
+      <h3>Key Elements</h3>
+      <ul>
+        <li>Photo grid: up to 4 images, tap to add/remove</li>
+        <li>Basic info: title, category dropdown, breed text</li>
+        <li>Animal details: age, weight, location, health status</li>
+        <li>Description textarea</li>
+        <li>Auction settings: starting price (US$), duration (1-14 days)</li>
+        <li>Info box with auction rules (below fold)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== CHECKOUT ==================== -->
+<div class="section" id="checkout">
+  <div class="section-title">Checkout</div>
+  <div class="section-desc">Payment screen after winning an auction. Shows order summary, 5% platform fee, and mobile money payment method selection.</div>
+
+  <div class="wireframe-row">
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-back">&larr;</span>
+          <span class="w-topbar-title">Checkout</span>
+        </div>
+
+        <div style="padding:12px 16px;">
+          <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Brahman Heifer &mdash; 2 years</div>
+          <div style="font-size:11px;color:#888;">Won auction &bull; Seller: Tendai Moyo</div>
+        </div>
+
+        <div class="w-summary">
+          <div class="w-summary-row"><span>Winning bid</span><span>US$850.00</span></div>
+          <div class="w-summary-row"><span>Platform fee (5%)</span><span>US$42.50</span></div>
+          <div class="w-summary-row total"><span>Total</span><span>US$892.50</span></div>
+        </div>
+
+        <div style="padding:16px 16px 8px;font-size:13px;font-weight:700;">Payment Method</div>
+        <div class="w-radio-group">
+          <div class="w-radio selected">
+            <div class="w-radio-dot"></div>
+            <div>
+              <div class="w-radio-label">EcoCash</div>
+              <div class="w-radio-desc">Pay via USSD on your phone</div>
+            </div>
+          </div>
+          <div class="w-radio">
+            <div class="w-radio-dot"></div>
+            <div>
+              <div class="w-radio-label">OneMoney</div>
+              <div class="w-radio-desc">Pay via USSD on your phone</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-form" style="padding-top:12px;">
+          <div class="w-form-group">
+            <div class="w-form-label">Phone Number</div>
+            <div class="w-form-input">0771 234 567</div>
+          </div>
+        </div>
+
+        <div style="padding:0 16px;font-size:11px;color:#888;line-height:1.5;">
+          You will receive a USSD prompt on your phone. Enter your PIN to confirm the payment.
+        </div>
+
+        <div class="w-btn w-btn-primary w-btn-full">Pay US$892.50</div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/checkout/:id (CheckoutScreen)</div>
+      <h3>Key Elements</h3>
+      <ul>
+        <li>Order summary with item name and seller</li>
+        <li>Price breakdown: bid + 5% fee = total</li>
+        <li>Radio group: EcoCash / OneMoney</li>
+        <li>Phone number input for mobile money</li>
+        <li>USSD instructions text</li>
+        <li>Pay button with total amount</li>
+      </ul>
+      <p style="margin-top:12px;"><strong>After tap:</strong> Initiates Paynow payment &rarr; redirects to Payment Status screen for async confirmation.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAYMENT STATUS ==================== -->
+<div class="section" id="payment-status">
+  <div class="section-title">Payment Status</div>
+  <div class="section-desc">Async payment confirmation. Polls Paynow for status while the user completes the USSD payment on their phone.</div>
+
+  <div class="wireframe-row">
+    <!-- Pending -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-status-center">
+          <div class="w-status-icon pending">&#8987;</div>
+          <div class="w-status-h">Waiting for Payment</div>
+          <div class="w-status-p">Check your phone for a USSD prompt from EcoCash. Enter your PIN to complete the payment.</div>
+          <div class="w-status-ref">Ref: PAY-2026-0318-A7X9</div>
+          <div style="margin-top:16px;font-size:11px;color:#888;">Checking... (auto-refreshes)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Success -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-status-center">
+          <div class="w-status-icon success">&#10003;</div>
+          <div class="w-status-h">Payment Successful</div>
+          <div class="w-status-p">US$892.50 paid via EcoCash. You can now message the seller to arrange pickup.</div>
+          <div class="w-status-ref">Ref: PAY-2026-0318-A7X9</div>
+          <div class="w-btn w-btn-primary" style="margin-top:20px;">Message Seller</div>
+          <div class="w-btn w-btn-outline" style="margin-top:8px;">Back to Home</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/payment-status/:ref</div>
+      <h3>States</h3>
+      <ul>
+        <li><strong>Pending:</strong> Spinner/clock icon, USSD instructions, auto-polling, reference code</li>
+        <li><strong>Success:</strong> Checkmark, amount confirmed, "Message Seller" CTA</li>
+        <li><strong>Failed:</strong> X icon, retry button (not shown)</li>
+      </ul>
+      <p style="margin-top:12px;">Polls Paynow webhook status every few seconds until confirmed or expired.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MY LISTINGS ==================== -->
+<div class="section" id="my-listings">
+  <div class="section-title">My Listings</div>
+  <div class="section-desc">Seller dashboard showing active/ended listings and auctions the user has won. Two tabs: Selling and Won.</div>
+
+  <div class="wireframe-row">
+    <!-- Selling tab -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-topbar-title">My Listings</span>
+        </div>
+        <div class="w-tabs">
+          <div class="w-tab active">Selling</div>
+          <div class="w-tab">Won</div>
+        </div>
+
+        <div class="w-listing-card">
+          <div class="w-listing-thumb">img</div>
+          <div class="w-listing-info">
+            <div class="w-listing-title">Brahman Heifer &mdash; 2yr</div>
+            <div style="display:flex;gap:4px;margin-top:3px;">
+              <div class="w-badge green">Active</div>
+              <div class="w-badge">US$850</div>
+            </div>
+            <div class="w-listing-stats">12 bids &bull; 89 views &bull; 2d left</div>
+            <div class="w-listing-actions">
+              <div class="w-btn w-btn-outline">Edit</div>
+              <div class="w-btn w-btn-outline" style="color:#c62828;border-color:#ffcdd2;">Delete</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-listing-card">
+          <div class="w-listing-thumb">img</div>
+          <div class="w-listing-info">
+            <div class="w-listing-title">Boer Goat &mdash; Male</div>
+            <div style="display:flex;gap:4px;margin-top:3px;">
+              <div class="w-badge" style="background:#ffebee;color:#c62828;">Ended</div>
+              <div class="w-badge">US$220</div>
+            </div>
+            <div class="w-listing-stats">5 bids &bull; 34 views &bull; Sold</div>
+          </div>
+        </div>
+
+        <div class="w-listing-card">
+          <div class="w-listing-thumb">img</div>
+          <div class="w-listing-info">
+            <div class="w-listing-title">Dorper Sheep &mdash; 3yr</div>
+            <div style="display:flex;gap:4px;margin-top:3px;">
+              <div class="w-badge green">Active</div>
+              <div class="w-badge">US$180</div>
+            </div>
+            <div class="w-listing-stats">3 bids &bull; 21 views &bull; 5d left</div>
+            <div class="w-listing-actions">
+              <div class="w-btn w-btn-outline">Edit</div>
+              <div class="w-btn w-btn-outline" style="color:#c62828;border-color:#ffcdd2;">Delete</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-item"><div class="nav-icon"></div>Home</div>
+        <div class="nav-item"><div class="nav-icon"></div>Agents</div>
+        <div class="nav-item"><div class="nav-icon"></div>Pay</div>
+        <div class="nav-item"><div class="nav-icon"></div>Chat</div>
+        <div class="nav-item active"><div class="nav-icon"></div>More</div>
+      </div>
+    </div>
+
+    <!-- Won tab -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-topbar-title">My Listings</span>
+        </div>
+        <div class="w-tabs">
+          <div class="w-tab">Selling</div>
+          <div class="w-tab active">Won</div>
+        </div>
+
+        <div class="w-listing-card">
+          <div class="w-listing-thumb">img</div>
+          <div class="w-listing-info">
+            <div class="w-listing-title">Nguni Cow &mdash; 4yr</div>
+            <div style="display:flex;gap:4px;margin-top:3px;">
+              <div class="w-badge orange">Payment Due</div>
+              <div class="w-badge">US$1,200</div>
+            </div>
+            <div class="w-listing-stats">Won 2h ago &bull; Seller: John M.</div>
+            <div class="w-listing-actions">
+              <div class="w-btn w-btn-primary">Pay Now</div>
+              <div class="w-btn w-btn-outline">Chat</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="w-listing-card">
+          <div class="w-listing-thumb">img</div>
+          <div class="w-listing-info">
+            <div class="w-listing-title">Mashona Bull &mdash; 3yr</div>
+            <div style="display:flex;gap:4px;margin-top:3px;">
+              <div class="w-badge green">Paid</div>
+              <div class="w-badge">US$950</div>
+            </div>
+            <div class="w-listing-stats">Paid Mar 15 &bull; Seller: Grace K.</div>
+            <div class="w-listing-actions">
+              <div class="w-btn w-btn-outline">Chat</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-item"><div class="nav-icon"></div>Home</div>
+        <div class="nav-item"><div class="nav-icon"></div>Agents</div>
+        <div class="nav-item"><div class="nav-icon"></div>Pay</div>
+        <div class="nav-item"><div class="nav-icon"></div>Chat</div>
+        <div class="nav-item active"><div class="nav-icon"></div>More</div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/my-listings (MyListings)</div>
+      <h3>Selling Tab</h3>
+      <ul>
+        <li>Active listings: edit/delete buttons, bid & view counts, time remaining</li>
+        <li>Ended listings: sold status, no action buttons</li>
+      </ul>
+      <h3 style="margin-top:12px;">Won Tab</h3>
+      <ul>
+        <li>Payment Due: "Pay Now" CTA + chat button</li>
+        <li>Paid: chat button only, paid badge</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== PAYMENT HISTORY ==================== -->
+<div class="section" id="payments">
+  <div class="section-title">Payment History</div>
+  <div class="section-desc">All transactions with status indicators. Accessed from the bottom nav "Pay" tab.</div>
+
+  <div class="wireframe-row">
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-topbar-title">Payments</span>
+        </div>
+
+        <div class="w-payment-item">
+          <div class="w-payment-icon paid">&#10003;</div>
+          <div class="w-payment-info">
+            <div class="w-payment-ref">PAY-2026-0315-B2K1</div>
+            <div class="w-payment-method">EcoCash &bull; Mashona Bull</div>
+          </div>
+          <div>
+            <div class="w-payment-amount">US$997.50</div>
+            <div class="w-payment-date">Mar 15</div>
+          </div>
+        </div>
+
+        <div class="w-payment-item">
+          <div class="w-payment-icon pending">&#8987;</div>
+          <div class="w-payment-info">
+            <div class="w-payment-ref">PAY-2026-0318-A7X9</div>
+            <div class="w-payment-method">EcoCash &bull; Nguni Cow</div>
+          </div>
+          <div>
+            <div class="w-payment-amount">US$1,260.00</div>
+            <div class="w-payment-date">Today</div>
+          </div>
+        </div>
+
+        <div class="w-payment-item">
+          <div class="w-payment-icon failed">&#10007;</div>
+          <div class="w-payment-info">
+            <div class="w-payment-ref">PAY-2026-0310-C4M2</div>
+            <div class="w-payment-method">OneMoney &bull; Boer Goat</div>
+          </div>
+          <div>
+            <div class="w-payment-amount">US$231.00</div>
+            <div class="w-payment-date">Mar 10</div>
+          </div>
+        </div>
+
+        <div class="w-payment-item">
+          <div class="w-payment-icon paid">&#10003;</div>
+          <div class="w-payment-info">
+            <div class="w-payment-ref">PAY-2026-0308-D1P7</div>
+            <div class="w-payment-method">EcoCash &bull; Dorper Sheep x3</div>
+          </div>
+          <div>
+            <div class="w-payment-amount">US$567.00</div>
+            <div class="w-payment-date">Mar 8</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-item"><div class="nav-icon"></div>Home</div>
+        <div class="nav-item"><div class="nav-icon"></div>Agents</div>
+        <div class="nav-item active"><div class="nav-icon"></div>Pay</div>
+        <div class="nav-item"><div class="nav-icon"></div>Chat</div>
+        <div class="nav-item"><div class="nav-icon"></div>More</div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/payments (PaymentHistory)</div>
+      <h3>Key Elements</h3>
+      <ul>
+        <li>Status icon: green check (paid), orange clock (pending), red X (failed)</li>
+        <li>Reference code for each transaction</li>
+        <li>Payment method + item name</li>
+        <li>Amount in US$ and date</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MESSAGES ==================== -->
+<div class="section" id="messages">
+  <div class="section-title">Messages</div>
+  <div class="section-desc">Buyer-seller messaging. Conversation list view and individual chat view for coordinating pickup and delivery.</div>
+
+  <div class="wireframe-row">
+    <!-- List -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-topbar-title">Messages</span>
+        </div>
+
+        <div class="w-msg-item">
+          <div class="w-avatar">TM</div>
+          <div class="w-msg-content">
+            <div class="w-msg-name">Tendai Moyo</div>
+            <div class="w-msg-preview">I can deliver to Harare on Saturday</div>
+          </div>
+          <div class="w-msg-time">2m ago</div>
+        </div>
+
+        <div class="w-msg-item">
+          <div class="w-avatar">GK</div>
+          <div class="w-msg-content">
+            <div class="w-msg-name">Grace Kuda</div>
+            <div class="w-msg-preview">The bull has been vaccinated last week</div>
+          </div>
+          <div class="w-msg-time">1h ago</div>
+        </div>
+
+        <div class="w-msg-item">
+          <div class="w-avatar">JM</div>
+          <div class="w-msg-content">
+            <div class="w-msg-name">John Mabika</div>
+            <div class="w-msg-preview">Thanks for the payment!</div>
+          </div>
+          <div class="w-msg-time">Yesterday</div>
+        </div>
+
+        <div class="w-msg-item" style="opacity:0.5;">
+          <div class="w-avatar">SM</div>
+          <div class="w-msg-content">
+            <div class="w-msg-name">Sarah Mhike</div>
+            <div class="w-msg-preview">Is the goat still available?</div>
+          </div>
+          <div class="w-msg-time">Mar 15</div>
+        </div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-item"><div class="nav-icon"></div>Home</div>
+        <div class="nav-item"><div class="nav-icon"></div>Agents</div>
+        <div class="nav-item"><div class="nav-icon"></div>Pay</div>
+        <div class="nav-item active"><div class="nav-icon"></div>Chat</div>
+        <div class="nav-item"><div class="nav-icon"></div>More</div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-back">&larr;</span>
+          <div class="w-avatar" style="width:28px;height:28px;font-size:10px;">TM</div>
+          <span class="w-topbar-title">Tendai Moyo</span>
+        </div>
+        <div style="padding:8px 16px;background:#f9f9f9;border-bottom:1px solid #eee;">
+          <div style="font-size:11px;color:#888;">Re: Brahman Heifer &mdash; US$850</div>
+        </div>
+
+        <div class="w-chat-area">
+          <div class="w-bubble received">Hi, I won the auction for the Brahman heifer. When can I arrange pickup?</div>
+          <div class="w-bubble sent">Hello! Congrats on the win. I can have her ready by Saturday morning.</div>
+          <div class="w-bubble received">Perfect. Can you deliver to Harare? I'll cover transport.</div>
+          <div class="w-bubble sent">I can deliver to Harare on Saturday. Transport would be US$80.</div>
+          <div class="w-bubble received">That works. Let's do it.</div>
+        </div>
+
+        <div class="w-chat-input">
+          <div class="w-input" style="flex:1;">Type a message...</div>
+          <div class="w-btn w-btn-primary" style="padding:8px 12px;">Send</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/messages (MessagesScreen)</div>
+      <h3>Conversation List</h3>
+      <ul>
+        <li>Avatar with initials</li>
+        <li>Name, last message preview, timestamp</li>
+        <li>Tap &rarr; opens chat view</li>
+      </ul>
+      <h3 style="margin-top:12px;">Chat View</h3>
+      <ul>
+        <li>Context header: linked listing + price</li>
+        <li>Message bubbles: sent (dark, right) / received (light, left)</li>
+        <li>Text input + send button</li>
+        <li>Back button to conversation list</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== NOTIFICATIONS ==================== -->
+<div class="section" id="notifications">
+  <div class="section-title">Notifications</div>
+  <div class="section-desc">Alert center with priority indicators and type filtering. Bid updates, auction endings, payment confirmations, and messages.</div>
+
+  <div class="wireframe-row">
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-topbar-title">Notifications</span>
+          <span style="font-size:11px;color:#666;">Mark all read</span>
+        </div>
+        <div class="w-categories" style="padding-top:8px;">
+          <div class="w-cat active">All</div>
+          <div class="w-cat">Bids</div>
+          <div class="w-cat">Messages</div>
+          <div class="w-cat">Auctions</div>
+        </div>
+
+        <div class="w-notif">
+          <div class="w-notif-dot high"></div>
+          <div class="w-notif-content">
+            <div class="w-notif-title">You won the auction!</div>
+            <div class="w-notif-msg">Brahman Heifer sold for US$850. Pay now to complete.</div>
+            <div class="w-notif-time">5 min ago</div>
+          </div>
+        </div>
+
+        <div class="w-notif">
+          <div class="w-notif-dot med"></div>
+          <div class="w-notif-content">
+            <div class="w-notif-title">New bid on your listing</div>
+            <div class="w-notif-msg">Someone bid US$220 on your Boer Goat.</div>
+            <div class="w-notif-time">1 hour ago</div>
+          </div>
+        </div>
+
+        <div class="w-notif">
+          <div class="w-notif-dot low"></div>
+          <div class="w-notif-content">
+            <div class="w-notif-title">Payment received</div>
+            <div class="w-notif-msg">US$997.50 received for Mashona Bull via EcoCash.</div>
+            <div class="w-notif-time">Mar 15</div>
+          </div>
+        </div>
+
+        <div class="w-notif">
+          <div class="w-notif-dot med"></div>
+          <div class="w-notif-content">
+            <div class="w-notif-title">Auction ending soon</div>
+            <div class="w-notif-msg">Dorper Sheep auction ends in 1 hour. Current: US$180.</div>
+            <div class="w-notif-time">Mar 15</div>
+          </div>
+        </div>
+
+        <div class="w-notif" style="opacity:0.5;">
+          <div class="w-notif-dot low"></div>
+          <div class="w-notif-content">
+            <div class="w-notif-title">You were outbid</div>
+            <div class="w-notif-msg">Someone bid US$860 on Brahman Heifer. Bid again?</div>
+            <div class="w-notif-time">Mar 14</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-item"><div class="nav-icon"></div>Home</div>
+        <div class="nav-item"><div class="nav-icon"></div>Agents</div>
+        <div class="nav-item"><div class="nav-icon"></div>Pay</div>
+        <div class="nav-item"><div class="nav-icon"></div>Chat</div>
+        <div class="nav-item active"><div class="nav-icon"></div>More</div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/notifications</div>
+      <h3>Key Elements</h3>
+      <ul>
+        <li>Filter badges: All, Bids, Messages, Auctions</li>
+        <li>"Mark all read" action</li>
+        <li>Priority dots: red (high), orange (medium), green (low)</li>
+        <li>Notification types: auction won, new bid, payment received, auction ending, outbid</li>
+        <li>Read notifications appear dimmed</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== AGENTS ==================== -->
+<div class="section" id="agents">
+  <div class="section-title">Smart Bidding Agents</div>
+  <div class="section-desc">Autonomous agents that bid, sell, and monitor the market on behalf of users. Dashboard and setup wizard.</div>
+
+  <div class="wireframe-row">
+    <!-- Dashboard -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-topbar-title">My Agents</span>
+          <div class="w-btn w-btn-primary" style="padding:5px 10px;font-size:10px;">+ New</div>
+        </div>
+
+        <div class="w-agent-card">
+          <div class="w-agent-header">
+            <div class="w-agent-icon">&#128270;</div>
+            <div>
+              <div class="w-agent-name">Cattle Scout</div>
+              <div class="w-agent-type" style="font-size:10px;color:#888;">Buyer Agent</div>
+            </div>
+            <div class="w-agent-status active">Active</div>
+          </div>
+          <div class="w-agent-goals">
+            <strong>Goal:</strong> Find Brahman cattle under US$900 in Harare/Bulawayo<br>
+            <strong>Budget:</strong> US$2,500 remaining<br>
+            <strong>Activity:</strong> Placed 3 bids, watching 5 auctions
+          </div>
+        </div>
+
+        <div class="w-agent-card">
+          <div class="w-agent-header">
+            <div class="w-agent-icon">&#128200;</div>
+            <div>
+              <div class="w-agent-name">Price Watch</div>
+              <div class="w-agent-type" style="font-size:10px;color:#888;">Market Intel</div>
+            </div>
+            <div class="w-agent-status active">Active</div>
+          </div>
+          <div class="w-agent-goals">
+            <strong>Tracking:</strong> Goat prices in Masvingo province<br>
+            <strong>Insight:</strong> Avg price up 8% this week
+          </div>
+        </div>
+
+        <div class="w-agent-card" style="opacity:0.6;">
+          <div class="w-agent-header">
+            <div class="w-agent-icon">&#9889;</div>
+            <div>
+              <div class="w-agent-name">Last Second</div>
+              <div class="w-agent-type" style="font-size:10px;color:#888;">Sniper Agent</div>
+            </div>
+            <div class="w-agent-status idle">Idle</div>
+          </div>
+          <div class="w-agent-goals">
+            <strong>Strategy:</strong> Bid in final 30s on cattle under US$700<br>
+            <strong>Status:</strong> No matching auctions
+          </div>
+        </div>
+      </div>
+      <div class="phone-nav">
+        <div class="nav-item"><div class="nav-icon"></div>Home</div>
+        <div class="nav-item active"><div class="nav-icon"></div>Agents</div>
+        <div class="nav-item"><div class="nav-icon"></div>Pay</div>
+        <div class="nav-item"><div class="nav-icon"></div>Chat</div>
+        <div class="nav-item"><div class="nav-icon"></div>More</div>
+      </div>
+    </div>
+
+    <!-- Agent Setup -->
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span></span><span>&#9679;&#9679;&#9679;</span></div>
+      <div class="phone-content">
+        <div class="w-topbar">
+          <span class="w-back">&larr;</span>
+          <span class="w-topbar-title">New Agent</span>
+        </div>
+        <div style="padding:12px 16px;font-size:13px;font-weight:700;">1. Choose Agent Type</div>
+
+        <div class="w-agent-types">
+          <div class="w-agent-type-card selected">
+            <div class="w-agent-type-icon">&#128722;</div>
+            <div class="w-agent-type-name">Buyer</div>
+            <div class="w-agent-type-desc">Auto-bid on matching livestock</div>
+          </div>
+          <div class="w-agent-type-card">
+            <div class="w-agent-type-icon">&#128176;</div>
+            <div class="w-agent-type-name">Seller</div>
+            <div class="w-agent-type-desc">Auto-list & manage auctions</div>
+          </div>
+          <div class="w-agent-type-card">
+            <div class="w-agent-type-icon">&#128200;</div>
+            <div class="w-agent-type-name">Market Intel</div>
+            <div class="w-agent-type-desc">Track prices & trends</div>
+          </div>
+          <div class="w-agent-type-card">
+            <div class="w-agent-type-icon">&#9889;</div>
+            <div class="w-agent-type-name">Sniper</div>
+            <div class="w-agent-type-desc">Last-second bidding</div>
+          </div>
+        </div>
+
+        <div style="padding:16px;">
+          <div class="w-form-group">
+            <div class="w-form-label">Agent Name</div>
+            <div class="w-form-input">e.g. Cattle Scout</div>
+          </div>
+          <div class="w-form-row">
+            <div class="w-form-group">
+              <div class="w-form-label">Category</div>
+              <div class="w-select" style="color:#999;">Cattle</div>
+            </div>
+            <div class="w-form-group">
+              <div class="w-form-label">Breed</div>
+              <div class="w-form-input">Brahman</div>
+            </div>
+          </div>
+          <div class="w-form-row">
+            <div class="w-form-group">
+              <div class="w-form-label">Max Price</div>
+              <div class="w-form-input">US$ 900</div>
+            </div>
+            <div class="w-form-group">
+              <div class="w-form-label">Location</div>
+              <div class="w-select" style="color:#999;">Harare</div>
+            </div>
+          </div>
+          <div class="w-btn w-btn-primary w-btn-full" style="margin:12px 0 0;">Create Agent</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <div class="page-label">/agents</div>
+      <h3>Dashboard</h3>
+      <ul>
+        <li>Agent cards: icon, name, type, active/idle status</li>
+        <li>Goal summary, budget, recent activity</li>
+        <li>"+ New" button to create agent</li>
+      </ul>
+      <h3 style="margin-top:12px;">Setup Wizard</h3>
+      <ul>
+        <li>Step 1: Pick type (Buyer, Seller, Market Intel, Sniper)</li>
+        <li>Step 2: Name the agent</li>
+        <li>Step 3: Set goals (category, breed, max price, location)</li>
+      </ul>
+      <p style="margin-top:12px;"><strong>Differentiator:</strong> This feature gives early adopters a productivity edge — automated bidding is hard for competitors to replicate.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab navigation
+  document.querySelectorAll('.nav a').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const section = link.dataset.section;
+
+      document.querySelectorAll('.nav a').forEach(l => l.classList.remove('active'));
+      link.classList.add('active');
+
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(section).classList.add('active');
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+</script>
+</body>
+</html>
