@@ -7,7 +7,7 @@
 
 ## Paynow Product Family (Beyond the Payment Gateway)
 
-Paynow isn't just a payment gateway. It's an ecosystem of 5+ products built by Softwarehouse (Pvt) Ltd / Webdev Group:
+Paynow isn't just a payment gateway. It's an ecosystem of 10+ products built by Softwarehouse (Pvt) Ltd / Webdev Group:
 
 | # | Product | URL | What it is |
 |---|---------|-----|------------|
@@ -19,6 +19,220 @@ Paynow isn't just a payment gateway. It's an ecosystem of 5+ products built by S
 | 6 | **ZIMRA Fiscalisation** | Via Panier API | Tax-compliant invoicing for every transaction |
 | 7 | **Verified Merchant** | Dashboard | Trust badge, daily settlement, card acceptance |
 | 8 | **Custom Forms / Cart** | Dashboard | No-code payment pages |
+| 9 | **Disbursement API** | disbursement.paynow.co.zw | Send money OUT — pay sellers, refunds, payouts to EcoCash/bank |
+| 10 | **txt.co.zw (SMS Gateway)** | usd.txt.co.zw | Bulk SMS, scheduled airtime topups, SMS API |
+
+---
+
+## NEW: Disbursement API — Pay Sellers Directly
+
+**URL:** `https://disbursement.paynow.co.zw`
+**Docs:** `https://disbursement.paynow.co.zw/swagger/ui/index`
+**Access:** Requires approval from `support@paynow.co.zw`
+
+This is the **missing piece** — until now we could only collect money. The Disbursement API lets us **send money OUT**.
+
+### Full API Surface (from Swagger spec)
+
+| # | Method | Endpoint | What it does |
+|---|--------|----------|-------------|
+| 1 | `POST /api/login` | Get bearer token (auth) | Returns `BearerToken` + `ExpiryDate` |
+| 2 | `POST /api/logout` | Invalidate token | Session cleanup |
+| 3 | `POST /api/disbursement` | **Send money to someone** | Idempotent — safe to retry |
+| 4 | `GET /api/disbursement/{reference}` | Check disbursement status | Track payout |
+| 5 | `GET /api/disbursements` | List all disbursements (T-30 days) | Reconciliation, filtering by date/account |
+| 6 | `GET /api/wallet` | Check wallet balance | Know how much you can disburse |
+| 7 | `GET /api/wallet/{walletId}` | Get specific wallet | Multi-wallet support |
+| 8 | `GET /api/wallet/{walletId}/transactions` | Wallet transaction history | Full audit trail with pagination |
+
+### Disbursement Channels (where you can send money)
+
+| Channel | What it is |
+|---------|-----------|
+| **EcoCash** | Send to any EcoCash wallet |
+| **OneMoney** | Send to any OneMoney wallet |
+| **EcoCashBulk** | Bulk EcoCash disbursements |
+| **InnBucks** | Send to InnBucks wallet |
+| **O'mari** | Send to O'mari wallet |
+| **CBZ** | Direct bank transfer to CBZ accounts |
+| **UssdServer** | Generic USSD-based disbursement |
+
+### Disbursement Request Schema
+
+```json
+{
+  "Channel": "Ecocash",
+  "DestinationAccountNumber": "0771234567",
+  "DestinationAccountName": "John Farmer",
+  "DestinationMobileNumber": "0771234567",
+  "Amount": 1140.00,
+  "CurrencyCode": "USD",
+  "Reference": "ZL-PAYOUT-AUCTION-4521"
+}
+```
+
+### Disbursement Statuses
+- `Pending` — queued for processing
+- `Processing` — in progress
+- `Success` — money delivered
+- `Failed` — delivery failed (check `ErrorCode` + `Error`)
+- `Flagged` — held for review
+
+### ZimLivestock Use Cases for Disbursement API
+
+**Use Case 1: Automatic Seller Payout**
+```
+Buyer pays US$1,200 via EcoCash (Gateway API)
+  → Paynow holds in BuySafe escrow
+  → Buyer confirms delivery
+  → 24hr dispute window passes
+  → ZimLivestock triggers disbursement:
+      POST /api/disbursement
+      Channel: "Ecocash"
+      Amount: 1140.00  (US$1,200 - 5% fee)
+      DestinationMobileNumber: seller's EcoCash
+  → Seller gets US$1,140 in their EcoCash wallet
+```
+**This is the full loop.** Collect via Gateway → Hold in BuySafe → Disburse to seller. No manual bank transfers.
+
+**Use Case 2: Transport Driver Payment**
+```
+Buyer pays transport fee US$150
+  → Animal delivered + buyer confirms
+  → Disbursement to trucker's EcoCash:
+      Amount: 142.50 (US$150 - 5% referral cut)
+      DestinationMobileNumber: trucker's number
+```
+
+**Use Case 3: Agent Refunds**
+```
+Agent bid on item but lost auction
+  → Refund deposit to agent owner's EcoCash:
+      POST /api/disbursement
+      Channel: "Ecocash"
+      Amount: 50.00  (deposit refund)
+      Reference: "ZL-REFUND-AGENT-123"
+```
+
+**Use Case 4: Bulk Seller Payouts (Weekly Settlement)**
+```
+Every Saturday at 8am:
+  → Query all completed sales for the week
+  → For each seller:
+      POST /api/disbursement (Channel: "EcoCashBulk")
+  → All sellers paid in one batch
+  → GET /api/disbursements to reconcile
+```
+
+**Use Case 5: Airtime Rewards via Disbursement**
+```
+Seller lists first animal → reward US$1 airtime:
+  POST /api/disbursement
+  Channel: "Ecocash"
+  Amount: 1.00
+  DestinationMobileNumber: seller's phone
+```
+
+**Use Case 6: Wallet Monitoring**
+```
+Cron job every hour:
+  GET /api/wallet → check balance
+  If balance < US$500 → alert admin
+  If balance < US$100 → pause disbursements
+```
+
+### Why This Changes Everything
+
+Before: Buyer pays → we collect → we manually send money to seller via bank.
+After: Buyer pays → BuySafe holds → delivery confirmed → **automatic EcoCash payout to seller**.
+
+**No manual intervention. No bank transfers. No delays. The seller gets paid to their EcoCash automatically.**
+
+This is what makes ZimLivestock a real marketplace, not just a listing site.
+
+---
+
+## NEW: txt.co.zw — SMS Gateway
+
+**URL:** `https://usd.txt.co.zw` (USD-denominated) / `https://www.txt.co.zw`
+**Pricing:** From 3 cents/SMS to Econet, NetOne, Telecel
+**API:** Available for integration into third-party software
+**Contact:** `info@text.co.zw`
+
+### Features
+- Single and bulk SMS to any country
+- Delivery reporting
+- Address book + group management
+- Scheduled airtime topups (weekly/monthly)
+- Email templates/newsletters
+- API integration
+
+### ZimLivestock Use Cases for SMS
+
+**Use Case 1: Bid Notifications (the 80% who don't have push notifications)**
+```
+New bid on your Hereford Bull: US$1,200 from buyer in Harare.
+3 bids total, 2h 15m remaining.
+Reply ACCEPT to sell now or wait for auction end.
+```
+Most Zimbabwean farmers use feature phones or basic smartphones. SMS is the only reliable notification channel.
+
+**Use Case 2: Auction Ending Alert**
+```
+⏰ Your Brahman Cow auction ends in 30 minutes!
+Current bid: US$950. 5 bidders watching.
+Open app: zimlivestock.co.zw/auction/4521
+```
+
+**Use Case 3: Payment Confirmation**
+```
+✅ Payment received: US$1,200 for your Hereford Bull.
+Buyer: John M. (Harare)
+Your payout of US$1,140 will be sent to EcoCash 077XXXXXXX within 24hrs.
+```
+
+**Use Case 4: Transport Coordination**
+```
+🚛 Transport booked for your purchase.
+Driver: Tendai (078XXXXXXX)
+Pickup: Masvingo Auction Yard, Sat 29 Mar, 8am
+Delivery: Harare North, Sat 29 Mar, 2pm
+```
+
+**Use Case 5: Seller Onboarding (WhatsApp-free)**
+```
+Welcome to ZimLivestock! List your first animal:
+1. Reply CATTLE, GOAT, SHEEP, PIG, or POULTRY
+2. We'll call you to complete your listing
+Or visit: zimlivestock.co.zw/sell
+```
+For sellers who don't use WhatsApp or the web app — SMS-based listing initiation.
+
+**Use Case 6: Scheduled Airtime Rewards**
+```
+Use the Scheduled Topup feature:
+- Every seller who lists an animal gets US$0.50 airtime weekly
+- Top sellers (5+ listings) get US$2 airtime monthly
+- Automated via txt.co.zw scheduled topup groups
+```
+
+**Use Case 7: Bulk Market Intel**
+```
+Weekly SMS to all registered farmers:
+📊 This week's average prices:
+Cattle: US$1,150 (+5%)
+Goats: US$85 (-2%)
+Sheep: US$120 (flat)
+List now: zimlivestock.co.zw/sell
+```
+
+### Why SMS Matters in Zimbabwe
+
+- Feature phone users (40%+ of rural population) can't use web apps
+- Push notifications require internet connection — SMS doesn't
+- SMS has 98% open rate vs 20% for email
+- At 3 cents/message, sending 1,000 notifications costs US$30
+- It's the only channel that reaches EVERY phone in Zimbabwe
 
 ### BillPay — The Hidden Gem (106 Billers)
 
@@ -185,15 +399,79 @@ Register ZimLivestock as a Paynow Verified Merchant:
 
 ---
 
+---
+
+## Updated Integration Priority Matrix
+
+| Priority | Product | ZimLivestock Feature | Effort | Impact |
+|----------|---------|---------------------|--------|--------|
+| **P0** | Gateway (collect) | Buyer pays for livestock | Already built | Critical |
+| **P0** | **Disbursement API (payout)** | **Auto-pay sellers via EcoCash** | MEDIUM | **Game-changing** |
+| **P0** | BuySafe escrow | Delivery confirmation + dispute | MEDIUM | Game-changing |
+| **P0** | **txt.co.zw SMS** | **Bid alerts, payment confirmations** | LOW | **Critical for rural users** |
+| P1 | BillPay (106 billers) | Sellers pay ZESA, school fees from earnings | MEDIUM | High |
+| P1 | Tokenization | Saved cards, deposit holds | MEDIUM | High |
+| P1 | TopUp | Airtime rewards for listings | LOW | Medium |
+| P1 | ZIMRA Fiscalisation | Tax-compliant invoices | MEDIUM | High (compliance) |
+| P2 | Verified Merchant | Trust badge, daily settlement | ZERO (dashboard) | High |
+| P2 | InnBucks express | QR code payments | LOW | Medium |
+| P3 | Passenger ticket | Transport booking | MEDIUM | Novel |
+| P3 | Custom forms | Seller registration | ZERO (dashboard) | Low |
+
+---
+
+## The Complete Money Flow (with Disbursement)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                    THE FULL LOOP                                  │
+│                                                                   │
+│  BUYER                                                            │
+│    │                                                              │
+│    ├─── Pays US$1,200 via EcoCash ──→ GATEWAY API (collect)      │
+│    │                                                              │
+│  PAYNOW                                                          │
+│    │                                                              │
+│    ├─── Holds funds ──→ BUYSAFE ESCROW                           │
+│    │                                                              │
+│  SELLER delivers animal                                          │
+│    │                                                              │
+│  BUYER confirms receipt ──→ 24hr dispute window                  │
+│    │                                                              │
+│  ZIMLIVESTOCK                                                    │
+│    │                                                              │
+│    ├─── POST /api/disbursement ──→ DISBURSEMENT API (payout)     │
+│    │      Channel: "Ecocash"                                     │
+│    │      Amount: US$1,140 (US$1,200 - 5% fee)                  │
+│    │      → Seller's EcoCash wallet                              │
+│    │                                                              │
+│    ├─── POST /api/disbursement ──→ trucker's EcoCash             │
+│    │      Amount: US$142.50 (transport - 5% cut)                 │
+│    │                                                              │
+│    ├─── SMS via txt.co.zw ──→ seller's phone                    │
+│    │      "✅ US$1,140 sent to your EcoCash"                     │
+│    │                                                              │
+│    └─── SMS via txt.co.zw ──→ buyer's phone                     │
+│           "Your Hereford Bull purchase is complete"               │
+│                                                                   │
+│  RESULT: US$60 revenue (5% of US$1,200)                         │
+│          + US$7.50 transport referral cut                         │
+│          + US$0.06 SMS cost                                       │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Open Questions for Paynow
 
-1. **BillPay vendor API access** — How do we register as a BillPay vendor? What's the commission structure?
-2. **TopUp API access** — Is there a reseller/API for programmatic airtime purchases?
-3. **BuySafe delivery confirmation API** — Can we confirm delivery programmatically or only via dashboard?
-4. **ZIMRA fiscalisation** — Do we need our own Panier account, or can Paynow handle this?
-5. **WhatsApp bot** — Can we build on top of Paynow's WhatsApp bot, or do we need our own?
-6. **Passenger ticket API for non-airline** — Can we repurpose for transport bookings?
-7. **Cloudflare timeline** — When will the API be moved to a separate subdomain?
+1. **Disbursement API access** — How do we get approved? What are the fees per disbursement? (Contact: support@paynow.co.zw)
+2. **txt.co.zw API docs** — Where is the SMS API documentation? (Contact: info@text.co.zw)
+3. **BillPay vendor API access** — How do we register as a BillPay vendor? What's the commission structure?
+4. **BuySafe delivery confirmation API** — Can we confirm delivery programmatically or only via dashboard?
+5. **ZIMRA fiscalisation** — Do we need our own Panier account, or can Paynow handle this?
+6. **Disbursement + BuySafe integration** — Can we auto-trigger disbursement when BuySafe releases funds?
+7. **Cloudflare timeline** — When will the Gateway API be moved to a separate subdomain?
+8. **Wallet funding** — How do we top up our disbursement wallet? Auto-sweep from Gateway collections?
 
 ---
 
