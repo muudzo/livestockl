@@ -1,0 +1,1257 @@
+# ZimLivestock — Wireframes & System Architecture
+
+Mobile-first livestock auction marketplace | March 2026 | Tatenda Nyemudzo
+
+---
+
+# Part 1: Wireframes (12 Screens)
+
+## User Flows Overview
+
+Before diving into individual screens, here are the core user journeys through the app.
+
+### Buyer Journey: Browse > Bid > Pay
+
+```
+┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
+│  Home Feed │───>│Item Detail  │───>│Bid Confirmed│───>│Auction Ends │───>│ My Listings │───>│  Checkout  │───>│Payment     │
+│Browse &    │    │View & place │    │Alert dialog │    │Notification │    │Won tab      │    │Select      │    │Status      │
+│filter      │    │bid          │    │             │    │             │    │             │    │payment     │    │Confirm     │
+└────────────┘    └────────────┘    └────────────┘    └────────────┘    └────────────┘    └────────────┘    └────────────┘
+```
+
+### Seller Journey: List > Monitor > Settle
+
+```
+┌────────────┐    ┌────────────┐    ┌─────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
+│Post Listing │───>│ My Listings │───>│Notifications │───>│Auction Ends │───>│  Messages  │───>│Payment     │
+│Photos +    │    │Selling tab  │    │Bid alerts    │    │Auto-close   │    │Coordinate  │    │History     │
+│details     │    │             │    │              │    │             │    │pickup      │    │Verify      │
+└────────────┘    └────────────┘    └─────────────┘    └────────────┘    └────────────┘    └────────────┘
+```
+
+### Messaging Flow
+
+```
+┌────────────┐    ┌────────────┐    ┌──────────────┐
+│Item Detail  │───>│ Chat View  │───>│Conversations  │
+│Tap message │    │Send/receive │    │All threads    │
+│icon        │    │             │    │               │
+└────────────┘    └────────────┘    └──────────────┘
+```
+
+### Agent Automation Flow
+
+```
+┌──────────────┐    ┌────────────┐    ┌────────────┐    ┌────────────┐
+│Agent Dashboard│───>│ New Agent  │───>│ Configure  │───>│Active Agent │
+│View agents   │    │Pick type   │    │Set goals   │    │Monitor     │
+│              │    │            │    │            │    │activity    │
+└──────────────┘    └────────────┘    └────────────┘    └────────────┘
+```
+
+---
+
+## Screen 1: Home Feed
+
+**Route:** `/ (HomeFeed)`
+**Purpose:** The marketplace landing page. Users browse livestock listings, filter by category, and search. Tapping a card opens the item detail.
+
+```
+┌──────────────────────────────────┐
+│ 9:41       ZimLivestock      ... │  <- Status bar
+├──────────────────────────────────┤
+│ ┌──────────────────────────────┐ │
+│ │ Search breed, location...    │ │  <- Search bar
+│ └──────────────────────────────┘ │
+│                                  │
+│ [All] [Cattle] [Goats] [Sheep]  │  <- Category filters
+│ [Pigs] [Poultry]                │     (horizontal scroll)
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │                      [♥] │ │ │  <- Image placeholder
+│ │ │     320 x 140            │ │ │     + favorite heart
+│ │ │                          │ │ │
+│ │ │ [2d 14h left]            │ │ │  <- Countdown badge
+│ │ └──────────────────────────┘ │ │
+│ │ Brahman Heifer -- 2 years    │ │  <- Title
+│ │ Harare · Excellent health    │ │  <- Location + health
+│ │ US$850              12 bids  │ │  <- Price + bid count
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │                      [♥] │ │ │
+│ │ │     320 x 140            │ │ │
+│ │ │                          │ │ │
+│ │ │ [6h 22m left]            │ │ │
+│ │ └──────────────────────────┘ │ │
+│ │ Boer Goat -- Male, 18 months│ │
+│ │ Bulawayo · Good health       │ │
+│ │ US$220               5 bids  │ │
+│ └──────────────────────────────┘ │
+│                                  │
+├──────────────────────────────────┤
+│ [■Home] [Agents] [Pay] [Chat]   │  <- Bottom navigation
+│                          [More]  │
+└──────────────────────────────────┘
+```
+
+**Key UI Elements:**
+- Search bar with breed/location hints
+- Horizontal category filter badges (All, Cattle, Goats, Sheep, Pigs, Poultry)
+- Listing cards with: photo, countdown timer, heart/favorite, title, breed, location, health, current bid, bid count
+- Bottom navigation: Home, Agents, Pay, Chat, More
+
+**Interactions:** Tap card -> Item Detail. Tap heart -> toggle favorite. Tap category -> filter. Tap search -> keyboard.
+
+---
+
+## Screen 2: Item Detail
+
+**Route:** `/item/:id (ItemDetail)`
+**Purpose:** Full listing view with image carousel, seller info, specs, bid history, and bid placement. The core conversion screen.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ ┌──────────────────────────────┐ │
+│ │ [←]                          │ │  <- Back button overlay
+│ │                              │ │
+│ │       Photo 1 of 4           │ │  <- Image carousel
+│ │                              │ │
+│ │          ● ○ ○ ○             │ │  <- Dot indicators
+│ └──────────────────────────────┘ │
+│                                  │
+│ [Active] [Cattle] [6h 22m]      │  <- Status badges
+│                                  │
+│ Brahman Heifer -- 2 years        │  <- Title (large)
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ (TM) Tendai Moyo ✓           │ │  <- Seller card
+│ │      ★ 4.8 · 23 sales       │ │     + verified badge
+│ │                    [Message] │ │     + message button
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ Current Bid                  │ │  <- Bid section
+│ │ US$850                       │ │     (highlighted bg)
+│ │ ┌──────────────┐ ┌────────┐  │ │
+│ │ │ US$ Enter... │ │Place   │  │ │  <- Bid input + button
+│ │ └──────────────┘ │Bid     │  │ │
+│ │                  └────────┘  │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────┐  ┌──────────┐      │
+│ │ Age      │  │ Weight   │      │  <- Specs grid (2x2)
+│ │ 2 years  │  │ 380 kg   │      │
+│ ├──────────┤  ├──────────┤      │
+│ │ Location │  │ Health   │      │
+│ │ Harare   │  │ Excellent│      │
+│ └──────────┘  └──────────┘      │
+└──────────────────────────────────┘
+```
+
+**Key UI Elements:**
+- Image carousel with swipe + dot indicators
+- Back button overlay on image
+- Status badges: active/ended, category, time remaining
+- Seller card: avatar, name, verified badge, rating, sales count, message button
+- Bid section: current price, input field, place bid button
+- Specs grid: age, weight, location, health
+- Below fold: description text, bid history list, share/favorite buttons
+
+**Interactions:** Place Bid -> confirmation dialog -> real-time update. Message -> opens chat. Swipe images. Heart -> favorite.
+
+---
+
+## Screen 3: Authentication (Login)
+
+**Route:** `/auth (AuthScreen)`
+**Purpose:** Login and sign-up with email/password. Tabbed interface.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│                                  │
+│           ZimLivestock           │  <- App logo/name
+│    Buy & sell livestock with     │
+│            confidence            │
+│                                  │
+│ ┌───────────────┬───────────────┐│
+│ │    Login ▂▂▂  │   Sign Up     ││  <- Tab selector
+│ └───────────────┴───────────────┘│     (Login active)
+│                                  │
+│  Email                           │
+│  ┌──────────────────────────────┐│
+│  │ you@example.com              ││
+│  └──────────────────────────────┘│
+│                                  │
+│  Password                        │
+│  ┌──────────────────────────────┐│
+│  │ ••••••••                     ││
+│  └──────────────────────────────┘│
+│                                  │
+│                Forgot password?  │  <- Forgot link
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │           Login              ││  <- Primary CTA
+│  └──────────────────────────────┘│
+│                                  │
+└──────────────────────────────────┘
+```
+
+## Screen 4: Authentication (Sign Up)
+
+**Route:** `/auth (AuthScreen)` — Sign Up tab
+**Purpose:** Account creation with name, phone, and email fields.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│                                  │
+│           ZimLivestock           │
+│        Create your account       │
+│                                  │
+│ ┌───────────────┬───────────────┐│
+│ │    Login      │  Sign Up ▂▂▂  ││  <- Sign Up active
+│ └───────────────┴───────────────┘│
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │First Name│  │Last Name │     │  <- Side-by-side
+│  │ Tatenda  │  │ Moyo     │     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  Phone                           │
+│  ┌──────────────────────────────┐│
+│  │ +263 7X XXX XXXX            ││  <- Zimbabwe format
+│  └──────────────────────────────┘│
+│                                  │
+│  Email                           │
+│  ┌──────────────────────────────┐│
+│  │ you@example.com              ││
+│  └──────────────────────────────┘│
+│                                  │
+│  Password                        │
+│  ┌──────────────────────────────┐│
+│  │ Min 8 characters             ││
+│  └──────────────────────────────┘│
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │       Create Account         ││
+│  └──────────────────────────────┘│
+└──────────────────────────────────┘
+```
+
+**Key UI Elements (Auth screens):**
+- Tabbed login/sign-up
+- Login: email + password + forgot password link
+- Sign-up: first name, last name, phone, email, password
+- Phone format: +263 prefix for Zimbabwe
+
+---
+
+## Screen 5: Post Listing
+
+**Route:** `/post (PostListing)`
+**Purpose:** Create a new auction listing. Photos, breed details, health status, location, starting price, and auction duration.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ [←]  Post a Listing              │  <- Top bar
+├──────────────────────────────────┤
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │ Photo 1  │  │ Photo 2  │     │  <- Photo grid (2x2)
+│  │ (filled) │  │ (filled) │     │
+│  ├──────────┤  ├──────────┤     │
+│  │ + Add    │  │ + Add    │     │  <- Empty slots
+│  │ (dashed) │  │ (dashed) │     │     with dashed border
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  Title                           │
+│  ┌──────────────────────────────┐│
+│  │ e.g. Brahman Heifer, 2 years││
+│  └──────────────────────────────┘│
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │Category ▼│  │Breed     │     │  <- Dropdown + text
+│  │ Select...│  │e.g.      │     │
+│  └──────────┘  │ Brahman  │     │
+│                └──────────┘     │
+│  ┌──────────┐  ┌──────────┐     │
+│  │Age       │  │Weight(kg)│     │
+│  │ e.g. 2yr │  │ e.g. 380 │     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │Location ▼│  │Health  ▼ │     │
+│  │ Select.. │  │ Select.. │     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  Description                     │
+│  ┌──────────────────────────────┐│
+│  │ Describe the animal...       ││  <- Textarea
+│  │                              ││
+│  └──────────────────────────────┘│
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │Start     │  │Duration ▼│     │
+│  │Price US$ │  │ 7 days   │     │
+│  │ e.g. 500 │  │          │     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │        Post Listing          ││  <- Primary CTA
+│  └──────────────────────────────┘│
+└──────────────────────────────────┘
+```
+
+**Key UI Elements:**
+- Photo grid: up to 4 images, tap to add/remove
+- Basic info: title, category dropdown, breed text
+- Animal details: age, weight, location, health status
+- Description textarea
+- Auction settings: starting price (US$), duration (1-14 days)
+- Info box with auction rules (below fold)
+
+---
+
+## Screen 6: Checkout
+
+**Route:** `/checkout/:id (CheckoutScreen)`
+**Purpose:** Payment screen after winning an auction. Shows order summary, 5% platform fee, and mobile money payment method selection.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ [←]  Checkout                    │
+├──────────────────────────────────┤
+│                                  │
+│  Brahman Heifer -- 2 years       │  <- Item name
+│  Won auction · Seller: Tendai    │  <- Seller info
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │ Winning bid        US$850.00 ││  <- Price breakdown
+│  │ Platform fee (5%)   US$42.50 ││
+│  │ ──────────────────────────── ││
+│  │ Total             US$892.50  ││  <- Total (bold)
+│  └──────────────────────────────┘│
+│                                  │
+│  Payment Method                  │
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │ (●) EcoCash                  ││  <- Selected radio
+│  │     Pay via USSD on phone    ││
+│  └──────────────────────────────┘│
+│  ┌──────────────────────────────┐│
+│  │ (○) OneMoney                 ││  <- Unselected radio
+│  │     Pay via USSD on phone    ││
+│  └──────────────────────────────┘│
+│                                  │
+│  Phone Number                    │
+│  ┌──────────────────────────────┐│
+│  │ 0771 234 567                 ││
+│  └──────────────────────────────┘│
+│                                  │
+│  You will receive a USSD prompt  │  <- Instructions
+│  on your phone. Enter your PIN   │
+│  to complete the payment.        │
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │       Pay US$892.50          ││  <- Primary CTA
+│  └──────────────────────────────┘│
+└──────────────────────────────────┘
+```
+
+**Key UI Elements:**
+- Order summary with item name and seller
+- Price breakdown: bid + 5% fee = total
+- Radio group: EcoCash / OneMoney
+- Phone number input for mobile money
+- USSD instructions text
+- Pay button with total amount
+
+**After tap:** Initiates Paynow payment -> redirects to Payment Status screen for async confirmation.
+
+---
+
+## Screen 7: Payment Status
+
+**Route:** `/payment-status/:ref`
+**Purpose:** Async payment confirmation. Polls Paynow for status while the user completes the USSD payment on their phone.
+
+### Pending State
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│                                  │
+│                                  │
+│                                  │
+│              ┌───┐               │
+│              │ ⏳ │               │  <- Pending icon
+│              └───┘               │     (orange bg)
+│                                  │
+│     Waiting for Payment          │  <- Title
+│                                  │
+│  Check your phone for a USSD     │  <- Instructions
+│  prompt from EcoCash. Enter      │
+│  your PIN to complete the        │
+│  payment.                        │
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │ Ref: PAY-2026-0318-A7X9     ││  <- Reference code
+│  └──────────────────────────────┘│
+│                                  │
+│     Checking... (auto-refreshes) │  <- Polling indicator
+│                                  │
+│                                  │
+└──────────────────────────────────┘
+```
+
+### Success State
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│                                  │
+│                                  │
+│              ┌───┐               │
+│              │ ✓ │               │  <- Success icon
+│              └───┘               │     (green bg)
+│                                  │
+│      Payment Successful          │
+│                                  │
+│  US$892.50 paid via EcoCash.     │
+│  You can now message the seller  │
+│  to arrange pickup.              │
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │ Ref: PAY-2026-0318-A7X9     ││
+│  └──────────────────────────────┘│
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │       Message Seller         ││  <- Primary CTA
+│  └──────────────────────────────┘│
+│  ┌──────────────────────────────┐│
+│  │       Back to Home           ││  <- Secondary CTA
+│  └──────────────────────────────┘│
+└──────────────────────────────────┘
+```
+
+**States:**
+- **Pending:** Spinner/clock icon, USSD instructions, auto-polling, reference code
+- **Success:** Checkmark, amount confirmed, "Message Seller" CTA
+- **Failed:** X icon, retry button (not shown in wireframe)
+
+**Design Note:** Polls Paynow webhook status every few seconds until confirmed or expired.
+
+---
+
+## Screen 8: My Listings (Selling Tab)
+
+**Route:** `/my-listings (MyListings)`
+**Purpose:** Seller dashboard showing active/ended listings and auctions the user has won. Two tabs: Selling and Won.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ My Listings                      │
+├───────────────┬──────────────────┤
+│  Selling ▂▂▂  │      Won        │  <- Tab selector
+├───────────────┴──────────────────┤
+│                                  │
+│ ┌────┐ Brahman Heifer -- 2yr     │
+│ │img │ [Active] [US$850]         │  <- Active listing
+│ │    │ 12 bids · 89 views · 2d  │
+│ │    │ [Edit] [Delete]           │  <- Action buttons
+│ └────┘                           │
+│ ─────────────────────────────── │
+│ ┌────┐ Boer Goat -- Male         │
+│ │img │ [Ended] [US$220]          │  <- Ended listing
+│ │    │ 5 bids · 34 views · Sold  │     (no actions)
+│ └────┘                           │
+│ ─────────────────────────────── │
+│ ┌────┐ Dorper Sheep -- 3yr       │
+│ │img │ [Active] [US$180]         │  <- Active listing
+│ │    │ 3 bids · 21 views · 5d   │
+│ │    │ [Edit] [Delete]           │
+│ └────┘                           │
+│                                  │
+├──────────────────────────────────┤
+│ [Home] [Agents] [Pay] [Chat]    │
+│                        [■More]   │
+└──────────────────────────────────┘
+```
+
+## Screen 9: My Listings (Won Tab)
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ My Listings                      │
+├───────────────┬──────────────────┤
+│   Selling     │   Won ▂▂▂       │  <- Won tab active
+├───────────────┴──────────────────┤
+│                                  │
+│ ┌────┐ Nguni Cow -- 4yr          │
+│ │img │ [Payment Due] [US$1,200]  │  <- Needs payment
+│ │    │ Won 2h ago · Seller: John │
+│ │    │ [Pay Now] [Chat]          │  <- Pay CTA
+│ └────┘                           │
+│ ─────────────────────────────── │
+│ ┌────┐ Mashona Bull -- 3yr       │
+│ │img │ [Paid] [US$950]           │  <- Completed
+│ │    │ Paid Mar 15 · Seller:     │
+│ │    │ Grace K.                  │
+│ │    │ [Chat]                    │  <- Chat only
+│ └────┘                           │
+│                                  │
+├──────────────────────────────────┤
+│ [Home] [Agents] [Pay] [Chat]    │
+│                        [■More]   │
+└──────────────────────────────────┘
+```
+
+**Selling Tab:**
+- Active listings: edit/delete buttons, bid & view counts, time remaining
+- Ended listings: sold status, no action buttons
+
+**Won Tab:**
+- Payment Due: "Pay Now" CTA + chat button
+- Paid: chat button only, paid badge
+
+---
+
+## Screen 10: Payment History
+
+**Route:** `/payments (PaymentHistory)`
+**Purpose:** All transactions with status indicators. Accessed from the bottom nav "Pay" tab.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ Payments                         │
+├──────────────────────────────────┤
+│                                  │
+│ (✓) PAY-2026-0315-B2K1          │  <- Paid (green)
+│     EcoCash · Mashona Bull       │
+│                    US$997.50     │
+│                        Mar 15   │
+│ ─────────────────────────────── │
+│ (⏳) PAY-2026-0318-A7X9          │  <- Pending (orange)
+│     EcoCash · Nguni Cow          │
+│                  US$1,260.00     │
+│                         Today   │
+│ ─────────────────────────────── │
+│ (✗) PAY-2026-0310-C4M2          │  <- Failed (red)
+│     OneMoney · Boer Goat         │
+│                    US$231.00     │
+│                        Mar 10   │
+│ ─────────────────────────────── │
+│ (✓) PAY-2026-0308-D1P7          │  <- Paid (green)
+│     EcoCash · Dorper Sheep x3    │
+│                    US$567.00     │
+│                         Mar 8   │
+│                                  │
+├──────────────────────────────────┤
+│ [Home] [Agents] [■Pay] [Chat]   │
+│                         [More]   │
+└──────────────────────────────────┘
+```
+
+**Key UI Elements:**
+- Status icon: green check (paid), orange clock (pending), red X (failed)
+- Reference code for each transaction
+- Payment method + item name
+- Amount in US$ and date
+
+---
+
+## Screen 11: Messages
+
+**Route:** `/messages (MessagesScreen)`
+**Purpose:** Buyer-seller messaging. Conversation list view and individual chat view for coordinating pickup and delivery.
+
+### Conversation List
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ Messages                         │
+├──────────────────────────────────┤
+│                                  │
+│ (TM) Tendai Moyo                 │
+│      I can deliver to Harare     │  <- Last message
+│      on Saturday           2m    │     preview
+│ ─────────────────────────────── │
+│ (GK) Grace Kuda                  │
+│      The bull has been           │
+│      vaccinated last week  1h    │
+│ ─────────────────────────────── │
+│ (JM) John Mabika                 │
+│      Thanks for the             │
+│      payment!          Yesterday │
+│ ─────────────────────────────── │
+│ (SM) Sarah Mhike          ░░░░░ │  <- Dimmed (read)
+│      Is the goat still          │
+│      available?          Mar 15  │
+│                                  │
+├──────────────────────────────────┤
+│ [Home] [Agents] [Pay] [■Chat]   │
+│                         [More]   │
+└──────────────────────────────────┘
+```
+
+### Chat View
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ [←] (TM) Tendai Moyo            │  <- Back + avatar
+├──────────────────────────────────┤
+│ Re: Brahman Heifer -- US$850     │  <- Context header
+├──────────────────────────────────┤
+│                                  │
+│ ┌────────────────────┐           │
+│ │ Hi, I won the      │           │  <- Received bubble
+│ │ auction for the    │           │     (light bg, left)
+│ │ Brahman heifer.    │           │
+│ │ When can I arrange │           │
+│ │ pickup?            │           │
+│ └────────────────────┘           │
+│                                  │
+│           ┌────────────────────┐ │
+│           │ Hello! Congrats on │ │  <- Sent bubble
+│           │ the win. I can have│ │     (dark bg, right)
+│           │ her ready by       │ │
+│           │ Saturday morning.  │ │
+│           └────────────────────┘ │
+│                                  │
+│ ┌────────────────────┐           │
+│ │ Perfect. Can you   │           │
+│ │ deliver to Harare? │           │
+│ │ I'll cover         │           │
+│ │ transport.         │           │
+│ └────────────────────┘           │
+│                                  │
+│           ┌────────────────────┐ │
+│           │ I can deliver to   │ │
+│           │ Harare on Saturday.│ │
+│           │ Transport would be │ │
+│           │ US$80.             │ │
+│           └────────────────────┘ │
+│                                  │
+│ ┌────────────────────┐           │
+│ │ That works. Let's  │           │
+│ │ do it.             │           │
+│ └────────────────────┘           │
+│                                  │
+├──────────────────────────────────┤
+│ ┌──────────────────────┐ ┌────┐ │
+│ │ Type a message...    │ │Send│ │  <- Input + send
+│ └──────────────────────┘ └────┘ │
+└──────────────────────────────────┘
+```
+
+**Conversation List:**
+- Avatar with initials
+- Name, last message preview, timestamp
+- Tap -> opens chat view
+
+**Chat View:**
+- Context header: linked listing + price
+- Message bubbles: sent (dark, right) / received (light, left)
+- Text input + send button
+- Back button to conversation list
+
+---
+
+## Screen 12: Notifications
+
+**Route:** `/notifications`
+**Purpose:** Alert center with priority indicators and type filtering. Bid updates, auction endings, payment confirmations, and messages.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ Notifications       Mark all read│
+├──────────────────────────────────┤
+│ [All] [Bids] [Messages]         │  <- Filter badges
+│ [Auctions]                       │
+│                                  │
+│ 🔴 You won the auction!          │  <- HIGH priority
+│    Brahman Heifer sold for       │     (red dot)
+│    US$850. Pay now to complete.  │
+│                        5 min ago │
+│ ─────────────────────────────── │
+│ 🟠 New bid on your listing       │  <- MED priority
+│    Someone bid US$220 on your    │     (orange dot)
+│    Boer Goat.                    │
+│                        1 hour ago│
+│ ─────────────────────────────── │
+│ 🟢 Payment received              │  <- LOW priority
+│    US$997.50 received for        │     (green dot)
+│    Mashona Bull via EcoCash.     │
+│                           Mar 15 │
+│ ─────────────────────────────── │
+│ 🟠 Auction ending soon           │  <- MED priority
+│    Dorper Sheep auction ends     │
+│    in 1 hour. Current: US$180.   │
+│                           Mar 15 │
+│ ─────────────────────────────── │
+│ 🟢 You were outbid        ░░░░░ │  <- Read (dimmed)
+│    Someone bid US$860 on         │
+│    Brahman Heifer. Bid again?    │
+│                           Mar 14 │
+│                                  │
+├──────────────────────────────────┤
+│ [Home] [Agents] [Pay] [Chat]    │
+│                        [■More]   │
+└──────────────────────────────────┘
+```
+
+**Key UI Elements:**
+- Filter badges: All, Bids, Messages, Auctions
+- "Mark all read" action
+- Priority dots: red (high), orange (medium), green (low)
+- Notification types: auction won, new bid, payment received, auction ending, outbid
+- Read notifications appear dimmed
+
+---
+
+## Screen 13: Agent Dashboard
+
+**Route:** `/agents`
+**Purpose:** Autonomous agents that bid, sell, and monitor the market on behalf of users.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ My Agents                 [+New] │  <- Create button
+├──────────────────────────────────┤
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ [🔍] Cattle Scout   [Active] │ │  <- Agent card
+│ │      Buyer Agent             │ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │ Goal: Find Brahman       │ │ │  <- Goals section
+│ │ │ cattle under US$900 in   │ │ │     (grey bg)
+│ │ │ Harare/Bulawayo          │ │ │
+│ │ │ Budget: US$2,500         │ │ │
+│ │ │ remaining                │ │ │
+│ │ │ Activity: Placed 3 bids, │ │ │
+│ │ │ watching 5 auctions      │ │ │
+│ │ └──────────────────────────┘ │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ [📈] Price Watch    [Active] │ │
+│ │      Market Intel            │ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │ Tracking: Goat prices in │ │ │
+│ │ │ Masvingo province        │ │ │
+│ │ │ Insight: Avg price up    │ │ │
+│ │ │ 8% this week             │ │ │
+│ │ └──────────────────────────┘ │ │
+│ └──────────────────────────────┘ │
+│                                  │
+│ ┌──────────────────────────────┐ │
+│ │ [⚡] Last Second     [Idle]  │ │  <- Dimmed (idle)
+│ │      Sniper Agent            │ │
+│ │ ┌──────────────────────────┐ │ │
+│ │ │ Strategy: Bid in final   │ │ │
+│ │ │ 30s on cattle under      │ │ │
+│ │ │ US$700                   │ │ │
+│ │ │ Status: No matching      │ │ │
+│ │ │ auctions                 │ │ │
+│ │ └──────────────────────────┘ │ │
+│ └──────────────────────────────┘ │
+│                                  │
+├──────────────────────────────────┤
+│ [Home] [■Agents] [Pay] [Chat]   │
+│                         [More]   │
+└──────────────────────────────────┘
+```
+
+## Screen 14: Agent Setup Wizard
+
+**Route:** `/agents/new`
+**Purpose:** Create and configure a new autonomous agent.
+
+```
+┌──────────────────────────────────┐
+│ 9:41                         ... │
+├──────────────────────────────────┤
+│ [←]  New Agent                   │
+├──────────────────────────────────┤
+│                                  │
+│  1. Choose Agent Type            │
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │   🛒     │  │   💰     │     │
+│  │  Buyer   │  │  Seller  │     │  <- Type selection
+│  │ Auto-bid │  │ Auto-list│     │     grid (2x2)
+│  │ on match │  │ & manage │     │
+│  │▂▂▂▂▂▂▂▂▂│  │          │     │  <- Buyer selected
+│  └──────────┘  └──────────┘     │
+│  ┌──────────┐  ┌──────────┐     │
+│  │   📈     │  │    ⚡    │     │
+│  │ Market   │  │  Sniper  │     │
+│  │  Intel   │  │ Last-sec │     │
+│  │ Track    │  │ bidding  │     │
+│  │ prices   │  │          │     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  Agent Name                      │
+│  ┌──────────────────────────────┐│
+│  │ e.g. Cattle Scout           ││
+│  └──────────────────────────────┘│
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │Category ▼│  │Breed     │     │
+│  │ Cattle   │  │ Brahman  │     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  ┌──────────┐  ┌──────────┐     │
+│  │Max Price │  │Location ▼│     │
+│  │ US$ 900  │  │ Harare   │     │
+│  └──────────┘  └──────────┘     │
+│                                  │
+│  ┌──────────────────────────────┐│
+│  │       Create Agent           ││  <- Primary CTA
+│  └──────────────────────────────┘│
+└──────────────────────────────────┘
+```
+
+**Dashboard:**
+- Agent cards: icon, name, type, active/idle status
+- Goal summary, budget, recent activity
+- "+ New" button to create agent
+
+**Setup Wizard:**
+- Step 1: Pick type (Buyer, Seller, Market Intel, Sniper)
+- Step 2: Name the agent
+- Step 3: Set goals (category, breed, max price, location)
+
+**Differentiator:** This feature gives early adopters a productivity edge -- automated bidding is hard for competitors to replicate.
+
+---
+---
+
+# Part 2: System Architecture
+
+## Title & Stats
+
+**ZimLivestock -- System Architecture**
+Livestock Marketplace with Autonomous Agent Commerce
+
+| Metric | Value |
+|---|---|
+| REST Endpoints | 42 |
+| DB Tables | 16 |
+| Edge Functions | 18 |
+| Tests | 125 |
+| Go LOC | 7,925 |
+
+---
+
+## Full Architecture Diagram
+
+```
+═══════════════════════════════════════════════════════════════════════════════════════════════
+  TIER 1 — CLIENTS
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  ┌──────────────────────────────────┐   ┌──────────────────┐   ┌──────────────────┐
+  │        React Frontend            │   │  Mobile Browser   │   │    WhatsApp       │
+  │  Vite + TypeScript + Tailwind    │   │  Responsive PWA   │   │  Manual ops       │
+  │  + shadcn/ui                     │   │  Same React app   │   │  channel          │
+  │  13 routes | React Query+Zustand │   │                   │   │  Seller notifs    │
+  └──────────┬──────┬──────┬─────────┘   └───────────────────┘   └───────────────────┘
+             │      │      │
+    login/   │  REST│      │  REST     WebSocket
+    signup   │(CRUD)│      │  (alt)      (alt)
+             │      │      │              │
+             ▼      ▼      ▼              ▼
+═══════════════════════════════════════════════════════════════════════════════════════════════
+  TIER 2 — BACKEND SERVICES
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  ┌────────────────────────────────────────┐   ┌─────────────────────────────────────────┐
+  │          SUPABASE PLATFORM             │   │             GO BACKEND                  │
+  │          Production BaaS               │   │        Portfolio Implementation          │
+  │                                        │   │                                         │
+  │  ┌─────────────────┐ ┌──────────────┐  │   │  ┌────────────────┐ ┌────────────────┐  │
+  │  │  Supabase Auth  │ │  PostgreSQL  │  │   │  │  HTTP Server   │ │ JWT Middleware  │  │
+  │  │  JWT + OAuth2   │ │  16 tables   │  │   │  │  Go 1.22+      │ │ Auth+CORS+Log  │  │
+  │  └─────────────────┘ └──────────────┘  │   │  │  ServeMux      │ │                │  │
+  │                                        │   │  └────────────────┘ └────────────────┘  │
+  │  ┌─────────────────┐ ┌──────────────┐  │   │                                         │
+  │  │  Row Level      │ │  Realtime    │  │   │  ┌────────────────┐ ┌────────────────┐  │
+  │  │  Security       │ │  WebSocket   │  │   │  │ 42 REST        │ │ WebSocket Hub  │  │
+  │  │  Per-user data  │ │ subscriptions│  │   │  │ Endpoints      │ │ Realtime       │  │
+  │  │  isolation      │ │              │  │   │  │ 9 resource grps│ │ broadcast      │  │
+  │  └─────────────────┘ └──────────────┘  │   │  └────────────────┘ └────────────────┘  │
+  │                                        │   │                                         │
+  │  ┌─────────────────┐ ┌──────────────┐  │   │  ┌────────────────┐ ┌────────────────┐  │
+  │  │ Edge Functions  │ │  Storage     │  │   │  │ Payment        │ │ Background     │  │
+  │  │ 18 Deno funcs   │ │  Livestock   │  │   │  │ Orchestrator   │ │ Workers        │  │
+  │  │                 │ │  images      │  │   │  │ Retry+fallback │ │ Auction expiry │  │
+  │  └─────────────────┘ └──────────────┘  │   │  │ chain          │ │ + bid sync     │  │
+  │                                        │   │  └────────────────┘ └────────────────┘  │
+  │  ┌──────────────────────────────────┐  │   │                                         │
+  │  │ ╌ place_bid() | end_expired_    ╌│  │   │  ┌───────────────────────────────────┐  │
+  │  │ ╌ auctions() | increment_view_ ╌│  │   │  │ ╌ Auth | Livestock | Bids |       ╌│  │
+  │  │ ╌ count()                       ╌│  │   │  │ ╌ Payments | Agents | Notifs |   ╌│  │
+  │  └──────────────────────────────────┘  │   │  │ ╌ Favorites | Messages | Upload  ╌│  │
+  │                                        │   │  └───────────────────────────────────┘  │
+  │  ref: hmeieslclzycyjjjflfh             │   │  :8080 | pgx driver | slog | graceful  │
+  └───────────────┬────────────────────────┘   └──────────────────┬──────────────────────┘
+                  │                                               │
+        internal  │                                      pgx     │
+                  │                                    driver     │
+                  ▼                                               ▼
+═══════════════════════════════════════════════════════════════════════════════════════════════
+  TIER 3 — EXTERNAL / DATA
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  ┌─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┐   ┌──────────────────────────────────────────┐
+  │   Paynow Zimbabwe              │   │       PostgreSQL Database                │
+  │   EcoCash | OneMoney |         │   │       Shared between Supabase + Go       │
+  │   Visa/Mastercard              │   │                                          │
+  │                                │   │  16 tables | 8 indexes | 3 atomic funcs  │
+  │   ██ BLOCKED: Cloudflare 403 ██│   │  postgres://...@db.hmeieslclz...         │
+  │                                │   │              supabase.co                  │
+  └─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┘   └──────────────────────────────────────────┘
+       ▲                ▲
+       ╎ BLOCKED        ╎ BLOCKED         (dashed = blocked connections)
+       ╎                ╎
+  Edge Functions    Go Backend
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+  TIER 4 — AGENT SYSTEM (Autonomous Commerce Engine)
+═══════════════════════════════════════════════════════════════════════════════════════════════
+
+  ┌───────────────────────────────────────────────────────────────────────────────────────┐
+  │                           AGENT SYSTEM                                                │
+  │                    Autonomous Commerce Engine                                         │
+  │                                                                                       │
+  │  ┌─────────────────────┐   ┌─────────────────────┐                                   │
+  │  │    Buyer Agent      │   │   Auction Sniper    │     Commerce                      │
+  │  │ Scan+evaluate+bid   │   │ Last-second bids    │     Agents                        │
+  │  └─────────────────────┘   │ (5min window)       │                                   │
+  │                             └─────────────────────┘                                   │
+  │  ┌─────────────────────┐   ┌─────────────────────┐                                   │
+  │  │    Seller Agent     │   │    Market Intel     │                                   │
+  │  │ Reprice suggestions │   │ Trends + anomalies  │                                   │
+  │  └─────────────────────┘   └─────────────────────┘                                   │
+  │                                                                                       │
+  │  ┌──────────────┐  ──>  ┌────────────────┐  ──>  ┌────────────┐                      │
+  │  │ Win Detector │       │Pay Orchestrator │       │ Settlement │   Pipeline           │
+  │  │ Auction end  │       │ Retry+fallback  │       │ Ledger     │                      │
+  │  │ scan         │       │                 │       │ audit      │                      │
+  │  └──────────────┘       └────────────────┘       └────────────┘                      │
+  │                                                                                       │
+  │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
+  │  │ ╌ Agent Scheduler (15s interval)                                              ╌│  │
+  │  │ ╌ Cron loop: scan marketplace > evaluate > bid > detect wins > pay > settle   ╌│  │
+  │  └─────────────────────────────────────────────────────────────────────────────────┘  │
+  │                                                                                       │
+  │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
+  │  │                         QA Agent Team                                           │  │
+  │  │   Consistency Checker (6/6)   │   Security Agent (11/11)                        │  │
+  │  │         Chaos Test (concurrent stress + edge cases)                             │  │
+  │  └─────────────────────────────────────────────────────────────────────────────────┘  │
+  │                                                                                       │
+  │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
+  │  │ Payment Recovery: 50% first-attempt > 100% with retry (+25% recovered)         │  │
+  │  │ EcoCash ~70% | OneMoney ~60% | Card ~80% | +10%/retry                          │  │
+  │  └─────────────────────────────────────────────────────────────────────────────────┘  │
+  │                                                                                       │
+  │  ┌─────────────────────────────────────────────────────────────────────────────────┐  │
+  │  │ Fallback Chain: EcoCash ──> fail? ──> OneMoney ──> fail? ──> Card              │  │
+  │  └─────────────────────────────────────────────────────────────────────────────────┘  │
+  │                                                                                       │
+  └──────────┬─────────────────────────────────────────────────────┬──────────────────────┘
+             │                                                     │
+             │ invoke functions                          API       │
+             ▼                                                     ▼
+        Edge Functions                                       Go Backend
+        (Supabase)
+
+═══════════════════════════════════════════════════════════════════════════════════════════════
+```
+
+### Connection Map
+
+| From | To | Label | Type |
+|---|---|---|---|
+| React Frontend | Supabase Auth | login / signup | Active (blue) |
+| React Frontend | Supabase PostgreSQL | REST (CRUD) | Active (blue) |
+| React Frontend | Supabase Realtime | Realtime | Active (blue) |
+| React Frontend | Go HTTP Server | REST (alt) | Active (green) |
+| React Frontend | Go WebSocket Hub | WebSocket (alt) | Active (green) |
+| Supabase | PostgreSQL (shared) | internal | Active (blue) |
+| Go Backend | PostgreSQL (shared) | pgx driver | Active (green) |
+| Edge Functions | Paynow | BLOCKED | Blocked (red, dashed) |
+| Go Backend | Paynow | BLOCKED | Blocked (red, dashed) |
+| Agent System | Edge Functions | invoke functions | Agent invocation (orange, dashed) |
+| Agent System | Go Backend | API | Agent invocation (orange) |
+| QA Agents | PostgreSQL | read all tables | Read-only (red, dashed) |
+
+---
+
+## Legend
+
+| Symbol | Meaning |
+|---|---|
+| Blue (solid border) | Supabase Platform |
+| Green (solid border) | Go Backend |
+| Orange (solid border) | Agent System |
+| Red (dashed border) | Blocked / External |
+| Grey (solid border) | Shared Infrastructure |
+| Solid line | Active connection |
+| Dashed red line | Blocked connection |
+| Dashed orange line | Agent invocation |
+
+---
+
+## Service Detail (Tooltip Content)
+
+### Tier 1: Clients
+
+#### React Frontend
+- **Stack:** React 18 + TypeScript + Vite + Tailwind + shadcn/ui
+- **State:** React Query (TanStack) + Zustand
+- **13 Routes:**
+  - `/` -- Home feed (browse livestock)
+  - `/item/:id` -- Auction detail + bidding
+  - `/checkout/:id` -- Payment checkout
+  - `/payment-status/:ref` -- Payment tracking
+  - `/post` -- Create listing
+  - `/my-listings` -- Seller dashboard
+  - `/payments` -- Payment history
+  - `/notifications` -- Real-time alerts
+  - `/messages` -- Buyer-seller chat
+  - `/agents` -- Agent dashboard
+  - `/agents/new` -- Agent setup wizard
+  - `/auth` -- Login / signup
+  - `/test-paynow` -- Payment testing
+
+#### Mobile Browser
+- Responsive design via Tailwind breakpoints. Same React SPA served to mobile devices. PWA-ready layout with bottom nav.
+
+#### WhatsApp
+- Manual operations channel for seller notifications. Not API-integrated -- used for human coordination in livestock markets where WhatsApp is the primary communication tool.
+
+---
+
+### Tier 2: Supabase Platform
+
+#### Supabase Platform (Production)
+- **Project:** hmeieslclzycyjjjflfh
+- **Services:** Auth, PostgreSQL, RLS, Realtime, Edge Functions, Storage
+- **Role:** Primary production backend (BaaS)
+- **Dual-mode:** Supabase + mock data fallback via `isSupabaseConfigured`
+
+#### Supabase Auth
+- JWT-based authentication with OAuth2 support. Auto-creates profile on signup via database trigger (`handle_new_user`). Stores user metadata (name, phone).
+
+#### PostgreSQL (via Supabase)
+- **16 Tables:**
+  - `profiles` -- User accounts
+  - `livestock_items` -- Auction listings
+  - `bids` -- User bids
+  - `payments` -- Payment records
+  - `notifications` -- User alerts
+  - `favorites` -- Saved listings
+  - `conversations` -- Chat threads
+  - `messages` -- Chat messages
+  - `agents` -- Agent registry
+  - `agent_goals` -- Buying criteria
+  - `agent_decisions` -- Reasoning log
+  - `agent_bids` -- Agent bid records
+  - `agent_activity_log` -- Audit trail
+  - `agent_payment_orders` -- Payment state machine
+  - `settlement_ledger` -- Immutable audit
+  - `market_intel` -- Price data
+
+#### Row Level Security
+- Per-user data isolation enforced at the database level. 11 security tests pass (Grade A). Prevents cross-user data access even if frontend is compromised.
+
+#### Supabase Realtime
+- WebSocket subscriptions on bids and notifications tables. Enables live bid updates and instant notification delivery without polling.
+
+#### 18 Edge Functions (Deno)
+- **Agent Functions:**
+  - `buyer-agent` -- Scan + evaluate + bid
+  - `auction-sniper` -- Last-second bids
+  - `seller-agent` -- Reprice suggestions
+  - `market-intel` -- Trend reports
+  - `win-detector` -- Auction end scan
+  - `bid-executor` -- Place bids
+  - `payment-orchestrator` -- Retry + fallback
+- **QA Functions:**
+  - `consistency-checker` (6 checks)
+  - `security-agent` (11 tests)
+  - `chaos-test` (stress testing)
+- **Payment Functions:**
+  - `initiate-payment`
+  - `payment-webhook`
+  - `end-auctions`
+- **Benchmark:** test-paynow, test-stripe, test-paystack, test-flutterwave, test-pesepay
+
+#### Supabase Storage
+- Public bucket `livestock-images` for auction photos. Direct upload from frontend. CDN-served for fast loading.
+
+#### Atomic Database Functions
+- **`place_bid()`** -- Row-level lock prevents bid race conditions. Validates auction status, enforces minimum increment, auto-ends expired auctions.
+- **`end_expired_auctions()`** -- Batch update for past-due listings.
+- **`increment_view_count()`** -- Atomic counter update.
+
+---
+
+### Tier 2: Go Backend
+
+#### Go Backend (Portfolio)
+- **Stack:** Go 1.22+ net/http ServeMux
+- **7,925 lines of Go**
+- **Features:** JWT auth, CORS, request logging, 1MB body limit, graceful shutdown, structured logging (slog)
+- **Purpose:** Full backend reimplementation for portfolio -- demonstrates Go proficiency alongside Supabase
+
+#### Go HTTP Server
+- Go 1.22+ ServeMux with method-based routing (GET /api/livestock, POST /api/bids). 15s read/write timeout, 60s idle timeout. Graceful shutdown on SIGINT/SIGTERM.
+
+#### JWT Auth Middleware
+- Custom middleware stack: Auth (JWT validation) -> CORS (cross-origin) -> Logging (structured slog) -> MaxBody (1MB limit). Bearer token extracted from Authorization header.
+
+#### 42 REST Endpoints (9 Resource Groups)
+- **Auth** -- signup, login, me (3)
+- **Livestock** -- list, get, create, update, delete, mine, won, view (8)
+- **Bids** -- list, place (2)
+- **Payments** -- initiate-web, initiate-mobile, webhook, poll, get-by-ref, list (6)
+- **Notifications** -- list, unread-count, read-all, delete (4)
+- **Favorites** -- list, toggle (2)
+- **Conversations** -- list, start (2)
+- **Messages** -- list, send (2)
+- **Agents** -- list, create, status, goals, activity, decisions, payments, run, market-intel (10)
+- **Upload** -- upload (1)
+- **Health** -- health check (1)
+- **WebSocket** -- /ws (1)
+
+#### WebSocket Hub
+- Real-time broadcast system using goroutines. Clients connect to /ws endpoint. Hub manages connections, broadcasts bid updates and notifications. Graceful shutdown with `hub.Shutdown()`.
+
+#### Payment Orchestrator
+- **Retry chain:** EcoCash -> retry EcoCash -> OneMoney -> Card
+- **Success rates:** EcoCash ~70%, OneMoney ~60%, Card ~80% (+10%/retry)
+- **Result:** 50% first-attempt -> 100% with retry
+- **Settlement ledger:** order_created -> payment_initiated -> ... -> settlement_complete
+
+#### Background Workers
+- **Auction Expiry:** Every 60s -- marks past-due auctions as 'ended'
+- **Bid Sync:** Every 5min -- reconciles current_bid and bid_count on livestock_items with actual bids table data. Fixes any drift from race conditions.
+
+#### API Resource Groups
+- Auth | Livestock | Bids | Payments | Agents | Notifications | Favorites | Conversations + Messages | Upload. Each group has its own handler struct with database dependency injection.
+
+---
+
+### Tier 3: External / Data
+
+#### Paynow Zimbabwe (BLOCKED)
+- **Methods:** EcoCash, OneMoney, Visa/Mastercard
+- **Status:** API blocked by Cloudflare 403 challenge
+- **Impact:** All payment integration runs in simulation mode
+- **Why:** Paynow API endpoints protected by Cloudflare browser verification -- incompatible with server-to-server calls
+- **Currency:** US$ (Zimbabwe multi-currency)
+
+#### PostgreSQL Database (Shared)
+- **16 Tables:** profiles, livestock_items, bids, payments, notifications, favorites, conversations, messages, agents, agent_goals, agent_decisions, agent_bids, agent_activity_log, agent_payment_orders, settlement_ledger, market_intel
+- **8 Indexes:** category, status, seller, end_time, bids(livestock), bids(user), payments(user), payments(reference)
+- **3 Atomic functions:** place_bid, end_expired_auctions, increment_view_count
+- **Access:** Supabase (internal) + Go backend (pgx driver)
+
+---
+
+### Tier 4: Agent System
+
+#### Agent System -- Autonomous Commerce
+- Full autonomous loop: Agent -> scan marketplace -> evaluate -> bid -> win auction -> pay via Paynow -> settle
+- **5 Commerce Agents:** Buyer, Sniper, Seller, Market Intel, Payment Orchestrator
+- **3 QA Agents:** Consistency (6/6), Security (11/11), Chaos Test
+- **Scheduler:** 15-second interval
+- **Key metric:** +25% payment recovery via retry
+
+#### Buyer Agent
+- Scans marketplace, evaluates listings against user goals, places bids automatically.
+- **Scoring (0-100):**
+  - Price vs budget (0-30 pts)
+  - Location match (0-15 pts)
+  - Breed match (0-10 pts)
+  - Health rating (0-10 pts)
+  - Competition level
+  - Time urgency bonus
+- **Actions:** ignore | monitor | bid
+
+#### Auction Sniper
+- Monitors auctions ending within 5-minute window. Places last-second bids at 3% above current price (minimum US$5 increment). Skips already-bid listings. Budget-aware.
+
+#### Seller Agent
+- Analyzes active listings and suggests pricing optimizations.
+  - No bids + ending soon -> suggest reprice
+  - Price above market -> suggest reduction
+  - High traction (5+ bids) -> suggest promotion
+
+#### Market Intel Agent
+- Generates market intelligence reports. Category-level averages, sell-through rates, overpriced/underpriced anomaly detection (>50% deviation from mean).
+
+#### Win Detector
+- Scans for ended auctions where agent has the highest bid. Triggers payment orchestrator on win detection. Part of the autonomous commerce pipeline.
+
+#### Payment Orchestrator (Agent)
+- Executes payments when agent wins. Full retry + fallback chain: EcoCash -> retry -> OneMoney -> retry -> Card
+- **Settlement ledger events:** order_created -> payment_initiated -> payment_failed -> retry_scheduled -> retry_attempted -> fallback_method -> payment_succeeded -> settlement_complete
+
+#### Settlement Ledger
+- Immutable audit log of every payment event. Each entry: order_id, event_type, method, amount, timestamp. Provides full auditability for agent commerce transactions.
+
+#### Agent Scheduler
+- 15-second interval cron loop. Runs all active agents in sequence: scan -> evaluate -> bid -> detect wins -> initiate payment -> settle. Configurable via `AGENT_INTERVAL` env var.
+
+#### QA Agent Team
+- **Consistency Checker (6/6 PASS):** Orphaned bids, double payments, sold-without-payment, missing ledger entries, agent bid refs, bid price consistency
+- **Security Agent (11/11 PASS, Grade A):** Anon access tests, RLS enforcement, constraint validation, service role isolation
+- **Chaos Test:** Concurrent bids, payment failures, zero amounts, negative bids, invalid categories
+
+#### Payment Recovery Stats
+- Manual payments (no retry): ~65% success
+- Agent payments (with retry): ~90% success
+- Recovered by retry: +25% of transactions
+- Test run: 50% first-attempt -> 100% with retry. 1 of 2 payments recovered by retry alone.
+
+#### Payment Fallback Chain
+- EcoCash (attempt 1) -> fail -> retry EcoCash (attempt 2) -> fail -> fallback OneMoney (attempt 3) -> fail -> fallback Card (attempt 4) -> success
+- Simulates real Zimbabwe failure rates: EcoCash ~70%, OneMoney ~60%, Card ~80%. +10% boost per retry attempt.
+
+---
+
+*ZimLivestock Architecture v1.0 -- Tatenda Nyemudzo -- 2026*
