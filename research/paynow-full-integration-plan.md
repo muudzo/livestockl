@@ -1,7 +1,199 @@
-# ZimLivestock × Paynow — Full API Integration Plan
+# ZimLivestock × Paynow — Full Ecosystem Integration Plan
 
-> Brainstorm document mapping every Paynow API capability to a ZimLivestock feature.
-> Goal: Use the ENTIRE Paynow product ecosystem, not just basic payments.
+> Brainstorm document mapping every Paynow product and API to a ZimLivestock feature.
+> Goal: Use the ENTIRE Paynow product ecosystem — not just the payment gateway.
+
+---
+
+## Paynow Product Family (Beyond the Payment Gateway)
+
+Paynow isn't just a payment gateway. It's an ecosystem of 5+ products built by Softwarehouse (Pvt) Ltd / Webdev Group:
+
+| # | Product | URL | What it is |
+|---|---------|-----|------------|
+| 1 | **Paynow Gateway** | paynow.co.zw | Payment acceptance (cards, mobile money, bank) |
+| 2 | **BillPay** | billpay.paynow.co.zw | Bill payment API gateway — 106 billers integrated |
+| 3 | **TopUp** | topup.co.zw | Airtime, data bundles, ISP, utility payments |
+| 4 | **Paynow WhatsApp Bot** | +263 8644 729 100 | Buy airtime, pay bills via WhatsApp |
+| 5 | **BuySafe Escrow** | Built into Gateway | Funds held until delivery confirmed |
+| 6 | **ZIMRA Fiscalisation** | Via Panier API | Tax-compliant invoicing for every transaction |
+| 7 | **Verified Merchant** | Dashboard | Trust badge, daily settlement, card acceptance |
+| 8 | **Custom Forms / Cart** | Dashboard | No-code payment pages |
+
+### BillPay — The Hidden Gem (106 Billers)
+
+BillPay is a **bill payment API gateway** with 106 integrated billers. Vendors integrate once and can process payments to any biller on the platform.
+
+**How it works:**
+- **Billers** upload member lists (API or web interface)
+- **Vendors** integrate with a single API to pay any biller
+- Members confirm account details before paying
+- Instant reconciliation to member accounts
+- Auto-configuration endpoint downloads biller artwork, descriptions, fields
+
+**What you can pay via BillPay:**
+- ZESA prepaid electricity
+- ZINWA water
+- Municipal councils (Harare, Bulawayo, Mutare, Gweru, etc.)
+- University tuition (UZ, NUST, MSU, etc.)
+- Insurance premiums
+- Internet/broadband (TelOne, ZOL, Africom)
+- School fees
+- Subscriptions
+
+### TopUp — Airtime & Data
+
+**Services:**
+- Airtime Direct (Econet, NetOne, Telecel) — no extra charges
+- Data & social bundles
+- NetOne OneFusion, EasyCall
+- Econet Buddie, Telecel Go
+- TelOne ADSL/Blaze LTE/FTTH
+- ZOL broadband
+- NetOne One-Fi
+
+**Payment methods:** EcoCash, OneMoney, Zimswitch, Visa/MC
+
+**WhatsApp Bot:** Message "airtime" to +263 8644 729 100 → guided purchase flow
+
+### ZIMRA Fiscalisation (via Panier)
+
+Zimbabwe now requires all transactions to be ZIMRA-fiscalised (tax-compliant). Through the Panier API:
+- Every payment auto-generates a ZIMRA fiscal invoice
+- Digital signature + hash verification
+- PDF receipt emailed to customer
+- Compliance deadline: 31 May 2025 (already in effect)
+
+**Supported payment methods via Panier:** EcoCash (USD), InnBucks (USD)
+
+---
+
+## How ZimLivestock Should Use EVERY Product
+
+### Gateway APIs → Core Auction Payments
+*(Covered in detail below)*
+
+### BillPay API → Seller Value-Add Services
+
+**The insight:** Livestock sellers need to pay bills too. If we embed BillPay into our app, sellers never need to leave:
+
+| Service | ZimLivestock Feature | Why sellers care |
+|---------|---------------------|-----------------|
+| **ZESA prepaid** | "Pay your electricity from auction earnings" | Farmers need power for water pumps, feed mills |
+| **Municipal water (ZINWA)** | Pay water bills in-app | Rural farmers' #1 utility |
+| **Veterinary fees** | Pay vet bills via BillPay | Direct link to livestock health |
+| **School fees** | "Send your child to school with auction proceeds" | Emotional hook — livestock sales fund education |
+| **Insurance** | Livestock insurance premium payments | Natural cross-sell |
+
+**Implementation:** Integrate BillPay vendor API → show "Pay Bills" tab in seller dashboard → seller pays directly from their ZimLivestock balance/EcoCash.
+
+**SEED pitch angle:** "We're not just a marketplace — we're the financial hub for livestock farmers. They sell cattle and pay school fees in the same app."
+
+### TopUp API → Buyer/Seller Airtime Rewards
+
+| Feature | How it works | Why |
+|---------|-------------|-----|
+| **Airtime rewards** | Complete a sale → get US$1 airtime bonus | Incentivize first listings |
+| **Data bundle for listing** | "List your first animal, get 1GB data free" | Sellers need data to upload photos |
+| **Referral reward** | Refer a seller → both get US$0.50 airtime | Growth loop |
+| **Transport driver tips** | Buyer tips transporter in airtime | Practical — drivers always need airtime |
+
+**Implementation:** TopUp API → automated airtime delivery to phone number after triggering event.
+
+### ZIMRA Fiscalisation → Tax Compliance
+
+**Why this matters for SEED:**
+- Zimbabwe mandates ZIMRA fiscalisation for all commercial transactions
+- If ZimLivestock generates fiscal invoices for every sale, we're ahead of every informal auction house
+- Gives sellers a formal transaction record (useful for bank loans, tax returns)
+- Buyers get a legitimate receipt with ZIMRA verification code
+
+**Implementation:** Integrate Panier API → set `zimra_fiscalize: true` on every payment → auto-generate fiscal invoice → email to both buyer and seller.
+
+**Pitch:** "Every ZimLivestock sale is ZIMRA-fiscalised. Sellers get formal transaction records they can show to banks for agricultural loans."
+
+### WhatsApp Bot → Low-Tech Seller Access
+
+**The problem:** Many livestock farmers don't have smartphones that can run our web app. But they ALL have WhatsApp.
+
+| Feature | WhatsApp Flow |
+|---------|--------------|
+| **Check auction status** | "status" → "Your bull has 3 bids, highest US$1,200" |
+| **Accept/reject bids** | "accept" → "Bid of US$1,200 accepted. Buyer will arrange transport." |
+| **Confirm delivery** | "delivered" → triggers BuySafe release |
+| **Pay bills from earnings** | "pay ZESA" → TopUp/BillPay flow via WhatsApp |
+| **Get paid notification** | Auto-message: "US$1,140 settled to your CBZ account" |
+
+**Implementation:** Build a WhatsApp Business API integration that bridges our backend. For MVP: manual WhatsApp-based ops (you ARE the bot).
+
+### Verified Merchant → Trust Foundation
+
+Register ZimLivestock as a Paynow Verified Merchant:
+- ✅ Display "Paynow Verified" badge on every listing page
+- ✅ Accept Visa/Mastercard (diaspora buyers sending money home for cattle)
+- ✅ Daily settlement (sellers get paid next day, not next week)
+- ✅ Disable BuySafe escrow for trusted repeat sellers (optional, speeds up flow)
+
+**Cost:** Free — just requires identity verification through Paynow portal.
+
+---
+
+## The Full Ecosystem Vision
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     ZIMLIVESTOCK APP                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│   SELL                    BUY                    MANAGE          │
+│   ────                    ───                    ──────          │
+│   List animal             Browse                 Pay ZESA        │
+│   Upload stock card       Place bid              Pay school fees │
+│   Track bids              Win auction             Buy airtime    │
+│   Confirm delivery        Pay (EcoCash/Card)      Pay water      │
+│   Get settled             Track delivery          Pay insurance  │
+│                           Dispute (24hr)          Pay vet bills  │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                     PAYNOW ECOSYSTEM                             │
+├────────┬──────────┬──────────┬──────────┬───────────────────────┤
+│Gateway │ BillPay  │ TopUp    │ BuySafe  │ ZIMRA Fiscalisation   │
+│10 APIs │ 106      │ Airtime  │ Escrow   │ Tax-compliant         │
+│6 pay   │ billers  │ Data     │ Delivery │ invoicing for         │
+│methods │          │ ISP      │ Dispute  │ every sale            │
+│        │          │ ZESA     │ Mediate  │                       │
+├────────┴──────────┴──────────┴──────────┴───────────────────────┤
+│  Verified Merchant │ WhatsApp Bot │ Custom Forms │ Tokenization │
+└────────────────────┴──────────────┴──────────────┴──────────────┘
+```
+
+---
+
+## Revenue Opportunities from Full Integration
+
+| Revenue stream | Paynow product | How |
+|---------------|---------------|-----|
+| Auction fees (5-6%) | Gateway | Core business |
+| Bill payment commissions | BillPay vendor API | Earn commission on every bill paid through our app |
+| Airtime margin | TopUp API | Small margin on airtime purchases |
+| Transport booking fee | Gateway (or ticket API) | Fee per transport arrangement |
+| Premium seller subscription | Gateway + tokenization | Monthly recurring charge via saved token |
+| Diaspora remittance fee | Gateway (Visa/MC) | International buyers pay premium for Visa/MC |
+| Livestock insurance referral | BillPay | Refer to insurance billers, earn commission |
+
+**SEED pitch:** "ZimLivestock isn't a one-trick marketplace. We monetize across the entire livestock value chain — auctions, transport, bills, airtime, insurance — all through Paynow's ecosystem."
+
+---
+
+## Open Questions for Paynow
+
+1. **BillPay vendor API access** — How do we register as a BillPay vendor? What's the commission structure?
+2. **TopUp API access** — Is there a reseller/API for programmatic airtime purchases?
+3. **BuySafe delivery confirmation API** — Can we confirm delivery programmatically or only via dashboard?
+4. **ZIMRA fiscalisation** — Do we need our own Panier account, or can Paynow handle this?
+5. **WhatsApp bot** — Can we build on top of Paynow's WhatsApp bot, or do we need our own?
+6. **Passenger ticket API for non-airline** — Can we repurpose for transport bookings?
+7. **Cloudflare timeline** — When will the API be moved to a separate subdomain?
 
 ---
 
