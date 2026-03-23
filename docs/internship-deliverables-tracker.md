@@ -67,11 +67,11 @@
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
 | Wireframes | DONE | 12 interactive screen wireframes |
-| System flow diagrams | PARTIAL | Payment flow in benchmark report; need formal architecture diagram |
+| System flow diagrams | DONE | Interactive architecture diagram with all 3 tiers + agent system |
 
-**Gap:** Need a system architecture diagram showing: Frontend → Supabase/Go → PostgreSQL → Paynow. Can generate this.
-
-**Deliverable:** `docs/wireframes.html` — 12 interactive screens (1,573 lines)
+**Deliverables:**
+- `docs/wireframes.html` — 12 interactive screens (1,573 lines)
+- `docs/architecture-diagram.html` — Full system architecture (SVG, interactive hover, dark theme)
 
 ---
 
@@ -209,14 +209,16 @@
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
 | Executive summary | DONE | In benchmark report |
-| 5+ actionable recommendations | IN PROGRESS | Currently have 3 major recs; need 2 more |
+| 5+ actionable recommendations | DONE (7 recommendations) | Exceeds requirement |
 
-**Current Recommendations:**
-1. Move API to `api.paynow.co.zw` (no Cloudflare)
-2. Provide an official SDK (currently 60% more code than competitors)
-3. Standardize webhook verification (3 strategies → 1)
-4. *(Need)* Sandbox environment improvements
-5. *(Need)* Error message clarity recommendations
+**Recommendations:**
+1. Move API to `api.paynow.co.zw` (no Cloudflare) — CRITICAL
+2. Fix and modernize the Node.js SDK (silent errors, no TypeScript, Deno incompatible)
+3. Standardize webhook hash field ordering (or switch to HMAC like Paystack)
+4. Adopt JSON API format (replace form-encoded)
+5. Improve sandbox and test documentation (test phone numbers, webhook logs)
+6. Return structured error responses (JSON with codes, doc links)
+7. Create developer onboarding content (YouTube videos, email sequence — the Paystack playbook)
 
 ---
 
@@ -244,11 +246,11 @@
 | # | Deliverable | Status | Location |
 |---|-------------|--------|----------|
 | 1 | Functional livestock marketplace prototype | DONE | `/src/` (frontend) + `/backend/` (Go) + `/supabase/` (Edge Functions) |
-| 2 | Paynow payment integration | BLOCKED | Architecture complete, Cloudflare prevents live calls |
+| 2 | Paynow payment integration | DONE (code), BLOCKED (runtime) | 835 lines across 5 files + Go client (444 lines). Cloudflare prevents live API calls. |
 | 3 | Paynow DX benchmark report | DRAFT DONE | `benchmarks/payment-provider-benchmark-report.md` |
-| 4 | Actionable DX recommendations | 3 of 5 done | In benchmark report |
+| 4 | Actionable DX recommendations | 7 of 5 done (EXCEEDED) | In benchmark report |
 | 5 | Auction house research summary | DONE | `research/auction-field-visit-2026-03-19.md` |
-| 6 | System architecture diagram | NOT DONE | Need to create |
+| 6 | System architecture diagram | DONE | `docs/architecture-diagram.html` |
 | 7 | Wireframes | DONE | `docs/wireframes.html` (12 screens) |
 | 8 | Project README | NOT DONE | Need to create |
 | 9 | Deployed prototype URL | NOT DONE | Supabase live, frontend needs deploy |

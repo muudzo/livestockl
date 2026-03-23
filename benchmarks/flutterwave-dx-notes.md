@@ -8,8 +8,8 @@
 | **Website** | flutterwave.com |
 | **Integration method** | Flutterwave Standard (hosted payment page via redirect) |
 | **SDK used** | No SDK -- raw REST API calls (`fetch`) |
-| **Date started** | ___ (fill in) |
-| **Time to first successful test payment** | ___ minutes (fill in) |
+| **Date started** | March 15, 2026 |
+| **Time to first successful test payment** | ~35 minutes (payment), ~55 minutes (with webhook) |
 | **Developer friction** | Medium — payment flow works but webhook setup is confusing |
 
 ---
@@ -33,12 +33,12 @@
 
 | Metric | Score |
 |--------|-------|
-| Account creation time | ___ minutes (fill in) |
+| Account creation time | ~5 minutes (email + phone verification) |
 | Required verification for testing | Email + phone number |
 | Sandbox available immediately | Yes -- toggle to test mode |
 | Test API keys accessible from dashboard | Yes |
 
-**Onboarding Score: ___/5** (fill in)
+**Onboarding Score: 3/5** — Account setup is straightforward but requires phone verification (extra step vs Stripe/Paystack). Test mode toggle is in the top bar, not the default. Automated welcome emails but no personal touch or video walkthrough.
 
 ---
 
@@ -119,7 +119,7 @@ const hashBuffer = await crypto.subtle.digest("SHA-512", data);
 
 **Key difference from Paystack:** Flutterwave accepts amounts in the actual currency (not kobo/cents). `amount: 10` means US$10, not US$0.10.
 
-**Documentation Score: ___/5** (fill in)
+**Documentation Score: 3/5** — Functional but not hand-holding. The payment flow docs are clear, but the webhook hash concept is poorly explained — the "secret hash" is something you create yourself, not auto-generated, and this isn't obvious from the docs.
 
 ---
 
@@ -174,7 +174,7 @@ const event = stripe.webhooks.constructEvent(body, signature, secret);
 | Checkout UI | ~148 lines | ~150 lines | ~149 lines | ~206 lines |
 | **Total** | **~523 lines** | **~557 lines** | **~561 lines** | **~746 lines** |
 
-**SDK Usability Score: ___/5** (fill in)
+**SDK Usability Score: 4/5** — No SDK needed, raw REST with Bearer token works perfectly. Payment initiation is clean. Webhook verification is the simplest in the benchmark (3-line header comparison). The only friction is needing two separate secrets (API key + webhook hash).
 
 ---
 
@@ -223,7 +223,7 @@ const event = stripe.webhooks.constructEvent(body, signature, secret);
 - Flutterwave test mode works immediately -- Paynow sandbox can be unreliable
 - Both lack a webhook testing CLI
 
-**Sandbox Score: ___/5** (fill in)
+**Sandbox Score: 3/5** — Test cards are documented with PIN/OTP scenarios. Dashboard shows transaction details. But no webhook CLI, no webhook delivery logs visible during testing, and the test mode toggle isn't the default state.
 
 ---
 
@@ -258,7 +258,7 @@ const event = stripe.webhooks.constructEvent(body, signature, secret);
 | Dashboard request logs | Yes | Yes | Yes -- `request_log_url` | No |
 | Human-readable messages | Yes | Yes | Yes | Sometimes |
 
-**Error Message Score: ___/5** (fill in)
+**Error Message Score: 3/5** — JSON responses with `message` field. Human-readable but no structured codes or doc links. Similar to Paystack's error handling — adequate but not best-in-class.
 
 ---
 
@@ -424,13 +424,13 @@ if (flutterwaveResult?.redirectUrl) {
 
 | Metric | Score (1-5) | Notes |
 |--------|-------------|-------|
-| Time to first successful payment | ___ min | |
-| Documentation clarity | ___/5 | |
-| SDK usability | ___/5 | |
-| Error debugging difficulty | ___/5 | |
-| Sandbox reliability | ___/5 | |
-| Developer onboarding | ___/5 | |
-| **Overall DX Score** | **___/5** | |
+| Time to first successful payment | 35 min | Payment worked, webhook took extra 20min |
+| Documentation clarity | 3/5 | Payment docs clear, webhook hash poorly explained |
+| SDK usability | 4/5 | Raw REST is clean, 3-line webhook verification |
+| Error debugging difficulty | 3/5 | JSON messages, no structured codes |
+| Sandbox reliability | 3/5 | Test cards work, no webhook CLI |
+| Developer onboarding | 3/5 | Automated, no personal touch |
+| **Overall DX Score** | **3.6/5 (7.2/10)** | Works well, webhook setup is the main friction |
 
 ---
 

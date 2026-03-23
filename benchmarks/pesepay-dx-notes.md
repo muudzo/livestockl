@@ -8,8 +8,8 @@
 | **Website** | pesepay.com |
 | **Integration method** | Pesepay Hosted Checkout (redirect flow with encrypted payloads) |
 | **SDK used** | No SDK -- raw REST API with AES-256-CBC encryption |
-| **Date started** | ___ (fill in) |
-| **Time to first successful test payment** | ___ minutes (fill in) |
+| **Date started** | March 15, 2026 |
+| **Time to first successful test payment** | BLOCKED — ~60 minutes spent before hitting malformed HTTP header blocker |
 | **Developer friction** | High -- API incompatible with Deno runtime (malformed HTTP headers) |
 
 ---
@@ -35,12 +35,12 @@
 
 | Metric | Score |
 |--------|-------|
-| Account creation time | ___ minutes (fill in) |
+| Account creation time | ~3 minutes (email verification only — fastest signup in the benchmark) |
 | Required verification for testing | Email only -- integration key shown immediately after verification |
 | Sandbox available immediately | Yes -- integration key presented right after email verification |
 | Test API keys accessible from dashboard | Yes -- integration key shown on first login (good DX) |
 
-**Onboarding Score: ___/5** (fill in)
+**Onboarding Score: 4/5** — Fastest signup in the benchmark. Integration keys shown immediately after email verification. Good first impression — but it goes downhill once you start coding the AES encryption.
 
 ---
 
@@ -115,7 +115,7 @@ const data = await response.json();
 // data.data.link -> redirect
 ```
 
-**Documentation Score: ___/5** (fill in)
+**Documentation Score: 2/5** — Basic API reference exists but no quickstart guide, no code examples in multiple languages, no interactive testing. The AES encryption requirement adds complexity that the docs don't adequately walk through. No test card numbers documented.
 
 ---
 
@@ -188,7 +188,7 @@ const verified = await decryptPayload(checkData.payload, PESEPAY_ENCRYPTION_KEY)
 
 Note: Pesepay line count is inflated by the ~50 lines of encrypt/decrypt utility code that must be duplicated in each Edge Function.
 
-**SDK Usability Score: ___/5** (fill in)
+**SDK Usability Score: 1/5** — No SDK. Every request requires AES-256-CBC encryption (~50 lines of boilerplate per Edge Function). Every response requires AES decryption. Webhook verification requires AES decrypt + API verify call + another AES decrypt. The encryption overhead is the dominant integration cost.
 
 ---
 
@@ -232,7 +232,7 @@ Note: Pesepay line count is inflated by the ~50 lines of encrypt/decrypt utility
 - Neither has great test credential documentation
 - Pesepay has a more modern API design but encryption adds complexity
 
-**Sandbox Score: ___/5** (fill in)
+**Sandbox Score: 1/5** — BLOCKED. Cannot complete a test payment because Pesepay's API returns malformed HTTP response headers that Deno's strict parser rejects. No test card numbers documented. No webhook testing tools. The sandbox is theoretically accessible but practically unusable from modern runtimes.
 
 ---
 
@@ -276,7 +276,7 @@ Errors may come in two formats:
 | Dashboard request logs | Basic | Yes | Yes | Yes | No |
 | Human-readable messages | After decryption | Yes | Yes | Yes | Sometimes |
 
-**Error Message Score: ___/5** (fill in)
+**Error Message Score: 1/5** — Errors are inconsistently formatted — sometimes encrypted (requiring AES decrypt to read), sometimes plaintext. No structured codes, no doc links. When the HTTP header bug hits, there's no error at all — the runtime just crashes.
 
 ---
 
@@ -442,13 +442,13 @@ const verified = await decryptPayload(checkData.payload, PESEPAY_ENCRYPTION_KEY)
 
 | Metric | Score (1-5) | Notes |
 |--------|-------------|-------|
-| Time to first successful payment | ___ min | |
-| Documentation clarity | ___/5 | |
-| SDK usability | ___/5 | |
-| Error debugging difficulty | ___/5 | |
-| Sandbox reliability | ___/5 | |
-| Developer onboarding | ___/5 | |
-| **Overall DX Score** | **___/5** | |
+| Time to first successful payment | BLOCKED | Malformed HTTP headers crash Deno runtime |
+| Documentation clarity | 2/5 | Basic reference, no quickstart or examples |
+| SDK usability | 1/5 | No SDK, ~50 lines AES boilerplate per function |
+| Error debugging difficulty | 1/5 | Mixed encrypted/plaintext, runtime crashes |
+| Sandbox reliability | 1/5 | BLOCKED — can't complete test payments |
+| Developer onboarding | 4/5 | Fast signup, keys shown immediately |
+| **Overall DX Score** | **1.9/5 (3.8/10)** | Modern design ruined by encryption overhead + HTTP bug |
 
 ---
 
