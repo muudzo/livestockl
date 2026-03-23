@@ -34,75 +34,113 @@ serve(async (req: Request) => {
     // =========================================
     if (scenario === "concurrent_bids" || scenario === "all") {
       const start = Date.now();
+      let testListingId: string | null = null;
+      let testBidIds: string[] = [];
 
-      // Find an active listing
-      const { data: listing } = await supabase
-        .from("livestock_items")
-        .select("id, title, current_bid, starting_price, seller_id")
-        .eq("status", "active")
-        .gt("end_time", new Date().toISOString())
-        .limit(1)
-        .single();
-
-      if (!listing) {
-        results.push({ test: "concurrent_bids", status: "warn", message: "No active listings to test", duration_ms: Date.now() - start });
-      } else {
-        // Get a user that isn't the seller
+      try {
+        // Get 3 users to act as seller + bidders
         const { data: users } = await supabase
           .from("profiles")
           .select("id")
-          .neq("id", listing.seller_id)
           .limit(3);
 
-        if (!users?.length) {
-          results.push({ test: "concurrent_bids", status: "warn", message: "No test users available", duration_ms: Date.now() - start });
+        if (!users || users.length < 2) {
+          results.push({ test: "concurrent_bids", status: "warn", message: "Need at least 2 users in profiles table", duration_ms: Date.now() - start });
         } else {
-          const baseBid = (listing.current_bid || listing.starting_price) + 10;
+          const sellerId = users[0].id;
+          const bidderIds = users.slice(1);
 
-          // Fire 5 concurrent bids at the same listing
-          const bidPromises = Array.from({ length: 5 }, (_, i) =>
-            supabase.from("bids").insert({
-              livestock_id: listing.id,
-              user_id: users[i % users.length].id,
-              amount: baseBid + i * 5,
-            }).select("id").single()
-          );
-
-          const bidResults = await Promise.allSettled(bidPromises);
-          const successes = bidResults.filter(r => r.status === "fulfilled" && !(r.value as any).error).length;
-          const failures = bidResults.filter(r => r.status === "rejected" || (r.status === "fulfilled" && (r.value as any).error)).length;
-
-          // Sync the listing to reflect actual highest bid (same as agents do)
-          await (supabase.rpc as any)("sync_listing_bid", { p_livestock_id: listing.id });
-
-          // Check: current_bid should be the highest bid
-          const { data: updated } = await supabase
+          // Create a temporary test listing (expires in 1 hour)
+          const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+          const { data: listing, error: listingErr } = await supabase
             .from("livestock_items")
-            .select("current_bid, bid_count")
-            .eq("id", listing.id)
+            .insert({
+              title: "__CHAOS_TEST_LISTING__",
+              category: "Cattle",
+              breed: "Test Breed",
+              age: "2 years",
+              weight: "400kg",
+              description: "Temporary listing for chaos test — will be cleaned up",
+              location: "Harare",
+              health: "Excellent",
+              starting_price: 100,
+              current_bid: 0,
+              bid_count: 0,
+              view_count: 0,
+              image_urls: [],
+              seller_id: sellerId,
+              status: "active",
+              duration_days: 1,
+              end_time: endTime,
+            })
+            .select("id, current_bid, starting_price, seller_id")
             .single();
 
-          const { data: highestBid } = await supabase
-            .from("bids")
-            .select("amount")
-            .eq("livestock_id", listing.id)
-            .order("amount", { ascending: false })
-            .limit(1)
-            .single();
+          if (listingErr || !listing) {
+            results.push({ test: "concurrent_bids", status: "fail", message: `Failed to create test listing: ${listingErr?.message}`, duration_ms: Date.now() - start });
+          } else {
+            testListingId = listing.id;
+            const baseBid = listing.starting_price + 10;
 
-          // Validate: no double-counting, highest bid matches
-          const consistent = updated && highestBid &&
-            Math.abs(Number(updated.current_bid) - Number(highestBid.amount)) < 0.01;
+            // Fire 5 concurrent bids at the same listing
+            const bidPromises = Array.from({ length: 5 }, (_, i) =>
+              supabase.from("bids").insert({
+                livestock_id: listing.id,
+                user_id: bidderIds[i % bidderIds.length].id,
+                amount: baseBid + i * 5,
+              }).select("id").single()
+            );
 
-          results.push({
-            test: "concurrent_bids",
-            status: consistent ? "pass" : "fail",
-            message: consistent
-              ? `${successes} concurrent bids placed. DB consistent (highest bid: US$${highestBid?.amount})`
-              : `DB inconsistency! current_bid=${updated?.current_bid} but highest bid=${highestBid?.amount}`,
-            duration_ms: Date.now() - start,
-            details: { successes, failures, current_bid: updated?.current_bid, highest_bid: highestBid?.amount },
-          });
+            const bidResults = await Promise.allSettled(bidPromises);
+            const successes = bidResults.filter(r => r.status === "fulfilled" && !(r.value as any).error).length;
+            const failures = bidResults.filter(r => r.status === "rejected" || (r.status === "fulfilled" && (r.value as any).error)).length;
+
+            // Collect bid IDs for cleanup
+            for (const r of bidResults) {
+              if (r.status === "fulfilled" && (r.value as any).data?.id) {
+                testBidIds.push((r.value as any).data.id);
+              }
+            }
+
+            // Sync the listing to reflect actual highest bid
+            await (supabase.rpc as any)("sync_listing_bid", { p_livestock_id: listing.id });
+
+            // Check: current_bid should be the highest bid
+            const { data: updated } = await supabase
+              .from("livestock_items")
+              .select("current_bid, bid_count")
+              .eq("id", listing.id)
+              .single();
+
+            const { data: highestBid } = await supabase
+              .from("bids")
+              .select("amount")
+              .eq("livestock_id", listing.id)
+              .order("amount", { ascending: false })
+              .limit(1)
+              .single();
+
+            const consistent = updated && highestBid &&
+              Math.abs(Number(updated.current_bid) - Number(highestBid.amount)) < 0.01;
+
+            results.push({
+              test: "concurrent_bids",
+              status: consistent ? "pass" : "fail",
+              message: consistent
+                ? `${successes} concurrent bids placed. DB consistent (highest bid: US$${highestBid?.amount})`
+                : `DB inconsistency! current_bid=${updated?.current_bid} but highest bid=${highestBid?.amount}`,
+              duration_ms: Date.now() - start,
+              details: { successes, failures, current_bid: updated?.current_bid, highest_bid: highestBid?.amount },
+            });
+          }
+        }
+      } finally {
+        // Cleanup: delete test bids then test listing
+        if (testBidIds.length > 0) {
+          await supabase.from("bids").delete().in("id", testBidIds);
+        }
+        if (testListingId) {
+          await supabase.from("livestock_items").delete().eq("id", testListingId);
         }
       }
     }
