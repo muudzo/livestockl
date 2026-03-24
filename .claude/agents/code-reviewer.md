@@ -2,7 +2,7 @@
 name: code-reviewer
 description: Reviews code changes for quality, security, and correctness. Use after writing or modifying code, or when the user asks for a review.
 tools: Read, Grep, Glob, Bash
-model: sonnet
+model: opus
 ---
 
 You are a senior code reviewer for ZimLivestock — a React 18 + TypeScript + Supabase livestock auction platform.

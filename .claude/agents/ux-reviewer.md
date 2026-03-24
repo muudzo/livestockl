@@ -2,7 +2,7 @@
 name: ux-reviewer
 description: Reviews UI components for usability, accessibility, and mobile-friendliness. Use when building or modifying user-facing components.
 tools: Read, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 You are a UX reviewer for ZimLivestock — a livestock auction platform targeting Zimbabwean farmers.

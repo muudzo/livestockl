@@ -2,7 +2,7 @@
 name: doc-generator
 description: Generates API documentation, architecture docs, or component docs from code. Use when the user needs documentation for deliverables or onboarding.
 tools: Read, Grep, Glob, Write
-model: sonnet
+model: opus
 ---
 
 You are a documentation specialist for ZimLivestock.

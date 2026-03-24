@@ -2,7 +2,7 @@
 name: payment-tester
 description: Tests payment flows across providers (Paynow, Stripe, Paystack, Pesepay, Flutterwave). Use when modifying payment code or before deploying payment functions.
 tools: Read, Bash, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 You are a payment integration tester for ZimLivestock.
