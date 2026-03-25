@@ -78,20 +78,20 @@ export function HomeFeed() {
     <div className="min-h-screen bg-background pb-4">
       <div className="sticky top-0 bg-background z-10 border-b shadow-sm">
         <div className="px-4 pt-5 pb-3">
-          <h1 className="text-xl font-semibold">Livestock Marketplace</h1>
-          <p className="text-sm text-muted-foreground mt-1">Find your next animal</p>
+          <h1 className="text-2xl font-bold">Livestock Marketplace</h1>
+          <p className="text-sm text-slate-500 mt-1">Find your next animal</p>
         </div>
 
         <div className="px-4 pb-3">
           <div className="relative" role="search">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search by title, breed, location..."
               aria-label="Search livestock listings"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border-0 bg-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-200"
             />
           </div>
         </div>
@@ -171,11 +171,11 @@ export function HomeFeed() {
           filteredLivestock.map((item: any) => {
             const seller = getSellerInfo(item);
             return (
-              <div key={item.id} className="bg-card rounded-lg shadow-md overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+              <div key={item.id} className="bg-card rounded-xl shadow-sm overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                 <div className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)}>
                   <img src={getImageUrl(item)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   <div className="absolute bottom-2 left-2">
-                    <Badge className="bg-black/70 text-white border-0">{item.breed}</Badge>
+                    <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
                   </div>
                   <div className="absolute bottom-2 right-2">
                     <Badge variant="destructive" className="font-semibold">{getTimeLeft(item)}</Badge>
@@ -192,8 +192,9 @@ export function HomeFeed() {
                 <div className="p-4 space-y-4">
                   <div>
                     <h3 className="font-semibold text-lg">{item.title}</h3>
-                    <p className="text-xl font-bold text-primary" aria-label={`Current bid: ${getCurrentBid(item)} US dollars`}>
-                      Current Bid: US${getCurrentBid(item).toLocaleString()}
+                    <p className="text-xl font-bold text-emerald-700" aria-label={`Current bid: ${getCurrentBid(item)} US dollars`}>
+                      <span className="text-xs font-normal text-slate-400">Current Bid </span>
+                      US${getCurrentBid(item).toLocaleString()}
                     </p>
                   </div>
 
@@ -210,17 +211,17 @@ export function HomeFeed() {
 
                   <div className="flex items-center gap-2">
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      <AvatarFallback className="bg-emerald-600 text-white text-xs">
                         {seller.avatar}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-medium">{seller.name}</span>
-                      {seller.verified && <CheckCircle className="w-4 h-4 text-primary fill-primary" />}
+                      {seller.verified && <CheckCircle className="w-4 h-4 text-emerald-600 fill-emerald-600" />}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm text-slate-400">
                     <div className="flex items-center gap-1">
                       <Gavel className="w-4 h-4" />
                       <span>{getBidCount(item)} bids</span>
@@ -232,11 +233,11 @@ export function HomeFeed() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" className="flex-1 h-11 active:scale-[0.98] transition-all duration-150" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
+                    <Button variant="outline" className="flex-1 h-11 border-slate-300 active:scale-[0.98] transition-all duration-150" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Message
                     </Button>
-                    <Button className="flex-1 h-11 active:scale-[0.98] transition-all duration-150" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
+                    <Button className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 font-semibold active:scale-[0.98] transition-all duration-150" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
                       Place Bid
                     </Button>
                   </div>
