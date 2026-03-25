@@ -1,8 +1,24 @@
 import { useState } from "react";
-import { X, CheckCheck, Loader2 } from "lucide-react";
+import { X, CheckCheck, Loader2, BellOff } from "lucide-react";
 import { useNotifications, useMarkAllRead, useDeleteNotification } from "../../hooks/useNotifications";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+
+function NotificationSkeleton() {
+  return (
+    <div className="bg-card border rounded-xl p-5 animate-pulse">
+      <div className="flex items-start gap-3">
+        <div className="w-2 h-2 rounded-full bg-slate-200 mt-2" />
+        <div className="flex-1 min-w-0 space-y-2">
+          <div className="h-4 bg-slate-200 rounded w-1/3" />
+          <div className="h-3 bg-slate-200 rounded w-2/3" />
+          <div className="h-3 bg-slate-200 rounded w-1/4" />
+        </div>
+        <div className="w-8 h-8 rounded bg-slate-200" />
+      </div>
+    </div>
+  );
+}
 
 export function Notifications() {
   const { data: notifications, isLoading } = useNotifications();
@@ -65,12 +81,19 @@ export function Notifications() {
       <div className="sticky top-0 bg-background z-10 border-b">
         <div className="p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h1 className="font-semibold text-lg">Notifications</h1>
+            <h1 className="font-bold text-xl">Notifications</h1>
             {unreadCount > 0 && (
               <Badge variant="destructive" className="rounded-full">{unreadCount}</Badge>
             )}
           </div>
-          <Button variant="ghost" size="sm" onClick={handleMarkAllRead} disabled={unreadCount === 0}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleMarkAllRead}
+            disabled={unreadCount === 0}
+            className="text-emerald-600"
+            aria-label="Mark all notifications as read"
+          >
             <CheckCheck className="w-4 h-4 mr-1" />Mark all read
           </Button>
         </div>
@@ -81,7 +104,11 @@ export function Notifications() {
               <Badge
                 key={f}
                 variant={filter === f ? 'default' : 'outline'}
-                className="cursor-pointer whitespace-nowrap capitalize"
+                className={`cursor-pointer whitespace-nowrap capitalize transition-colors duration-150 ${
+                  filter === f
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                    : 'bg-slate-100 text-slate-700 border-0 hover:bg-slate-200'
+                }`}
                 onClick={() => setFilter(f)}
               >
                 {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
@@ -93,14 +120,21 @@ export function Notifications() {
 
       <div className="p-4 space-y-3">
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => (
+              <NotificationSkeleton key={i} />
+            ))}
+          </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="text-center py-12"><p className="text-muted-foreground">No notifications</p></div>
+          <div className="text-center py-12 flex flex-col items-center gap-3">
+            <BellOff className="w-10 h-10 text-slate-400" />
+            <p className="text-muted-foreground">You're all caught up</p>
+          </div>
         ) : (
           filteredNotifications.map((notification: any) => (
             <div
               key={notification.id}
-              className={`bg-card border rounded-lg p-4 ${getPriorityColor(notification.priority)} ${!notification.read ? 'bg-primary/5' : ''}`}
+              className={`bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-sm ${getPriorityColor(notification.priority)} ${!notification.read ? 'bg-emerald-50' : ''}`}
             >
               <div className="flex items-start gap-3">
                 <span className="text-2xl">{getPriorityIcon(notification.priority)}</span>
@@ -111,7 +145,11 @@ export function Notifications() {
                     {formatTime(notification.timestamp ?? notification.created_at)}
                   </p>
                 </div>
-                <button onClick={() => dismissNotification(notification.id)} className="text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={() => dismissNotification(notification.id)}
+                  className="w-8 h-8 flex items-center justify-center text-muted-foreground transition-colors duration-200 hover:text-red-500"
+                  aria-label="Dismiss notification"
+                >
                   <X className="w-4 h-4" />
                 </button>
               </div>

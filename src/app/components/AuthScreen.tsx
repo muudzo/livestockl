@@ -64,11 +64,11 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-green-50 to-amber-50">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 to-amber-50">
+      <Card className="w-full max-w-md shadow-lg rounded-xl">
         <CardHeader className="text-center">
-          <div className="text-2xl font-bold tracking-tight mb-1">ZL</div>
-          <CardTitle className="text-2xl">ZimLivestock</CardTitle>
+          <div className="text-3xl font-bold tracking-tight mb-1 text-emerald-700">ZL</div>
+          <CardTitle className="text-2xl font-bold">ZimLivestock</CardTitle>
           <CardDescription>Your livestock marketplace</CardDescription>
         </CardHeader>
         <CardContent>
@@ -89,6 +89,7 @@ export function AuthScreen() {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     required
+                    className="transition-all duration-200"
                   />
                 </div>
                 <div className="space-y-2">
@@ -101,12 +102,13 @@ export function AuthScreen() {
                     onChange={(e) => setLoginPassword(e.target.value)}
                     required
                     minLength={6}
+                    className="transition-all duration-200"
                   />
                 </div>
                 <div className="text-right">
                   <button
                     type="button"
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
                     onClick={() => setShowForgotPassword(!showForgotPassword)}
                   >
                     Forgot password?
@@ -115,7 +117,7 @@ export function AuthScreen() {
                 {showForgotPassword && (
                   <div className="space-y-2 p-3 bg-muted rounded-lg">
                     {resetSent ? (
-                      <p className="text-sm text-green-700">Check your email for the reset link.</p>
+                      <p className="text-sm text-emerald-700">Check your email for the reset link.</p>
                     ) : (
                       <>
                         <Input
@@ -123,15 +125,16 @@ export function AuthScreen() {
                           placeholder="Enter your email"
                           value={resetEmail}
                           onChange={(e) => setResetEmail(e.target.value)}
+                          className="transition-all duration-200"
                         />
-                        <Button type="button" variant="outline" size="sm" className="w-full" onClick={handleForgotPassword}>
+                        <Button type="button" variant="outline" size="sm" className="w-full border-emerald-300 text-emerald-700 active:scale-[0.98] transition-all duration-150" onClick={handleForgotPassword}>
                           Send Reset Link
                         </Button>
                       </>
                     )}
                   </div>
                 )}
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold active:scale-[0.98] transition-all duration-150" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
               </form>
@@ -140,7 +143,7 @@ export function AuthScreen() {
             <TabsContent value="signup">
               {signupSuccess ? (
                 <div className="text-center py-6 space-y-3">
-                  <p className="text-lg font-semibold text-green-700">Account created!</p>
+                  <p className="text-lg font-semibold text-emerald-700">Account created!</p>
                   <p className="text-sm text-muted-foreground">Check your email to confirm your account before signing in.</p>
                 </div>
               ) : (
@@ -155,6 +158,7 @@ export function AuthScreen() {
                       value={signupData.firstName}
                       onChange={(e) => setSignupData({ ...signupData, firstName: e.target.value })}
                       required
+                      className="transition-all duration-200"
                     />
                   </div>
                   <div className="space-y-2">
@@ -166,6 +170,7 @@ export function AuthScreen() {
                       value={signupData.lastName}
                       onChange={(e) => setSignupData({ ...signupData, lastName: e.target.value })}
                       required
+                      className="transition-all duration-200"
                     />
                   </div>
                 </div>
@@ -180,6 +185,7 @@ export function AuthScreen() {
                     required
                     pattern="0[17][0-9]{8}"
                     title="Enter a valid Zimbabwe phone number (e.g. 0771234567)"
+                    className="transition-all duration-200"
                   />
                 </div>
                 <div className="space-y-2">
@@ -191,6 +197,7 @@ export function AuthScreen() {
                     value={signupData.email}
                     onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                     required
+                    className="transition-all duration-200"
                   />
                 </div>
                 <div className="space-y-2">
@@ -203,9 +210,10 @@ export function AuthScreen() {
                     onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                     required
                     minLength={6}
+                    className="transition-all duration-200"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 font-semibold active:scale-[0.98] transition-all duration-150" disabled={loading}>
                   {loading ? 'Creating account...' : 'Sign Up'}
                 </Button>
               </form>
@@ -216,9 +224,9 @@ export function AuthScreen() {
         <CardFooter className="text-center text-sm text-muted-foreground">
           <p className="w-full">
             By continuing, you agree to our{' '}
-            <a href="#" className="text-primary hover:underline">Terms</a>
+            <a href="#" className="text-emerald-600 hover:underline">Terms</a>
             {' & '}
-            <a href="#" className="text-primary hover:underline">Privacy</a>
+            <a href="#" className="text-emerald-600 hover:underline">Privacy</a>
           </p>
         </CardFooter>
       </Card>

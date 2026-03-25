@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Lock, Loader2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, Lock, Loader2, ShieldAlert, PackageX } from "lucide-react";
 import { useLivestockItem } from "../../hooks/useLivestock";
 import { useBids } from "../../hooks/useBids";
 import { useInitiatePayment } from "../../hooks/usePayments";
@@ -13,6 +13,64 @@ import { Separator } from "./ui/separator";
 import { toast } from "sonner";
 
 type PaymentMethod = 'ecocash' | 'onemoney' | 'card';
+
+function CheckoutSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 bg-background z-10 border-b p-4 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-muted animate-pulse" />
+        <div className="h-6 w-28 bg-muted rounded animate-pulse" />
+      </div>
+      <div className="p-4 space-y-6 pb-32">
+        {/* Order summary skeleton */}
+        <div>
+          <div className="h-4 w-32 bg-muted rounded animate-pulse mb-3" />
+          <div className="bg-card border rounded-xl p-4 flex gap-3">
+            <div className="w-20 h-20 bg-muted rounded-lg animate-pulse flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-5 w-3/4 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-1/2 bg-muted rounded animate-pulse" />
+              <div className="h-4 w-1/3 bg-muted rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+        {/* Price breakdown skeleton */}
+        <div className="space-y-3">
+          <div className="flex justify-between">
+            <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-20 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="flex justify-between">
+            <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+            <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+          </div>
+          <Separator />
+          <div className="flex justify-between">
+            <div className="h-5 w-16 bg-muted rounded animate-pulse" />
+            <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+        <Separator className="my-6" />
+        {/* Payment methods skeleton */}
+        <div>
+          <div className="h-4 w-36 bg-muted rounded animate-pulse mb-3" />
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border rounded-xl p-4 flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-muted animate-pulse" />
+                <div className="w-8 h-8 bg-muted rounded animate-pulse" />
+                <div className="flex-1 space-y-1">
+                  <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                  <div className="h-3 w-36 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function CheckoutScreen() {
   const { id } = useParams();
@@ -35,14 +93,19 @@ export function CheckoutScreen() {
     : false;
 
   if (isLoading || bidsLoading) {
+    return <CheckoutSkeleton />;
+  }
+
+  if (!item) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center gap-4">
+        <PackageX className="w-16 h-16 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Item not found</h2>
+        <p className="text-muted-foreground">This listing may have been removed or doesn't exist.</p>
+        <Button onClick={() => navigate('/')} variant="outline">Browse Listings</Button>
       </div>
     );
   }
-
-  if (!item) return <div className="p-4">Item not found</div>;
 
   if (!hasWinningBid) {
     return (
@@ -105,14 +168,20 @@ export function CheckoutScreen() {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background z-10 border-b p-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}><ArrowLeft className="w-5 h-5" /></button>
-        <h1 className="font-semibold text-lg">Checkout</h1>
+        <button
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-muted transition-all duration-200"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="font-bold text-xl">Checkout</h1>
       </div>
 
       <div className="p-4 space-y-6 pb-32">
         <div>
-          <h2 className="font-semibold mb-3">ORDER SUMMARY</h2>
-          <div className="bg-card border rounded-lg p-4 flex gap-3">
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Order Summary</h2>
+          <div className="bg-card border rounded-xl p-4 flex gap-3">
             <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0">
               <img src={imageUrl} alt={item.title} className="w-full h-full object-cover" />
             </div>
@@ -136,17 +205,17 @@ export function CheckoutScreen() {
           <Separator />
           <div className="flex justify-between text-lg">
             <span className="font-semibold">Total</span>
-            <span className="font-bold text-primary">US${total.toLocaleString()}</span>
+            <span className="font-bold text-emerald-700">US${total.toLocaleString()}</span>
           </div>
         </div>
 
         <Separator className="my-6" />
 
         <div>
-          <h2 className="font-semibold mb-3">PAYMENT METHOD</h2>
+          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Payment Method</h2>
           <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
             <div className="space-y-3">
-              <label htmlFor="ecocash" className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition-colors ${paymentMethod === 'ecocash' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'}`}>
+              <label htmlFor="ecocash" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'ecocash' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
                 <RadioGroupItem value="ecocash" id="ecocash" />
                 <div className="flex items-center gap-2 flex-1">
                   <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/ecocash-badge.svg" alt="EcoCash" className="h-8 w-8 object-contain" />
@@ -156,7 +225,7 @@ export function CheckoutScreen() {
                   </div>
                 </div>
               </label>
-              <label htmlFor="onemoney" className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition-colors ${paymentMethod === 'onemoney' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'}`}>
+              <label htmlFor="onemoney" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'onemoney' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
                 <RadioGroupItem value="onemoney" id="onemoney" />
                 <div className="flex items-center gap-2 flex-1">
                   <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/onemoney-badge.svg" alt="OneMoney" className="h-8 w-8 object-contain" />
@@ -166,7 +235,7 @@ export function CheckoutScreen() {
                   </div>
                 </div>
               </label>
-              <label htmlFor="card" className={`flex items-center gap-3 border rounded-lg p-4 cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-primary bg-primary/5' : 'hover:border-muted-foreground'}`}>
+              <label htmlFor="card" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'card' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
                 <RadioGroupItem value="card" id="card" />
                 <div className="flex items-center gap-2 flex-1">
                   <div className="flex gap-1">
@@ -188,15 +257,24 @@ export function CheckoutScreen() {
             <Label htmlFor="phone">Phone Number</Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">+263</span>
-              <Input id="phone" type="tel" placeholder="0771 234 567" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="pl-10" required />
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="0771 234 567"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="pl-10 h-11 transition-all duration-200"
+                aria-label="Phone number"
+                required
+              />
             </div>
           </div>
         )}
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
           <div className="flex gap-2">
-            <Lock className="w-3.5 h-3.5 text-muted-foreground inline" />
-            <p className="text-sm text-blue-900">{getInstructions()}</p>
+            <Lock className="w-3.5 h-3.5 text-emerald-600 inline flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-emerald-900">{getInstructions()}</p>
           </div>
         </div>
 
@@ -242,9 +320,13 @@ export function CheckoutScreen() {
 
       <div className="fixed bottom-16 left-0 right-0 bg-card border-t shadow-lg max-w-[480px] mx-auto">
         <div className="p-4 space-y-2">
-          <Button onClick={handlePay} className="w-full h-12 text-lg font-semibold" disabled={initiatePayment.isPending}>
+          <Button
+            onClick={handlePay}
+            className="w-full h-12 text-lg font-semibold bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-200"
+            disabled={initiatePayment.isPending}
+          >
             {initiatePayment.isPending ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin text-emerald-600" />Processing...</>
             ) : `Pay US$${total.toLocaleString()}`}
           </Button>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">

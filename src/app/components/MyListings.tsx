@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { MessageCircle, Edit, Trash2, Loader2 } from "lucide-react";
+import { MessageCircle, Edit, Trash2, Loader2, Package, Trophy } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -7,6 +7,25 @@ import { useMyListings, useWonItems, useDeleteListing } from "../../hooks/useLiv
 import { useStartConversation } from "../../hooks/useMessages";
 import { useState } from "react";
 import { toast } from "sonner";
+
+function SkeletonCard() {
+  return (
+    <div className="bg-card border rounded-xl p-5 animate-pulse">
+      <div className="flex gap-3">
+        <div className="w-24 h-24 bg-muted rounded-xl flex-shrink-0" />
+        <div className="flex-1 min-w-0 space-y-3">
+          <div className="h-4 bg-muted rounded w-3/4" />
+          <div className="h-5 bg-muted rounded w-1/3" />
+          <div className="h-4 bg-muted rounded w-1/2" />
+        </div>
+      </div>
+      <div className="flex gap-2 mt-4">
+        <div className="h-10 bg-muted rounded flex-1" />
+        <div className="h-10 bg-muted rounded flex-1" />
+      </div>
+    </div>
+  );
+}
 
 export function MyListings() {
   const navigate = useNavigate();
@@ -39,7 +58,7 @@ export function MyListings() {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background z-10 border-b p-4">
-        <h1 className="font-semibold text-lg">My Marketplace</h1>
+        <h1 className="font-bold text-xl">My Marketplace</h1>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="p-4">
@@ -48,36 +67,48 @@ export function MyListings() {
           <TabsTrigger value="won">Won</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="selling" className="space-y-4">
+        <TabsContent value="selling" className="space-y-5">
           {loadingSelling ? (
-            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+            <div className="space-y-5">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
           ) : !sellingItems?.length ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No active listings</p>
+            <div className="text-center py-16">
+              <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-1 font-medium">No listings yet</p>
+              <p className="text-sm text-slate-400 mb-5">Start selling by posting your first livestock listing</p>
               <Button onClick={() => navigate('/post')}>Post Your First Listing</Button>
             </div>
           ) : (
             sellingItems.map((item: any) => (
-              <div key={item.id} className="bg-card border rounded-lg p-4">
+              <div key={item.id} className="bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-md">
                 <div className="flex gap-3">
-                  <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
                     <img src={getImageUrl(item)} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{item.title}</h3>
-                    <p className="text-lg font-bold text-primary">US${getCurrentBid(item).toLocaleString()}</p>
-                    <Badge variant={item.status === 'active' ? 'default' : 'secondary'}>
+                    <p className="text-lg font-bold text-emerald-700">US${getCurrentBid(item).toLocaleString()}</p>
+                    <Badge className={item.status === 'active' ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : 'bg-slate-400 hover:bg-slate-400 text-white'}>
                       {item.status === 'active' ? 'Active' : 'Ended'}
                     </Badge>
-                    <p className="text-sm text-muted-foreground mt-1">{getBidCount(item)} bids • {getViewCount(item)} views</p>
+                    <p className="text-sm text-slate-400 mt-1">{getBidCount(item)} bids • {getViewCount(item)} views</p>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate(`/post?edit=${item.id}`)}><Edit className="w-4 h-4 mr-1" />Edit</Button>
+                <div className="flex gap-2 mt-4">
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="flex-1"
+                    className="flex-1 h-10 border-slate-300 active:scale-[0.98] transition-all duration-150"
+                    onClick={() => navigate(`/post?edit=${item.id}`)}
+                    aria-label={`Edit listing: ${item.title}`}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-10 border-slate-300 active:scale-[0.98] transition-all duration-150"
                     disabled={getBidCount(item) > 0 || deleteListing.isPending}
                     onClick={async () => {
                       if (!window.confirm(`Delete "${item.title}"? This cannot be undone.`)) return;
@@ -88,6 +119,7 @@ export function MyListings() {
                         toast.error(err.message || 'Failed to delete listing');
                       }
                     }}
+                    aria-label={`Delete listing: ${item.title}`}
                   >
                     <Trash2 className="w-4 h-4 mr-1" />Delete
                   </Button>
@@ -97,30 +129,49 @@ export function MyListings() {
           )}
         </TabsContent>
 
-        <TabsContent value="won" className="space-y-4">
+        <TabsContent value="won" className="space-y-5">
           {loadingWon ? (
-            <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+            <div className="space-y-5">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
           ) : !wonItems?.length ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">No won auctions</p>
+            <div className="text-center py-16">
+              <Trophy className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-1 font-medium">No wins yet</p>
+              <p className="text-sm text-slate-400 mb-5">Browse active auctions and place bids to win livestock</p>
               <Button onClick={() => navigate('/')}>Browse Listings</Button>
             </div>
           ) : (
             wonItems.map((item: any) => (
-              <div key={item.id} className="bg-card border rounded-lg p-4">
+              <div key={item.id} className="bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-md">
                 <div className="flex gap-3">
-                  <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
                     <img src={getImageUrl(item)} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{item.title}</h3>
-                    <p className="text-lg font-bold text-primary">Won at US${getCurrentBid(item).toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">{item.location} • {item.breed}</p>
+                    <p className="text-lg font-bold text-emerald-700">Won at US${getCurrentBid(item).toLocaleString()}</p>
+                    <p className="text-sm text-slate-400">{item.location} • {item.breed}</p>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => navigate(`/checkout/${item.id}`)}>Pay Now</Button>
-                  <Button variant="outline" className="flex-1" onClick={() => handleChat(item)} disabled={startConversation.isPending}><MessageCircle className="w-4 h-4 mr-1" />Chat</Button>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-150"
+                    onClick={() => navigate(`/checkout/${item.id}`)}
+                    aria-label={`Pay now for: ${item.title}`}
+                  >
+                    Pay Now
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 h-11 border-slate-300 active:scale-[0.98] transition-all duration-150"
+                    onClick={() => handleChat(item)}
+                    disabled={startConversation.isPending}
+                  >
+                    <MessageCircle className="w-4 h-4 mr-1" />Chat
+                  </Button>
                 </div>
               </div>
             ))

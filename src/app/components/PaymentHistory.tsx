@@ -1,6 +1,27 @@
-import { CheckCircle, Clock, Loader2, XCircle } from "lucide-react";
+import { CheckCircle, Clock, CreditCard, Loader2, XCircle } from "lucide-react";
 import { usePaymentHistory } from "../../hooks/usePayments";
 import { Badge } from "./ui/badge";
+
+function PaymentCardSkeleton() {
+  return (
+    <div className="bg-card border rounded-xl p-5 animate-pulse">
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded-full bg-slate-200" />
+          <div>
+            <div className="h-4 w-32 bg-slate-200 rounded mb-2" />
+            <div className="h-3 w-24 bg-slate-200 rounded" />
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="h-5 w-20 bg-slate-200 rounded mb-2" />
+          <div className="h-5 w-14 bg-slate-200 rounded" />
+        </div>
+      </div>
+      <div className="h-3 w-40 bg-slate-200 rounded mt-2" />
+    </div>
+  );
+}
 
 export function PaymentHistory() {
   const { data: payments, isLoading } = usePaymentHistory();
@@ -18,17 +39,25 @@ export function PaymentHistory() {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background z-10 border-b p-4">
-        <h1 className="font-semibold text-lg">Payment History</h1>
+        <h1 className="font-bold text-xl">Payment History</h1>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-4">
         {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+          <>
+            <PaymentCardSkeleton />
+            <PaymentCardSkeleton />
+            <PaymentCardSkeleton />
+          </>
         ) : !payments?.length ? (
-          <div className="text-center py-12"><p className="text-muted-foreground">No payment history</p></div>
+          <div className="text-center py-12">
+            <CreditCard className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <p className="font-semibold text-lg text-slate-700">No payments yet</p>
+            <p className="text-sm text-slate-400 mt-1">Your payment history will appear here</p>
+          </div>
         ) : (
           payments.map((payment: any) => (
-            <div key={payment.id} className="bg-card border rounded-lg p-4">
+            <div key={payment.id} className="bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-md">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
                   {payment.status === 'paid' ? (
@@ -39,17 +68,22 @@ export function PaymentHistory() {
                     <XCircle className="w-5 h-5 text-red-600" />
                   )}
                   <div>
-                    <p className="font-semibold font-mono text-sm">{payment.reference}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-semibold font-mono text-sm text-slate-600">{payment.reference}</p>
+                    <p className="text-sm text-slate-400">
                       {payment.method} • {formatDate(payment.date ?? payment.created_at)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold">US${payment.amount.toLocaleString()}</p>
+                  <p
+                    className="text-lg text-emerald-700 font-bold"
+                    aria-label={`Payment amount US$${payment.amount.toLocaleString()}`}
+                  >
+                    US${payment.amount.toLocaleString()}
+                  </p>
                   <Badge
                     variant={payment.status === 'paid' ? 'default' : payment.status === 'pending' ? 'secondary' : 'destructive'}
-                    className="mt-1"
+                    className={`mt-1${payment.status === 'paid' ? ' bg-emerald-600 hover:bg-emerald-700' : ''}`}
                   >
                     {payment.status === 'paid' ? 'Paid' : payment.status === 'pending' ? 'Pending' : 'Failed'}
                   </Badge>

@@ -78,7 +78,7 @@ export function Root() {
             }`}
           >
             {!menuOpen && unreadCount && unreadCount > 0 && (
-              <span className="absolute top-2.5 right-[28%] w-1 h-1 bg-foreground rounded-full" />
+              <span className="absolute top-2.5 right-[28%] w-1 h-1 bg-emerald-600 rounded-full" />
             )}
             More
           </button>
@@ -119,7 +119,7 @@ export function Root() {
                     </div>
                     <div className="flex items-center gap-2">
                       {item.badge && item.badge > 0 && (
-                        <span className="text-[10px] font-bold text-foreground bg-foreground/10 px-1.5 py-0.5 rounded">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
                           {item.badge}
                         </span>
                       )}
