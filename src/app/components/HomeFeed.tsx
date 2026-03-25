@@ -77,12 +77,12 @@ export function HomeFeed() {
   return (
     <div className="min-h-screen bg-background pb-4">
       <div className="sticky top-0 bg-background z-10 border-b shadow-sm">
-        <div className="p-4">
+        <div className="px-4 pt-5 pb-3">
           <h1 className="text-xl font-semibold">Livestock Marketplace</h1>
-          <p className="text-sm text-muted-foreground">Find your next animal</p>
+          <p className="text-sm text-muted-foreground mt-1">Find your next animal</p>
         </div>
 
-        <div className="px-4 pb-2">
+        <div className="px-4 pb-3">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
@@ -95,8 +95,8 @@ export function HomeFeed() {
           </div>
         </div>
 
-        <div className="px-4 pb-3 overflow-x-auto">
-          <div className="flex gap-2 min-w-max">
+        <div className="overflow-x-auto pb-3">
+          <div className="flex gap-2 min-w-max pl-4 pr-4">
             <Badge
               variant={selectedCategory === 'All' ? 'default' : 'outline'}
               className="cursor-pointer whitespace-nowrap"
@@ -118,13 +118,13 @@ export function HomeFeed() {
         </div>
       </div>
 
-      <div className="px-4 pt-4 space-y-4">
+      <div className="px-4 pt-4 space-y-5">
         {isLoading ? (
-          <div className="flex justify-center py-12">
+          <div className="flex items-center justify-center py-16">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : error ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-16 px-4 text-muted-foreground">
             <p>Failed to load listings</p>
           </div>
         ) : (() => {
@@ -140,7 +140,7 @@ export function HomeFeed() {
             );
           });
           return !filteredLivestock.length ? (
-          <div className="text-center py-12 text-muted-foreground">
+          <div className="text-center py-16 px-4 text-muted-foreground">
             <p>No listings found</p>
           </div>
         ) : (
@@ -158,13 +158,13 @@ export function HomeFeed() {
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
-                    className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                    className="absolute top-2 right-2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
                   >
                     <Heart className={`w-5 h-5 ${favoriteIds.includes(item.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                   </button>
                 </div>
 
-                <div className="p-4 space-y-3">
+                <div className="p-4 space-y-4">
                   <div>
                     <h3 className="font-semibold text-lg">{item.title}</h3>
                     <p className="text-xl font-bold text-primary">
@@ -172,7 +172,7 @@ export function HomeFeed() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
                       <span>{item.location}</span>
@@ -207,11 +207,11 @@ export function HomeFeed() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" className="flex-1" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
+                    <Button variant="outline" className="flex-1 h-11" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Message
                     </Button>
-                    <Button className="flex-1" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
+                    <Button className="flex-1 h-11" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
                       Place Bid
                     </Button>
                   </div>
