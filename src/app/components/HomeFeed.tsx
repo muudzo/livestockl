@@ -78,19 +78,19 @@ export function HomeFeed() {
     <div className="min-h-screen bg-background pb-4">
       <div className="sticky top-0 bg-background z-10 border-b shadow-sm">
         <div className="px-4 pt-5 pb-3">
-          <h1 className="text-xl font-semibold">Livestock Marketplace</h1>
-          <p className="text-sm text-muted-foreground mt-1">Find your next animal</p>
+          <h1 className="text-2xl font-bold">Livestock Marketplace</h1>
+          <p className="text-sm text-slate-500 mt-1">Find your next animal</p>
         </div>
 
         <div className="px-4 pb-3">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               placeholder="Search by title, breed, location..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border-0 bg-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
           </div>
         </div>
@@ -99,7 +99,7 @@ export function HomeFeed() {
           <div className="flex gap-2 min-w-max pl-4 pr-4">
             <Badge
               variant={selectedCategory === 'All' ? 'default' : 'outline'}
-              className="cursor-pointer whitespace-nowrap"
+              className={`cursor-pointer whitespace-nowrap ${selectedCategory === 'All' ? 'bg-emerald-600 text-white border-0 hover:bg-emerald-700' : 'bg-slate-100 text-slate-700 border-0 hover:bg-slate-200'}`}
               onClick={() => setSelectedCategory('All')}
             >
               All
@@ -108,7 +108,7 @@ export function HomeFeed() {
               <Badge
                 key={cat}
                 variant={selectedCategory === cat ? 'default' : 'outline'}
-                className="cursor-pointer whitespace-nowrap"
+                className={`cursor-pointer whitespace-nowrap ${selectedCategory === cat ? 'bg-emerald-600 text-white border-0 hover:bg-emerald-700' : 'bg-slate-100 text-slate-700 border-0 hover:bg-slate-200'}`}
                 onClick={() => setSelectedCategory(cat)}
               >
                 {cat}
@@ -121,7 +121,7 @@ export function HomeFeed() {
       <div className="px-4 pt-4 space-y-5">
         {isLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
           </div>
         ) : error ? (
           <div className="text-center py-16 px-4 text-muted-foreground">
@@ -147,11 +147,11 @@ export function HomeFeed() {
           filteredLivestock.map((item: any) => {
             const seller = getSellerInfo(item);
             return (
-              <div key={item.id} className="bg-card rounded-lg shadow-md overflow-hidden border">
+              <div key={item.id} className="bg-card rounded-xl shadow-sm overflow-hidden border">
                 <div className="relative aspect-[4/3] bg-muted cursor-pointer" onClick={() => navigate(`/item/${item.id}`)}>
                   <img src={getImageUrl(item)} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
                   <div className="absolute bottom-2 left-2">
-                    <Badge className="bg-black/70 text-white border-0">{item.breed}</Badge>
+                    <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
                   </div>
                   <div className="absolute bottom-2 right-2">
                     <Badge variant="destructive" className="font-semibold">{getTimeLeft(item)}</Badge>
@@ -164,15 +164,15 @@ export function HomeFeed() {
                   </button>
                 </div>
 
-                <div className="p-4 space-y-4">
+                <div className="p-4 space-y-3">
                   <div>
                     <h3 className="font-semibold text-lg">{item.title}</h3>
-                    <p className="text-xl font-bold text-primary">
-                      Current Bid: US${getCurrentBid(item).toLocaleString()}
+                    <p className="text-xl font-bold text-emerald-700">
+                      <span className="text-xs font-normal text-slate-400">Current Bid: </span>US${getCurrentBid(item).toLocaleString()}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
                       <span>{item.location}</span>
@@ -185,17 +185,17 @@ export function HomeFeed() {
 
                   <div className="flex items-center gap-2">
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      <AvatarFallback className="bg-emerald-600 text-white text-xs">
                         {seller.avatar}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-medium">{seller.name}</span>
-                      {seller.verified && <CheckCircle className="w-4 h-4 text-primary fill-primary" />}
+                      {seller.verified && <CheckCircle className="w-4 h-4 text-emerald-600 fill-emerald-600" />}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-4 text-sm text-slate-400">
                     <div className="flex items-center gap-1">
                       <Gavel className="w-4 h-4" />
                       <span>{getBidCount(item)} bids</span>
@@ -207,11 +207,11 @@ export function HomeFeed() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" className="flex-1 h-11" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
+                    <Button variant="outline" className="flex-1 border-slate-300" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Message
                     </Button>
-                    <Button className="flex-1 h-11" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
+                    <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 font-semibold" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
                       Place Bid
                     </Button>
                   </div>
