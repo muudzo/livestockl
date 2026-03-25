@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2 } from "lucide-react";
+import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2, SearchX } from "lucide-react";
 import { useLivestockItem } from "../../hooks/useLivestock";
 import { useBids, usePlaceBid } from "../../hooks/useBids";
 import { useStartConversation } from "../../hooks/useMessages";
@@ -31,14 +31,46 @@ export function ItemDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <div className="sticky top-0 bg-background z-10 border-b p-4 flex items-center justify-between">
+          <div className="w-20 h-5 bg-slate-200 animate-pulse rounded" />
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-200 animate-pulse rounded-full" />
+            <div className="w-10 h-10 bg-slate-200 animate-pulse rounded-full" />
+          </div>
+        </div>
+        <div className="aspect-[4/3] bg-slate-200 animate-pulse" />
+        <div className="p-4 space-y-4">
+          <div className="space-y-2">
+            <div className="h-7 bg-slate-200 animate-pulse rounded w-3/4" />
+            <div className="h-7 bg-slate-200 animate-pulse rounded w-1/2" />
+            <div className="h-4 bg-slate-200 animate-pulse rounded w-1/3" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="h-16 bg-slate-200 animate-pulse rounded-lg" />
+            <div className="h-16 bg-slate-200 animate-pulse rounded-lg" />
+            <div className="h-16 bg-slate-200 animate-pulse rounded-lg" />
+          </div>
+          <div className="h-20 bg-slate-200 animate-pulse rounded-lg" />
+          <div className="space-y-2">
+            <div className="h-5 bg-slate-200 animate-pulse rounded w-1/4" />
+            <div className="h-4 bg-slate-200 animate-pulse rounded w-full" />
+            <div className="h-4 bg-slate-200 animate-pulse rounded w-5/6" />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!item) {
-    return <div className="p-4"><p>Item not found</p></div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <SearchX className="w-12 h-12 text-muted-foreground mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Item not found</h2>
+        <p className="text-muted-foreground mb-6">This listing may have been removed or the link is incorrect.</p>
+        <Button onClick={() => navigate('/')}>Browse listings</Button>
+      </div>
+    );
   }
 
   // Normalize data for both mock and Supabase formats
@@ -127,22 +159,24 @@ export function ItemDetail() {
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background z-10 border-b p-4 flex items-center justify-between">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2">
+        <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center gap-2 transition-colors duration-200" aria-label="Go back">
           <ArrowLeft className="w-5 h-5" />
           <span>Back</span>
         </button>
         <div className="flex items-center gap-3">
           <button
-            className="p-2 hover:bg-muted rounded-full"
+            className="w-10 h-10 flex items-center justify-center hover:bg-muted rounded-full active:scale-90 transition-all duration-200"
             onClick={() => {
               if (!user) { navigate('/auth'); return; }
               toggleFavorite.mutate(id!);
             }}
+            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
           >
             <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
           </button>
           <button
-            className="p-2 hover:bg-muted rounded-full"
+            className="w-10 h-10 flex items-center justify-center hover:bg-muted rounded-full transition-colors duration-200"
+            aria-label="Share listing"
             onClick={async () => {
               const shareData = { title: item?.title || 'Listing', url: window.location.href };
               if (navigator.share) {
@@ -160,7 +194,7 @@ export function ItemDetail() {
 
       <div className="pb-32">
         <div className="relative aspect-[4/3] bg-muted">
-          <img src={imageUrls[currentImageIndex] || imageUrl} alt={item.title} className="w-full h-full object-cover" />
+          <img src={imageUrls[currentImageIndex] || imageUrl} alt={`${item.title} - ${item.breed} - image ${currentImageIndex + 1}`} className="w-full h-full object-cover" />
           {imageUrls.length > 1 && (
             <>
               <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-1.5">
@@ -168,61 +202,64 @@ export function ItemDetail() {
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
-                    className={`w-2 h-2 rounded-full transition-colors ${i === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}
+                    aria-label={`View image ${i + 1}`}
+                    className={`h-2.5 rounded-full transition-all duration-200 ${i === currentImageIndex ? 'bg-white w-3' : 'bg-white/50 w-2.5'}`}
                   />
                 ))}
               </div>
               <button
                 onClick={() => setCurrentImageIndex(i => Math.max(0, i - 1))}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center"
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 transition-colors duration-200 text-white rounded-full flex items-center justify-center"
                 style={{ display: currentImageIndex === 0 ? 'none' : 'flex' }}
+                aria-label="Previous image"
               >
                 ‹
               </button>
               <button
                 onClick={() => setCurrentImageIndex(i => Math.min(imageUrls.length - 1, i + 1))}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 text-white rounded-full flex items-center justify-center"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/50 hover:bg-black/70 transition-colors duration-200 text-white rounded-full flex items-center justify-center"
                 style={{ display: currentImageIndex === imageUrls.length - 1 ? 'none' : 'flex' }}
+                aria-label="Next image"
               >
                 ›
               </button>
             </>
           )}
           <div className="absolute bottom-3 left-3">
-            <Badge className="bg-black/70 text-white border-0">{item.breed}</Badge>
+            <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
           </div>
           <div className="absolute bottom-3 right-3">
             <Badge variant="destructive" className="font-semibold">{getTimeLeft()}</Badge>
           </div>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-5">
           <div>
             <h1 className="text-2xl font-bold">{item.title}</h1>
-            <p className="text-2xl font-bold text-primary mt-1">Current Bid: US${currentBid.toLocaleString()}</p>
-            <p className="text-sm text-muted-foreground mt-1">Starting: US${startingPrice.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1" aria-label={`Current bid: ${currentBid} US dollars`}><span className="text-sm font-normal text-slate-400">Current Bid </span>US${currentBid.toLocaleString()}</p>
+            <p className="text-sm text-slate-400 mt-1">Starting: US${startingPrice.toLocaleString()}</p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-muted rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">Age</p>
-              <p className="font-semibold mt-1">{item.age}</p>
+            <div className="bg-slate-50 rounded-xl p-4 text-center">
+              <p className="text-xs text-slate-400">Age</p>
+              <p className="font-semibold text-slate-900 mt-1">{item.age}</p>
             </div>
-            <div className="bg-muted rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">Weight</p>
-              <p className="font-semibold mt-1">{item.weight}</p>
+            <div className="bg-slate-50 rounded-xl p-4 text-center">
+              <p className="text-xs text-slate-400">Weight</p>
+              <p className="font-semibold text-slate-900 mt-1">{item.weight}</p>
             </div>
-            <div className="bg-muted rounded-lg p-3 text-center">
-              <p className="text-xs text-muted-foreground">Location</p>
-              <p className="font-semibold mt-1">{item.location}</p>
+            <div className="bg-slate-50 rounded-xl p-4 text-center">
+              <p className="text-xs text-slate-400">Location</p>
+              <p className="font-semibold text-slate-900 mt-1">{item.location}</p>
             </div>
           </div>
 
-          <div className="bg-card border rounded-lg p-4">
+          <div className="bg-card border rounded-lg p-5">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 <Avatar className="w-12 h-12">
-                  <AvatarFallback className="bg-primary text-primary-foreground">{seller.avatar}</AvatarFallback>
+                  <AvatarFallback className="bg-emerald-600 text-white">{seller.avatar}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="flex items-center gap-1">
@@ -237,7 +274,7 @@ export function ItemDetail() {
                   </div>
                 </div>
               </div>
-              <Button size="sm" variant="outline" onClick={handleChat} disabled={startConversation.isPending}>
+              <Button size="sm" variant="outline" onClick={handleChat} disabled={startConversation.isPending} className="active:scale-[0.98] transition-all duration-150">
                 <MessageCircle className="w-4 h-4 mr-1" />{startConversation.isPending ? '...' : 'Chat'}
               </Button>
             </div>
@@ -256,17 +293,17 @@ export function ItemDetail() {
               {displayBids.map((bid: any) => (
                 <div
                   key={bid.id}
-                  className={`flex items-center justify-between p-3 rounded-lg ${bid.isWinner ? 'bg-primary/10 border border-primary' : 'bg-muted'}`}
+                  className={`flex items-center justify-between p-4 rounded-lg transition-all duration-200 ${bid.isWinner ? 'bg-emerald-50 border border-emerald-500 hover:bg-emerald-100' : 'bg-muted hover:bg-slate-100'}`}
                 >
                   <div className="flex items-center gap-2">
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-muted-foreground text-white text-xs">{bid.userName.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className="bg-slate-400 text-white text-xs">{bid.userName.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{bid.userName}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">US${bid.amount.toLocaleString()}</span>
-                    {bid.isWinner && <Trophy className="w-4 h-4 text-primary" />}
+                    {bid.isWinner && <Trophy className="w-4 h-4 text-emerald-600" />}
                   </div>
                 </div>
               ))}
@@ -287,7 +324,8 @@ export function ItemDetail() {
                   placeholder={minBid.toString()}
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
-                  className="pl-7"
+                  className="pl-7 h-12"
+                  aria-label="Enter bid amount in US dollars"
                 />
               </div>
               <AlertDialog open={showBidConfirm} onOpenChange={setShowBidConfirm}>
@@ -298,7 +336,7 @@ export function ItemDetail() {
                       setShowBidConfirm(true);
                     }}
                     disabled={!bidAmount || Number(bidAmount) < minBid || placeBid.isPending}
-                    className="px-8"
+                    className="px-8 h-12 bg-emerald-600 hover:bg-emerald-700 font-semibold active:scale-[0.98] transition-all duration-150"
                   >
                     {placeBid.isPending ? 'Bidding...' : 'Bid Now'}
                   </Button>
@@ -322,7 +360,7 @@ export function ItemDetail() {
           </div>
         ) : isWinner ? (
           <div className="p-4">
-            <Button onClick={() => navigate(`/checkout/${item.id}`)} className="w-full bg-green-600 hover:bg-green-700">
+            <Button onClick={() => navigate(`/checkout/${item.id}`)} className="w-full bg-green-600 hover:bg-green-700 active:scale-[0.98] transition-all duration-150">
               Pay US${currentBid.toLocaleString()} — Stripe
             </Button>
           </div>

@@ -212,8 +212,34 @@ export function PostListing() {
 
   if (isEditMode && loadingItem) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-background pb-20">
+        <div className="sticky top-0 bg-background z-10 border-b p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded bg-muted animate-pulse" />
+          <div className="h-5 w-32 rounded bg-muted animate-pulse" />
+        </div>
+        <div className="p-4 space-y-6">
+          <div className="grid grid-cols-4 gap-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="aspect-square rounded-lg bg-muted animate-pulse" />
+            ))}
+          </div>
+          <div className="space-y-4">
+            <div className="h-4 w-24 rounded bg-muted animate-pulse" />
+            <div className="h-10 w-full rounded bg-muted animate-pulse" />
+            <div className="h-10 w-full rounded bg-muted animate-pulse" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-10 rounded bg-muted animate-pulse" />
+              <div className="h-10 rounded bg-muted animate-pulse" />
+            </div>
+            <div className="h-24 w-full rounded bg-muted animate-pulse" />
+          </div>
+          <div className="space-y-4">
+            <div className="h-4 w-36 rounded bg-muted animate-pulse" />
+            <div className="h-10 w-full rounded bg-muted animate-pulse" />
+            <div className="h-10 w-full rounded bg-muted animate-pulse" />
+          </div>
+          <div className="h-12 w-full rounded bg-muted animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -221,23 +247,24 @@ export function PostListing() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 bg-background z-10 border-b p-4 flex items-center gap-3">
-        <button onClick={() => navigate('/')}>
+        <button onClick={() => navigate('/')} className="w-10 h-10 flex items-center justify-center transition-colors duration-200" aria-label="Go back">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <h1 className="font-semibold text-lg">{isEditMode ? 'Edit Listing' : 'Post Livestock'}</h1>
+        <h1 className="font-bold text-xl">{isEditMode ? 'Edit Listing' : 'Post Livestock'}</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="p-4 space-y-6">
+      <form onSubmit={handleSubmit} className="p-4 space-y-8">
         <div>
-          <Label className="mb-3 block">PHOTOS</Label>
-          <div className="grid grid-cols-4 gap-3">
+          <Label className="mb-3 block text-xs font-semibold text-slate-400 uppercase tracking-wider">PHOTOS</Label>
+          <div className="grid grid-cols-4 gap-2">
             {photos.map((photo, index) => (
-              <div key={index} className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-                <img src={photo} alt={`Photo ${index + 1}`} className="w-full h-full object-cover" />
+              <div key={index} className="relative aspect-square bg-muted rounded-xl overflow-hidden transition-transform duration-200 hover:scale-[1.02]">
+                <img src={photo} alt={`Listing photo ${index + 1}`} className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={() => handlePhotoRemove(index)}
-                  className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center"
+                  aria-label={`Remove photo ${index + 1}`}
+                  className="absolute top-1 right-1 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -247,25 +274,26 @@ export function PostListing() {
               <button
                 type="button"
                 onClick={handlePhotoAdd}
-                className="aspect-square bg-muted rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center hover:border-primary transition-colors"
+                aria-label="Add photo"
+                className="aspect-square bg-muted rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-emerald-500 transition-all duration-200 hover:scale-[1.02]"
               >
                 <Plus className="w-8 h-8 text-muted-foreground" />
               </button>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-2">Up to 4 photos</p>
+          <p className="text-xs text-muted-foreground mt-2">{photos.length === 0 ? 'Add at least 1 photo (up to 4)' : 'Up to 4 photos'}</p>
         </div>
 
-        <div className="space-y-4">
-          <h3 className="font-semibold">BASIC INFO</h3>
+        <div className="space-y-5">
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">BASIC INFO</h3>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" placeholder="e.g., Ngoni Bull" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
+            <Input id="title" className="transition-all duration-200" placeholder="e.g., Ngoni Bull" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
             <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-              <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+              <SelectTrigger id="category" className="transition-all duration-200"><SelectValue placeholder="Select category" /></SelectTrigger>
               <SelectContent>
                 {categories.map(cat => (<SelectItem key={cat} value={cat}>{cat}</SelectItem>))}
               </SelectContent>
@@ -273,30 +301,30 @@ export function PostListing() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="breed">Breed</Label>
-            <Input id="breed" placeholder="e.g., Brahman" value={formData.breed} onChange={(e) => setFormData({ ...formData, breed: e.target.value })} required />
+            <Input id="breed" className="transition-all duration-200" placeholder="e.g., Brahman" value={formData.breed} onChange={(e) => setFormData({ ...formData, breed: e.target.value })} required />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="age">Age</Label>
-              <Input id="age" placeholder="e.g., 3 yrs" value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} required />
+              <Input id="age" className="transition-all duration-200" placeholder="e.g., 3 yrs" value={formData.age} onChange={(e) => setFormData({ ...formData, age: e.target.value })} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="weight">Weight</Label>
-              <Input id="weight" placeholder="e.g., 450 kg" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: e.target.value })} required />
+              <Input id="weight" className="transition-all duration-200" placeholder="e.g., 450 kg" value={formData.weight} onChange={(e) => setFormData({ ...formData, weight: e.target.value })} required />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea id="description" placeholder="Describe your livestock..." rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required />
+            <Textarea id="description" className="transition-all duration-200" placeholder="Describe your livestock..." rows={4} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} required />
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h3 className="font-semibold">LOCATION & HEALTH</h3>
+        <div className="space-y-5">
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">LOCATION & HEALTH</h3>
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
             <Select value={formData.location} onValueChange={(v) => setFormData({ ...formData, location: v })}>
-              <SelectTrigger><SelectValue placeholder="Select location" /></SelectTrigger>
+              <SelectTrigger id="location" className="transition-all duration-200"><SelectValue placeholder="Select location" /></SelectTrigger>
               <SelectContent>
                 {locations.map(loc => (<SelectItem key={loc} value={loc}>{loc}</SelectItem>))}
               </SelectContent>
@@ -305,7 +333,7 @@ export function PostListing() {
           <div className="space-y-2">
             <Label htmlFor="health">Health</Label>
             <Select value={formData.health} onValueChange={(v) => setFormData({ ...formData, health: v })}>
-              <SelectTrigger><SelectValue placeholder="Select health status" /></SelectTrigger>
+              <SelectTrigger id="health" className="transition-all duration-200"><SelectValue placeholder="Select health status" /></SelectTrigger>
               <SelectContent>
                 {healthStatuses.map(status => (<SelectItem key={status} value={status}>{status}</SelectItem>))}
               </SelectContent>
@@ -313,37 +341,40 @@ export function PostListing() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <h3 className="font-semibold">AUCTION DETAILS</h3>
+        <div className="space-y-5">
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">AUCTION DETAILS</h3>
           <div className="space-y-2">
             <Label htmlFor="price">Starting Price (US$)</Label>
-            <Input id="price" type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} required disabled={isEditMode && hasBids} />
+            <Input id="price" className="transition-all duration-200" type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} required disabled={isEditMode && hasBids} />
+            {isEditMode && hasBids && (
+              <p className="text-xs text-muted-foreground">Price cannot be changed after bids are placed</p>
+            )}
           </div>
           {!isEditMode && (
             <div className="space-y-2">
               <Label htmlFor="duration">Duration</Label>
               <Select value={formData.duration} onValueChange={(v) => setFormData({ ...formData, duration: v })}>
-                <SelectTrigger><SelectValue placeholder="Select duration" /></SelectTrigger>
+                <SelectTrigger id="duration" className="transition-all duration-200"><SelectValue placeholder="Select duration" /></SelectTrigger>
                 <SelectContent>
                   {durations.map(dur => (<SelectItem key={dur} value={dur}>{dur}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
           )}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-1 text-sm">
-            <p className="flex items-center gap-2"><span className="text-muted-foreground">—</span><span>5% platform fee</span></p>
-            <p className="flex items-center gap-2"><span className="text-muted-foreground">—</span><span>48hr payment window</span></p>
-            <p className="flex items-center gap-2"><span className="text-muted-foreground">—</span><span>Inspection allowed</span></p>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 space-y-1 text-sm">
+            <p className="flex items-center gap-2"><span className="text-emerald-600">{"\u2713"}</span><span>5% platform fee</span></p>
+            <p className="flex items-center gap-2"><span className="text-emerald-600">{"\u2713"}</span><span>48hr payment window</span></p>
+            <p className="flex items-center gap-2"><span className="text-emerald-600">{"\u2713"}</span><span>Inspection allowed</span></p>
           </div>
         </div>
 
         <div className="pt-4">
-          <Button type="submit" className="w-full h-12" disabled={isSubmitting}>
+          <Button type="submit" className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-semibold transition-all duration-150 active:scale-[0.98]" disabled={isSubmitting}>
             {isSubmitting ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />{isEditMode ? 'Updating...' : 'Posting...'}</>
             ) : isEditMode ? 'Update Listing' : 'Post Listing'}
           </Button>
-          <p className="text-xs text-center text-muted-foreground mt-2">Reviewed within 24hrs</p>
+          <p className="text-xs text-center text-slate-500 mt-2">Reviewed within 24hrs</p>
         </div>
       </form>
     </div>
