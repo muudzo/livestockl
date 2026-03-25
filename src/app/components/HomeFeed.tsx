@@ -78,19 +78,20 @@ export function HomeFeed() {
     <div className="min-h-screen bg-background pb-4">
       <div className="sticky top-0 bg-background z-10 border-b shadow-sm">
         <div className="px-4 pt-5 pb-3">
-          <h1 className="text-2xl font-bold">Livestock Marketplace</h1>
-          <p className="text-sm text-slate-500 mt-1">Find your next animal</p>
+          <h1 className="text-xl font-semibold">Livestock Marketplace</h1>
+          <p className="text-sm text-muted-foreground mt-1">Find your next animal</p>
         </div>
 
         <div className="px-4 pb-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <div className="relative" role="search">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search by title, breed, location..."
+              aria-label="Search livestock listings"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border-0 bg-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 pr-4 py-2 rounded-lg border bg-muted/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-200"
             />
           </div>
         </div>
@@ -98,8 +99,10 @@ export function HomeFeed() {
         <div className="overflow-x-auto pb-3">
           <div className="flex gap-2 min-w-max pl-4 pr-4">
             <Badge
+              role="button"
+              aria-pressed={selectedCategory === 'All'}
               variant={selectedCategory === 'All' ? 'default' : 'outline'}
-              className={`cursor-pointer whitespace-nowrap ${selectedCategory === 'All' ? 'bg-emerald-600 text-white border-0 hover:bg-emerald-700' : 'bg-slate-100 text-slate-700 border-0 hover:bg-slate-200'}`}
+              className="cursor-pointer whitespace-nowrap transition-colors duration-150"
               onClick={() => setSelectedCategory('All')}
             >
               All
@@ -107,8 +110,10 @@ export function HomeFeed() {
             {categories.map(cat => (
               <Badge
                 key={cat}
+                role="button"
+                aria-pressed={selectedCategory === cat}
                 variant={selectedCategory === cat ? 'default' : 'outline'}
-                className={`cursor-pointer whitespace-nowrap ${selectedCategory === cat ? 'bg-emerald-600 text-white border-0 hover:bg-emerald-700' : 'bg-slate-100 text-slate-700 border-0 hover:bg-slate-200'}`}
+                className="cursor-pointer whitespace-nowrap transition-colors duration-150"
                 onClick={() => setSelectedCategory(cat)}
               >
                 {cat}
@@ -120,12 +125,26 @@ export function HomeFeed() {
 
       <div className="px-4 pt-4 space-y-5">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+          <div className="space-y-5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-card rounded-xl overflow-hidden border">
+                <div className="aspect-[4/3] bg-slate-200 animate-pulse" />
+                <div className="p-4 space-y-3">
+                  <div className="h-5 bg-slate-200 rounded animate-pulse w-3/4" />
+                  <div className="h-6 bg-slate-200 rounded animate-pulse w-1/2" />
+                  <div className="h-4 bg-slate-200 rounded animate-pulse w-2/3" />
+                  <div className="flex gap-2 pt-2">
+                    <div className="h-11 bg-slate-200 rounded-lg animate-pulse flex-1" />
+                    <div className="h-11 bg-slate-200 rounded-lg animate-pulse flex-1" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
-          <div className="text-center py-16 px-4 text-muted-foreground">
-            <p>Failed to load listings</p>
+          <div className="text-center py-16">
+            <p className="font-semibold text-lg text-slate-700">Something went wrong</p>
+            <p className="text-sm text-slate-500 mt-1">Unable to load listings. Please try again.</p>
           </div>
         ) : (() => {
           const filteredLivestock = (livestock || []).filter((item: any) => {
@@ -140,39 +159,45 @@ export function HomeFeed() {
             );
           });
           return !filteredLivestock.length ? (
-          <div className="text-center py-16 px-4 text-muted-foreground">
-            <p>No listings found</p>
+          <div className="text-center py-16">
+            <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+            <p className="font-semibold text-lg text-slate-700">No listings found</p>
+            <p className="text-sm text-slate-500 mt-1">Try adjusting your search or browse all categories</p>
+            <Button variant="outline" className="mt-4" onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}>
+              Clear filters
+            </Button>
           </div>
         ) : (
           filteredLivestock.map((item: any) => {
             const seller = getSellerInfo(item);
             return (
-              <div key={item.id} className="bg-card rounded-xl shadow-sm overflow-hidden border">
-                <div className="relative aspect-[4/3] bg-muted cursor-pointer" onClick={() => navigate(`/item/${item.id}`)}>
-                  <img src={getImageUrl(item)} alt={item.title} className="w-full h-full object-cover" loading="lazy" />
+              <div key={item.id} className="bg-card rounded-lg shadow-md overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
+                <div className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)}>
+                  <img src={getImageUrl(item)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   <div className="absolute bottom-2 left-2">
-                    <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
+                    <Badge className="bg-black/70 text-white border-0">{item.breed}</Badge>
                   </div>
                   <div className="absolute bottom-2 right-2">
                     <Badge variant="destructive" className="font-semibold">{getTimeLeft(item)}</Badge>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
-                    className="absolute top-2 right-2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-colors"
+                    aria-label={favoriteIds.includes(item.id) ? "Remove from favorites" : "Add to favorites"}
+                    className="absolute top-2 right-2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all duration-200 active:scale-90"
                   >
                     <Heart className={`w-5 h-5 ${favoriteIds.includes(item.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                   </button>
                 </div>
 
-                <div className="p-4 space-y-3">
+                <div className="p-4 space-y-4">
                   <div>
                     <h3 className="font-semibold text-lg">{item.title}</h3>
-                    <p className="text-xl font-bold text-emerald-700">
-                      <span className="text-xs font-normal text-slate-400">Current Bid: </span>US${getCurrentBid(item).toLocaleString()}
+                    <p className="text-xl font-bold text-primary" aria-label={`Current bid: ${getCurrentBid(item)} US dollars`}>
+                      Current Bid: US${getCurrentBid(item).toLocaleString()}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
                       <span>{item.location}</span>
@@ -185,17 +210,17 @@ export function HomeFeed() {
 
                   <div className="flex items-center gap-2">
                     <Avatar className="w-8 h-8">
-                      <AvatarFallback className="bg-emerald-600 text-white text-xs">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                         {seller.avatar}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex items-center gap-1">
                       <span className="text-sm font-medium">{seller.name}</span>
-                      {seller.verified && <CheckCircle className="w-4 h-4 text-emerald-600 fill-emerald-600" />}
+                      {seller.verified && <CheckCircle className="w-4 h-4 text-primary fill-primary" />}
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-slate-400">
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Gavel className="w-4 h-4" />
                       <span>{getBidCount(item)} bids</span>
@@ -207,11 +232,11 @@ export function HomeFeed() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
-                    <Button variant="outline" className="flex-1 border-slate-300" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
+                    <Button variant="outline" className="flex-1 h-11 active:scale-[0.98] transition-all duration-150" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Message
                     </Button>
-                    <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700 font-semibold" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
+                    <Button className="flex-1 h-11 active:scale-[0.98] transition-all duration-150" onClick={(e) => { e.stopPropagation(); navigate(`/item/${item.id}`); }}>
                       Place Bid
                     </Button>
                   </div>
