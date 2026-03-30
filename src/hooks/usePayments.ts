@@ -77,19 +77,24 @@ export function useInitiatePayment() {
         return { reference, status: 'pending' as const };
       }
 
-      // Check for existing pending/paid payments to prevent duplicates
-      const { data: existing } = await supabase
+      // Check for existing paid payment (block true duplicates)
+      const { data: existingPaid } = await supabase
         .from('payments')
         .select('reference, status')
         .eq('livestock_id', livestockId)
         .eq('user_id', user!.id)
-        .in('status', ['pending', 'paid'])
+        .eq('status', 'paid')
         .maybeSingle();
 
-      if (existing) {
-        if (existing.status === 'paid') throw new Error('Already paid for this item');
-        return { ...existing, status: 'pending' as const };
-      }
+      if (existingPaid) throw new Error('Already paid for this item');
+
+      // Delete any stale pending payments so we can retry
+      await supabase
+        .from('payments')
+        .delete()
+        .eq('livestock_id', livestockId)
+        .eq('user_id', user!.id)
+        .eq('status', 'pending');
 
       // Create payment record
       const { data: payment, error } = await supabase

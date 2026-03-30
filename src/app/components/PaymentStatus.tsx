@@ -13,6 +13,7 @@ export function PaymentStatus() {
   const navigate = useNavigate();
 
   const amount = searchParams.get('amount') || '0';
+  const method = searchParams.get('method') || '';
   const stripeStatus = searchParams.get('stripe_status');
 
   // Use real polling when Supabase is configured
@@ -64,9 +65,10 @@ export function PaymentStatus() {
   const getMessage = () => {
     switch (status) {
       case 'pending':
-        return stripeStatus === 'success'
-          ? 'Your payment was received. Waiting for confirmation...'
-          : 'Waiting for payment confirmation...';
+        if (stripeStatus === 'success') return 'Your payment was received. Waiting for confirmation...';
+        if (method === 'ecocash') return 'A USSD prompt has been sent to your phone. Dial *151*2*7# and enter your EcoCash PIN to approve the payment.';
+        if (method === 'onemoney') return 'A USSD prompt has been sent to your phone. Follow the instructions to approve the payment.';
+        return 'Waiting for payment confirmation...';
       case 'success': return 'Your payment has been confirmed. The seller will contact you shortly.';
       case 'failed':
         return stripeStatus === 'cancelled'

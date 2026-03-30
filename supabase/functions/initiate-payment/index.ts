@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
           reference,
           amount: amount.toFixed(2),
           additionalinfo: `${livestockTitle || "Livestock Purchase"} — ${reference}`,
-          authemail: callerUser.email || "",
+          authemail: Deno.env.get("PAYNOW_MERCHANT_EMAIL") || callerUser.email || "",
           phone: phone,
           method: paymentMethod.toLowerCase() === "ecocash" ? "ecocash" : "onemoney",
           resulturl: resultUrl,
@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
         additionalinfo: `${livestockTitle || "Livestock Purchase"} — ${reference}`,
         returnurl: returnUrl,
         resulturl: resultUrl,
-        authemail: callerUser.email || "",
+        authemail: Deno.env.get("PAYNOW_MERCHANT_EMAIL") || callerUser.email || "",
         status: "Message",
       };
 
@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
           reference,
           amount: amount.toFixed(2),
           additionalinfo: `${livestockTitle || "Livestock Purchase"} — ${reference}`,
-          authemail: callerUser.email || "",
+          authemail: Deno.env.get("PAYNOW_MERCHANT_EMAIL") || callerUser.email || "",
           phone: phone,
           method: paymentMethod.toLowerCase() === "ecocash" ? "ecocash" : "onemoney",
           resulturl: resultUrl,
