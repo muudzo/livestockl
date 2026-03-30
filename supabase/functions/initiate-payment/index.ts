@@ -109,9 +109,6 @@ Deno.serve(async (req) => {
     const paymentMethod = method || paymentRecord.method || "Card";
 
     // ─── PAYNOW: EcoCash, OneMoney, or Web Checkout ───
-    // Since Paynow API is behind Cloudflare (blocks server-to-server calls),
-    // we compute the signed hash server-side and return form data for the
-    // browser to submit directly to Paynow. This bypasses the blocker.
 
     if (paymentMethod === "EcoCash" || paymentMethod === "OneMoney" || paymentMethod === "Paynow") {
       const integrationId = Deno.env.get("PAYNOW_INTEGRATION_ID");
@@ -136,32 +133,69 @@ Deno.serve(async (req) => {
         status: "Message",
       };
 
-      // Add phone for mobile money express checkout
-      if ((paymentMethod === "EcoCash" || paymentMethod === "OneMoney") && phone) {
-        formValues.phone = phone;
-        formValues.method = paymentMethod.toLowerCase() === "ecocash" ? "ecocash" : "onemoney";
-      }
-
       formValues.hash = await computePaynowHash(formValues, integrationKey);
 
-      // Update payment record with Paynow tracking
+      // Try calling Paynow API directly from Edge Function
+      try {
+        const formBody = Object.entries(formValues)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join("&");
+
+        const paynowRes = await fetch("https://www.paynow.co.zw/interface/initiatetransaction", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: formBody,
+        });
+
+        const paynowBody = await paynowRes.text();
+        const paynowParams: Record<string, string> = {};
+        for (const pair of paynowBody.split("&")) {
+          const [key, ...rest] = pair.split("=");
+          paynowParams[decodeURIComponent(key)] = decodeURIComponent(rest.join("="));
+        }
+
+        if (paynowParams.status?.toLowerCase() === "ok" && paynowParams.browserurl) {
+          // Success — save poll URL and redirect user to Paynow payment page
+          await supabase
+            .from("payments")
+            .update({
+              status: "pending",
+              paynow_reference: paynowParams.pollurl || "",
+            })
+            .eq("reference", reference);
+
+          return jsonResponse({
+            status: "ok",
+            provider: "paynow",
+            paymentMethod,
+            redirectUrl: paynowParams.browserurl,
+            pollUrl: paynowParams.pollurl,
+            reference,
+          });
+        }
+
+        // Paynow returned an error
+        const paynowError = paynowParams.error || paynowBody;
+        console.error("Paynow API error:", paynowError);
+
+        // Fall through to browser form submission as backup
+      } catch (fetchErr) {
+        // Cloudflare block or network error — fall back to browser form submission
+        console.error("Paynow direct call failed (likely Cloudflare):", (fetchErr as Error).message);
+      }
+
+      // FALLBACK: Return signed form data for browser to submit directly
       await supabase
         .from("payments")
         .update({ status: "pending" })
         .eq("reference", reference);
 
-      // Return signed form data — browser submits directly to Paynow
       return jsonResponse({
         status: "ok",
         provider: "paynow",
         paymentMethod,
-        // For web checkout: browser submits this form
         formAction: "https://www.paynow.co.zw/interface/initiatetransaction",
         formFields: formValues,
-        // For express checkout (EcoCash/OneMoney): browser POSTs to remotetransaction
-        ...(phone && {
-          expressAction: "https://www.paynow.co.zw/interface/remotetransaction",
-        }),
         reference,
         returnUrl,
       });

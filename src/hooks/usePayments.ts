@@ -122,16 +122,18 @@ export function useInitiatePayment() {
         throw new Error(result.error);
       }
 
-      // Stripe: redirect to hosted checkout
-      if (result?.provider === 'stripe' && result?.redirectUrl) {
+      // Redirect to payment page (works for both Stripe and Paynow)
+      if (result?.redirectUrl) {
         window.location.href = result.redirectUrl;
+        return payment;
       }
 
-      // Paynow: submit signed form directly from browser (bypasses Cloudflare)
+      // Paynow fallback: submit signed form from browser (if direct call was blocked)
       if (result?.provider === 'paynow' && result?.formFields) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = result.formAction;
+        form.target = '_self';
         for (const [key, value] of Object.entries(result.formFields as Record<string, string>)) {
           const input = document.createElement('input');
           input.type = 'hidden';
