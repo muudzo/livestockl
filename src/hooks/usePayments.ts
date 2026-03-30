@@ -133,13 +133,18 @@ export function useInitiatePayment() {
         return { ...payment, reference, instructions: result.instructions };
       }
 
-      // Paynow fallback: POST from browser, parse response, redirect to browserurl
+      // Paynow fallback: browser calls Paynow directly (Edge Function couldn't reach it)
       if (result?.provider === 'paynow' && result?.formFields) {
+        const isMobileExpress = result.formFields.method && result.formFields.phone;
+        const endpoint = isMobileExpress
+          ? 'https://www.paynow.co.zw/interface/remotetransaction'
+          : 'https://www.paynow.co.zw/interface/initiatetransaction';
+
         const formBody = Object.entries(result.formFields as Record<string, string>)
           .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
           .join('&');
 
-        const paynowRes = await fetch(result.formAction, {
+        const paynowRes = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: formBody,
@@ -152,16 +157,25 @@ export function useInitiatePayment() {
           params[decodeURIComponent(key)] = decodeURIComponent(rest.join('='));
         }
 
-        if (params.status?.toLowerCase() === 'ok' && params.browserurl) {
-          // Save poll URL for status checking
-          await supabase
-            .from('payments')
-            .update({ paynow_reference: params.pollurl || '' })
-            .eq('reference', reference);
-
-          window.location.href = params.browserurl;
-        } else {
+        if (params.status?.toLowerCase() !== 'ok') {
           throw new Error(params.error || 'Paynow payment initiation failed');
+        }
+
+        // Save poll URL for status checking
+        await supabase
+          .from('payments')
+          .update({ paynow_reference: params.pollurl || '' })
+          .eq('reference', reference);
+
+        // Express checkout: USSD sent to phone — go to payment status page
+        if (isMobileExpress && params.instructions) {
+          return { ...payment, reference, instructions: params.instructions };
+        }
+
+        // Web checkout: redirect to Paynow payment page
+        if (params.browserurl) {
+          window.location.href = params.browserurl;
+          return payment;
         }
       }
 

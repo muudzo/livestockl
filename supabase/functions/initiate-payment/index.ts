@@ -260,11 +260,36 @@ Deno.serve(async (req) => {
         .update({ status: "pending" })
         .eq("reference", reference);
 
+      // If mobile payment, return express checkout fields so browser calls remotetransaction
+      if (isMobile) {
+        const mobileValues: Record<string, string> = {
+          id: integrationId,
+          reference,
+          amount: amount.toFixed(2),
+          additionalinfo: `${livestockTitle || "Livestock Purchase"} — ${reference}`,
+          authemail: callerUser.email || "",
+          phone: phone,
+          method: paymentMethod.toLowerCase() === "ecocash" ? "ecocash" : "onemoney",
+          resulturl: resultUrl,
+          returnurl: returnUrl,
+          status: "Message",
+        };
+        mobileValues.hash = await computePaynowHash(mobileValues, integrationKey);
+
+        return jsonResponse({
+          status: "ok",
+          provider: "paynow",
+          paymentMethod,
+          formFields: mobileValues,
+          reference,
+          returnUrl,
+        });
+      }
+
       return jsonResponse({
         status: "ok",
         provider: "paynow",
         paymentMethod,
-        formAction: "https://www.paynow.co.zw/interface/initiatetransaction",
         formFields: formValues,
         reference,
         returnUrl,
