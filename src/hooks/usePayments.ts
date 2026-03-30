@@ -107,9 +107,9 @@ export function useInitiatePayment() {
 
       if (error) throw error;
 
-      // Call Edge Function to create Stripe Checkout Session
-      const { data: stripeResult, error: fnError } = await supabase.functions.invoke('initiate-payment', {
-        body: { reference, amount, livestockTitle },
+      // Call Edge Function to initiate payment (Paynow or Stripe)
+      const { data: result, error: fnError } = await supabase.functions.invoke('initiate-payment', {
+        body: { reference, amount, livestockTitle, method, phone },
       });
 
       if (fnError) {
@@ -117,14 +117,30 @@ export function useInitiatePayment() {
         throw new Error('Payment service unavailable. Please try again.');
       }
 
-      if (stripeResult?.error) {
+      if (result?.error) {
         await supabase.from('payments').delete().eq('reference', reference);
-        throw new Error(stripeResult.error);
+        throw new Error(result.error);
       }
 
-      // Redirect to Stripe Checkout
-      if (stripeResult?.redirectUrl) {
-        window.location.href = stripeResult.redirectUrl;
+      // Stripe: redirect to hosted checkout
+      if (result?.provider === 'stripe' && result?.redirectUrl) {
+        window.location.href = result.redirectUrl;
+      }
+
+      // Paynow: submit signed form directly from browser (bypasses Cloudflare)
+      if (result?.provider === 'paynow' && result?.formFields) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = result.formAction;
+        for (const [key, value] of Object.entries(result.formFields as Record<string, string>)) {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        }
+        document.body.appendChild(form);
+        form.submit();
       }
 
       return payment;
