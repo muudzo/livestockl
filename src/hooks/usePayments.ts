@@ -60,10 +60,14 @@ export function useInitiatePayment() {
       livestockId,
       amount,
       livestockTitle,
+      method = 'Card',
+      phone,
     }: {
       livestockId: string;
       amount: number;
       livestockTitle?: string;
+      method?: 'EcoCash' | 'OneMoney' | 'Card';
+      phone?: string;
     }) => {
       if (!user) throw new Error('Not authenticated');
 
@@ -95,8 +99,8 @@ export function useInitiatePayment() {
           livestock_id: livestockId,
           reference,
           amount,
-          method: 'Card',
-          phone: null,
+          method,
+          phone: phone || null,
         })
         .select()
         .single();

@@ -48,7 +48,7 @@
 ### Monday Mar 20
 - [ ] **Decision:** Go backend or Supabase Edge Functions? Pick one, kill the other
 - [ ] Merge winning branch into `main`
-- [ ] Rotate leaked keys (Paynow integration key, Supabase access token `sbp_20da7af4...`)
+- [x] Rotate leaked keys (Paynow integration key, Supabase access token — rotated, removed from code)
 - [ ] Clean up dead branches (`agentic`, `benchmark/*`)
 
 ### Tuesday Mar 21

@@ -1,6 +1,7 @@
 ---
 name: qa
-description: Run the full QA suite — chaos test, consistency checker, and security agent. Use when the user says "run QA", "test everything", or "check the system".
+description: Run the full QA suite - chaos test, consistency checker, and security agent. Use when the user says "run QA", "test everything", or "check the system".
+user-invocable: true
 ---
 
 Run all three QA agents against the deployed Supabase Edge Functions and report results.

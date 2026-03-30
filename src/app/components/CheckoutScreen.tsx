@@ -147,6 +147,7 @@ export function CheckoutScreen() {
       const result = await initiatePayment.mutateAsync({
         livestockId: id!,
         amount: total,
+        livestockTitle: item?.title,
         method: methodMap[paymentMethod],
         phone: phoneNumber || undefined,
       });

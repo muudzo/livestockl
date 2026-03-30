@@ -14,7 +14,7 @@ const MyListings = lazy(() => import('./components/MyListings').then(m => ({ def
 const PaymentHistory = lazy(() => import('./components/PaymentHistory').then(m => ({ default: m.PaymentHistory })));
 const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
 const MessagesScreen = lazy(() => import('./components/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
-const TestPaynowPayment = lazy(() => import('./components/TestPaynowPayment'));
+
 const AgentDashboard = lazy(() => import('./components/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
 const AgentSetup = lazy(() => import('./components/AgentSetup').then(m => ({ default: m.AgentSetup })));
 
@@ -88,10 +88,6 @@ export const router = createBrowserRouter([
         ),
       },
     ],
-  },
-  {
-    path: "/test-paynow",
-    element: <LazyLoad><TestPaynowPayment /></LazyLoad>,
   },
   {
     path: "/auth",

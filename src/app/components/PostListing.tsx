@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Plus, X, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, X, Loader2, FileText, Upload } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -32,6 +32,8 @@ export function PostListing() {
   const blobUrlsRef = useRef<string[]>([]);
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [stockCardFile, setStockCardFile] = useState<File | null>(null);
+  const [stockCardPreview, setStockCardPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -112,6 +114,7 @@ export function PostListing() {
       blobUrlsRef.current.forEach((url) => {
         URL.revokeObjectURL(url);
       });
+      if (stockCardPreview) URL.revokeObjectURL(stockCardPreview);
     };
   }, []);
 
@@ -164,6 +167,12 @@ export function PostListing() {
         imageUrls = photos;
       }
 
+      // Upload stock card if provided
+      let stockCardUrl: string | undefined;
+      if (isSupabaseConfigured && stockCardFile) {
+        stockCardUrl = await uploadImage.mutateAsync({ file: stockCardFile, userId: user.id });
+      }
+
       if (isEditMode && editId) {
         const updates: Record<string, any> = {
           id: editId,
@@ -176,6 +185,8 @@ export function PostListing() {
           health: formData.health,
           image_urls: imageUrls,
         };
+
+        if (stockCardUrl) updates.stock_card_url = stockCardUrl;
 
         if (!hasBids) {
           updates.starting_price = parsedPrice;
@@ -198,6 +209,7 @@ export function PostListing() {
           starting_price: parsedPrice,
           duration_days: durationMap[formData.duration] || 7,
           image_urls: imageUrls,
+          ...(stockCardUrl && { stock_card_url: stockCardUrl }),
         });
         toast.success('Listing submitted for review!');
       }
@@ -338,6 +350,51 @@ export function PostListing() {
                 {healthStatuses.map(status => (<SelectItem key={status} value={status}>{status}</SelectItem>))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Stock Card / Vet Certificate</Label>
+            {stockCardPreview || (isEditMode && existingItem && (existingItem as any).stock_card_url) ? (
+              <div className="flex items-center gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <FileText className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span className="text-sm text-emerald-800 truncate flex-1">
+                  {stockCardFile?.name || 'Stock card uploaded'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (stockCardPreview) URL.revokeObjectURL(stockCardPreview);
+                    setStockCardFile(null);
+                    setStockCardPreview(null);
+                  }}
+                  className="w-7 h-7 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0"
+                  aria-label="Remove stock card"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = 'image/*,.pdf';
+                  input.onchange = (e) => {
+                    const file = (e.target as HTMLInputElement).files?.[0];
+                    if (file) {
+                      setStockCardFile(file);
+                      setStockCardPreview(URL.createObjectURL(file));
+                    }
+                  };
+                  input.click();
+                }}
+                className="w-full flex items-center justify-center gap-2 p-4 border-2 border-dashed border-slate-300 rounded-lg hover:border-emerald-500 transition-all duration-200 text-sm text-muted-foreground"
+              >
+                <Upload className="w-5 h-5" />
+                <span>Upload stock card (photo or PDF)</span>
+              </button>
+            )}
+            <p className="text-xs text-muted-foreground">Builds buyer trust — shows health and ownership proof</p>
           </div>
         </div>
 
