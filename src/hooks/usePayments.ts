@@ -128,21 +128,36 @@ export function useInitiatePayment() {
         return payment;
       }
 
-      // Paynow fallback: submit signed form from browser (if direct call was blocked)
+      // Paynow fallback: POST from browser, parse response, redirect to browserurl
       if (result?.provider === 'paynow' && result?.formFields) {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = result.formAction;
-        form.target = '_self';
-        for (const [key, value] of Object.entries(result.formFields as Record<string, string>)) {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
+        const formBody = Object.entries(result.formFields as Record<string, string>)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join('&');
+
+        const paynowRes = await fetch(result.formAction, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formBody,
+        });
+
+        const paynowBody = await paynowRes.text();
+        const params: Record<string, string> = {};
+        for (const pair of paynowBody.split('&')) {
+          const [key, ...rest] = pair.split('=');
+          params[decodeURIComponent(key)] = decodeURIComponent(rest.join('='));
         }
-        document.body.appendChild(form);
-        form.submit();
+
+        if (params.status?.toLowerCase() === 'ok' && params.browserurl) {
+          // Save poll URL for status checking
+          await supabase
+            .from('payments')
+            .update({ paynow_reference: params.pollurl || '' })
+            .eq('reference', reference);
+
+          window.location.href = params.browserurl;
+        } else {
+          throw new Error(params.error || 'Paynow payment initiation failed');
+        }
       }
 
       return payment;
