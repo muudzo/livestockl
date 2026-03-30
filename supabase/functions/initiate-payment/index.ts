@@ -121,7 +121,78 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: "Paynow credentials not configured" }, 503);
       }
 
-      // Build form values in the exact order Paynow expects
+      const isMobile = (paymentMethod === "EcoCash" || paymentMethod === "OneMoney") && phone;
+
+      // ─── EXPRESS CHECKOUT: EcoCash/OneMoney with phone (USSD prompt) ───
+      if (isMobile) {
+        const mobileValues: Record<string, string> = {
+          id: integrationId,
+          reference,
+          amount: amount.toFixed(2),
+          additionalinfo: `${livestockTitle || "Livestock Purchase"} — ${reference}`,
+          authemail: callerUser.email || "",
+          phone: phone,
+          method: paymentMethod.toLowerCase() === "ecocash" ? "ecocash" : "onemoney",
+          resulturl: resultUrl,
+          returnurl: returnUrl,
+          status: "Message",
+        };
+
+        mobileValues.hash = await computePaynowHash(mobileValues, integrationKey);
+
+        try {
+          const formBody = Object.entries(mobileValues)
+            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+            .join("&");
+
+          const paynowRes = await fetch("https://www.paynow.co.zw/interface/remotetransaction", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formBody,
+          });
+
+          const paynowBody = await paynowRes.text();
+          const paynowParams: Record<string, string> = {};
+          for (const pair of paynowBody.split("&")) {
+            const [key, ...rest] = pair.split("=");
+            paynowParams[decodeURIComponent(key)] = decodeURIComponent(rest.join("="));
+          }
+
+          console.log("Paynow express checkout response:", JSON.stringify(paynowParams));
+
+          if (paynowParams.status?.toLowerCase() === "ok" || paynowParams.status?.toLowerCase() === "sent") {
+            await supabase
+              .from("payments")
+              .update({
+                status: "pending",
+                paynow_reference: paynowParams.pollurl || "",
+              })
+              .eq("reference", reference);
+
+            // Express checkout: no redirect needed — USSD sent to phone
+            // Frontend should navigate to payment-status page and poll
+            return jsonResponse({
+              status: "ok",
+              provider: "paynow",
+              paymentMethod,
+              instructions: paynowParams.instructions || `A USSD prompt has been sent to ${phone}. Approve the payment on your phone.`,
+              pollUrl: paynowParams.pollurl,
+              reference,
+              // If Paynow returns a browserurl, provide it as fallback
+              ...(paynowParams.browserurl && { redirectUrl: paynowParams.browserurl }),
+            });
+          }
+
+          const mobileError = paynowParams.error || paynowBody;
+          console.error("Paynow express checkout error:", mobileError);
+          // Fall through to web checkout as fallback
+        } catch (fetchErr) {
+          console.error("Paynow express checkout failed:", (fetchErr as Error).message);
+          // Fall through to web checkout
+        }
+      }
+
+      // ─── WEB CHECKOUT: Redirect to Paynow hosted page ───
       const formValues: Record<string, string> = {
         id: integrationId,
         reference,
@@ -135,7 +206,7 @@ Deno.serve(async (req) => {
 
       formValues.hash = await computePaynowHash(formValues, integrationKey);
 
-      // Try calling Paynow API directly from Edge Function
+      // Try calling Paynow web checkout directly
       try {
         const formBody = Object.entries(formValues)
           .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
@@ -155,7 +226,6 @@ Deno.serve(async (req) => {
         }
 
         if (paynowParams.status?.toLowerCase() === "ok" && paynowParams.browserurl) {
-          // Success — save poll URL and redirect user to Paynow payment page
           await supabase
             .from("payments")
             .update({

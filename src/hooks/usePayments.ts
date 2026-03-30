@@ -122,10 +122,15 @@ export function useInitiatePayment() {
         throw new Error(result.error);
       }
 
-      // Redirect to payment page (works for both Stripe and Paynow)
+      // Redirect to payment page (works for both Stripe and Paynow web checkout)
       if (result?.redirectUrl) {
         window.location.href = result.redirectUrl;
         return payment;
+      }
+
+      // Paynow express checkout (EcoCash/OneMoney): USSD sent to phone, go to status page
+      if (result?.provider === 'paynow' && result?.pollUrl) {
+        return { ...payment, reference, instructions: result.instructions };
       }
 
       // Paynow fallback: POST from browser, parse response, redirect to browserurl
