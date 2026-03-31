@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { Plus, List, Bell, LogOut, ChevronRight } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
+import { TawkToChat } from "./TawkToChat";
 
 export function Root() {
   const location = useLocation();
@@ -41,6 +42,7 @@ export function Root() {
 
   return (
     <div className="h-screen flex flex-col bg-background max-w-[480px] mx-auto">
+      <TawkToChat />
       <div className="flex-1 overflow-y-auto">
         <Outlet />
       </div>
