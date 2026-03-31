@@ -340,10 +340,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_payments_unique_active
 CREATE INDEX IF NOT EXISTS idx_payments_livestock
   ON public.payments(livestock_id);
 
--- Prevent duplicate paid agent payments for same livestock
-CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_agent_livestock_paid
-  ON agent_payment_orders (agent_id, livestock_id)
-  WHERE status = 'paid';
+-- Composite indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_bids_livestock_amount
+  ON public.bids(livestock_id, amount DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+  ON public.notifications(user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_conversations_last_msg
+  ON public.conversations(last_message_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_messages_conversation_created
+  ON public.messages(conversation_id, created_at DESC);
 
 -- Prevent self-conversations
 ALTER TABLE public.conversations

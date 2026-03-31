@@ -64,7 +64,8 @@ export function useConversations() {
           livestock_items(title)
         `)
         .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
-        .order('last_message_at', { ascending: false });
+        .order('last_message_at', { ascending: false })
+        .limit(50);
 
       if (error) throw error;
 

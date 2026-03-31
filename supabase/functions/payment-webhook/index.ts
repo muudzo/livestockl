@@ -28,40 +28,33 @@ async function completePayment(reference: string, providerRef: string) {
   }
   if (!updated) return; // Already processed (idempotent)
 
-  // Mark item as sold
-  if (updated.livestock_id) {
-    await supabase
-      .from("livestock_items")
-      .update({ status: "sold" })
-      .eq("id", updated.livestock_id);
-  }
-
-  // Notify buyer
-  await supabase.from("notifications").insert({
-    user_id: updated.user_id,
-    type: "payment",
-    title: "Payment Confirmed",
-    message: `Your payment of US$${updated.amount} has been confirmed.`,
-    priority: "high",
-  });
+  // Mark item as sold + notify buyer + get seller info — all in parallel
+  const [, , sellerResult] = await Promise.all([
+    updated.livestock_id
+      ? supabase.from("livestock_items").update({ status: "sold" }).eq("id", updated.livestock_id)
+      : Promise.resolve(),
+    supabase.from("notifications").insert({
+      user_id: updated.user_id,
+      type: "payment",
+      title: "Payment Confirmed",
+      message: `Your payment of US$${updated.amount} has been confirmed.`,
+      priority: "high",
+    }),
+    updated.livestock_id
+      ? supabase.from("livestock_items").select("seller_id, title").eq("id", updated.livestock_id).single()
+      : Promise.resolve({ data: null }),
+  ]);
 
   // Notify seller
-  if (updated.livestock_id) {
-    const { data: item } = await supabase
-      .from("livestock_items")
-      .select("seller_id, title")
-      .eq("id", updated.livestock_id)
-      .single();
-
-    if (item) {
-      await supabase.from("notifications").insert({
-        user_id: item.seller_id,
-        type: "payment",
-        title: "Payment Received",
-        message: `Payment of US$${updated.amount} received for ${item.title}.`,
-        priority: "high",
-      });
-    }
+  const item = sellerResult?.data;
+  if (item) {
+    await supabase.from("notifications").insert({
+      user_id: item.seller_id,
+      type: "payment",
+      title: "Payment Received",
+      message: `Payment of US$${updated.amount} received for ${item.title}.`,
+      priority: "high",
+    });
   }
 }
 
