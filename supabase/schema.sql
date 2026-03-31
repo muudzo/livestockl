@@ -353,6 +353,34 @@ CREATE INDEX IF NOT EXISTS idx_conversations_last_msg
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created
   ON public.messages(conversation_id, created_at DESC);
 
+-- Bill Payments (BillPay Vendor API integration)
+CREATE TABLE IF NOT EXISTS public.bill_payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id),
+  reference text UNIQUE NOT NULL,
+  biller_code text NOT NULL,
+  biller_name text NOT NULL,
+  account_number text NOT NULL,
+  account_holder text,
+  amount numeric NOT NULL CHECK (amount > 0),
+  status text DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed')),
+  billpay_reference text,
+  linked_payment_id uuid REFERENCES public.payments(id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bill_payments_user ON public.bill_payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_bill_payments_reference ON public.bill_payments(reference);
+
+ALTER TABLE public.bill_payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own bill payments" ON public.bill_payments
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own bill payments" ON public.bill_payments
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
 -- Prevent self-conversations
 ALTER TABLE public.conversations
   ADD CONSTRAINT no_self_conversation

@@ -1,6 +1,8 @@
-import { CheckCircle, Clock, CreditCard, Loader2, XCircle } from "lucide-react";
+import { useNavigate } from "react-router";
+import { CheckCircle, Clock, CreditCard, Loader2, XCircle, Receipt } from "lucide-react";
 import { usePaymentHistory } from "../../hooks/usePayments";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 
 function PaymentCardSkeleton() {
   return (
@@ -24,6 +26,7 @@ function PaymentCardSkeleton() {
 }
 
 export function PaymentHistory() {
+  const navigate = useNavigate();
   const { data: payments, isLoading } = usePaymentHistory();
 
   const formatDate = (date: Date | string) => {
@@ -40,6 +43,13 @@ export function PaymentHistory() {
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 bg-background z-10 border-b p-4">
         <h1 className="font-bold text-xl">Payment History</h1>
+      </div>
+
+      <div className="px-4 pt-4">
+        <Button onClick={() => navigate('/pay-bill')} className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-semibold mb-4">
+          <Receipt className="w-4 h-4 mr-2" />
+          Pay a Bill
+        </Button>
       </div>
 
       <div className="p-4 space-y-4">
