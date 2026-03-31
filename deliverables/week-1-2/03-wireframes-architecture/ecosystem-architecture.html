@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZimLivestock — Paynow Ecosystem Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; }
+  h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { color: #64748b; font-size: 16px; margin-bottom: 40px; }
+  .diagram { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 32px; }
+  .diagram h2 { font-size: 20px; margin-bottom: 24px; color: #059669; }
+
+  /* Architecture boxes */
+  .arch-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+  .arch-box { border: 2px solid #e2e8f0; border-radius: 12px; padding: 20px; position: relative; }
+  .arch-box.primary { border-color: #059669; background: #ecfdf5; }
+  .arch-box.secondary { border-color: #f59e0b; background: #fffbeb; }
+  .arch-box.tertiary { border-color: #3b82f6; background: #eff6ff; }
+  .arch-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .arch-box .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; margin-bottom: 8px; }
+  .arch-box.primary .tag { background: #059669; color: white; }
+  .arch-box.secondary .tag { background: #f59e0b; color: white; }
+  .arch-box.tertiary .tag { background: #3b82f6; color: white; }
+  .arch-box ul { list-style: none; font-size: 14px; color: #475569; }
+  .arch-box ul li { padding: 3px 0; }
+  .arch-box ul li::before { content: "→ "; color: #94a3b8; }
+
+  /* Flow diagram */
+  .flow { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 24px 0; }
+  .flow-step { background: white; border: 2px solid #e2e8f0; border-radius: 12px; padding: 16px 20px; text-align: center; min-width: 140px; }
+  .flow-step.active { border-color: #059669; background: #ecfdf5; }
+  .flow-step .num { font-size: 24px; font-weight: 700; color: #059669; }
+  .flow-step .label { font-size: 13px; color: #475569; margin-top: 4px; }
+  .flow-arrow { font-size: 24px; color: #cbd5e1; }
+
+  /* Integration table */
+  .int-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  .int-table th { text-align: left; padding: 12px 16px; background: #f1f5f9; font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+  .int-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+  .int-table tr:hover { background: #f8fafc; }
+  .status { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
+  .status.live { background: #dcfce7; color: #166534; }
+  .status.ready { background: #dbeafe; color: #1e40af; }
+  .status.planned { background: #fef3c7; color: #92400e; }
+
+  /* Ecosystem map */
+  .eco-map { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .eco-layer { border-radius: 12px; padding: 20px; }
+  .eco-layer.app { background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 2px solid #059669; }
+  .eco-layer.paynow { background: linear-gradient(135deg, #eff6ff, #dbeafe); border: 2px solid #3b82f6; }
+  .eco-layer.external { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 2px solid #f59e0b; }
+  .eco-layer h3 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .eco-services { display: flex; flex-wrap: wrap; gap: 8px; }
+  .eco-chip { background: white; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 500; }
+  .eco-chip.active { border-color: #059669; color: #059669; font-weight: 600; }
+  .eco-chip.planned { border-color: #f59e0b; color: #92400e; }
+
+  .note { background: #f1f5f9; border-radius: 8px; padding: 16px 20px; font-size: 14px; color: #475569; margin-top: 24px; border-left: 4px solid #059669; }
+
+  @media (max-width: 768px) {
+    .arch-grid { grid-template-columns: 1fr; }
+    .flow { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>ZimLivestock × Paynow Ecosystem Architecture</h1>
+  <p class="subtitle">Full integration map — for supervisor review. Last updated: 30 March 2026</p>
+
+  <!-- Ecosystem Map -->
+  <div class="diagram">
+    <h2>Ecosystem Overview</h2>
+    <div class="eco-map">
+      <div class="eco-layer app">
+        <h3>🐄 ZimLivestock App (React + Supabase)</h3>
+        <div class="eco-services">
+          <div class="eco-chip active">Browse Auctions</div>
+          <div class="eco-chip active">Place Bids</div>
+          <div class="eco-chip active">Win Notification</div>
+          <div class="eco-chip active">EcoCash Checkout</div>
+          <div class="eco-chip active">Card Checkout (Stripe)</div>
+          <div class="eco-chip active">Payment Status Polling</div>
+          <div class="eco-chip planned">Pay ZESA</div>
+          <div class="eco-chip planned">Pay School Fees</div>
+          <div class="eco-chip planned">Buy Airtime</div>
+          <div class="eco-chip planned">SMS Notifications</div>
+          <div class="eco-chip planned">BuySafe Escrow</div>
+        </div>
+      </div>
+      <div class="eco-layer paynow">
+        <h3>💳 Paynow Product Suite</h3>
+        <div class="eco-services">
+          <div class="eco-chip active">Gateway — initiatetransaction</div>
+          <div class="eco-chip active">Express Checkout — remotetransaction (EcoCash/OneMoney)</div>
+          <div class="eco-chip active">Webhook — status callbacks</div>
+          <div class="eco-chip active">Poll — CheckPayment</div>
+          <div class="eco-chip planned">BillPay Vendor API — 106 billers</div>
+          <div class="eco-chip planned">BuySafe Escrow — delivery confirmation</div>
+          <div class="eco-chip planned">Tokenization — saved cards</div>
+          <div class="eco-chip planned">ZIMRA Fiscalisation</div>
+        </div>
+      </div>
+      <div class="eco-layer external">
+        <h3>📡 External Services</h3>
+        <div class="eco-services">
+          <div class="eco-chip active">Stripe — card fallback (diaspora)</div>
+          <div class="eco-chip active">Supabase — DB + Auth + RLS + Edge Functions</div>
+          <div class="eco-chip planned">txt.co.zw — SMS notifications</div>
+          <div class="eco-chip planned">txt.co.zw — Airtime rewards</div>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Legend:</strong>
+      <span class="eco-chip active" style="font-size:12px">Live / Deployed</span>
+      <span class="eco-chip planned" style="font-size:12px">Planned / In Development</span>
+    </div>
+  </div>
+
+  <!-- Payment Flow -->
+  <div class="diagram">
+    <h2>Payment Flow — Current (Live)</h2>
+    <div class="flow">
+      <div class="flow-step active"><div class="num">1</div><div class="label">Buyer wins auction</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active"><div class="num">2</div><div class="label">Select EcoCash / Card</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active"><div class="num">3</div><div class="label">Edge Function signs request</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active"><div class="num">4</div><div class="label">Paynow USSD / Stripe</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active"><div class="num">5</div><div class="label">Webhook confirms</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step active"><div class="num">6</div><div class="label">Seller notified</div></div>
+    </div>
+  </div>
+
+  <!-- BillPay Flow -->
+  <div class="diagram">
+    <h2>BillPay Flow — Planned</h2>
+    <div class="flow">
+      <div class="flow-step"><div class="num">1</div><div class="label">Seller gets paid</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">2</div><div class="label">"Pay a bill?" prompt</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">3</div><div class="label">Select ZESA / School</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">4</div><div class="label">Enter account #</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">5</div><div class="label">BillPay AUTH</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">6</div><div class="label">Confirm & PAY</div></div>
+    </div>
+    <div class="note">
+      <strong>Pitch:</strong> "Sell cattle, pay school fees — in one app." The post-sale prompt captures the moment of liquidity when a farmer has just received payment.
+    </div>
+  </div>
+
+  <!-- SMS Flow -->
+  <div class="diagram">
+    <h2>SMS Notification Flow — Planned</h2>
+    <div class="flow">
+      <div class="flow-step"><div class="num">📱</div><div class="label">Event triggers</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">⚡</div><div class="label">Edge Function</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">📡</div><div class="label">send-sms function</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">📨</div><div class="label">txt.co.zw API</div></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-step"><div class="num">✅</div><div class="label">SMS delivered</div></div>
+    </div>
+    <table class="int-table">
+      <thead><tr><th>Event</th><th>Recipients</th><th>SMS Example</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td>Payment confirmed</td><td>Buyer + Seller</td><td>"Payment confirmed: US$1,200 for Brahman Bull. Ref: ZL-ABC123"</td><td><span class="status ready">Ready to build</span></td></tr>
+        <tr><td>Auction won</td><td>Winner + Seller</td><td>"You won Brahman Bull for US$1,200! Pay now at zimlivestock.co.zw"</td><td><span class="status ready">Ready to build</span></td></tr>
+        <tr><td>Outbid</td><td>Previous bidder</td><td>"You've been outbid on Brahman Bull. New highest: US$1,300"</td><td><span class="status planned">Phase 2</span></td></tr>
+        <tr><td>Ending soon</td><td>Highest bidder</td><td>"Your bid expires in less than 1 hour. Increase your bid?"</td><td><span class="status planned">Phase 2</span></td></tr>
+        <tr><td>Airtime reward</td><td>Seller</td><td>US$0.50 airtime via DirectRecharge</td><td><span class="status planned">Phase 2</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Integration Status -->
+  <div class="diagram">
+    <h2>Integration Status — All Paynow Products</h2>
+    <table class="int-table">
+      <thead><tr><th>Product</th><th>API</th><th>ZimLivestock Feature</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Gateway</strong></td><td>initiatetransaction</td><td>Web checkout (redirect to Paynow)</td><td><span class="status live">Live</span></td></tr>
+        <tr><td><strong>Express Checkout</strong></td><td>remotetransaction</td><td>EcoCash / OneMoney USSD</td><td><span class="status live">Live</span></td></tr>
+        <tr><td><strong>Webhook</strong></td><td>resulturl callback</td><td>Payment status updates (Paynow + Stripe)</td><td><span class="status live">Live</span></td></tr>
+        <tr><td><strong>Poll</strong></td><td>CheckPayment</td><td>Real-time payment status</td><td><span class="status live">Live</span></td></tr>
+        <tr><td><strong>Stripe (fallback)</strong></td><td>Checkout Sessions</td><td>Card payments for diaspora buyers</td><td><span class="status live">Live</span></td></tr>
+        <tr><td><strong>BillPay</strong></td><td>Vendor API (AUTH/PAY)</td><td>ZESA, school fees, airtime</td><td><span class="status ready">Branch ready</span></td></tr>
+        <tr><td><strong>txt.co.zw SMS</strong></td><td>SendMessage</td><td>Payment + auction notifications</td><td><span class="status ready">Branch ready</span></td></tr>
+        <tr><td><strong>txt.co.zw Airtime</strong></td><td>DirectRecharge</td><td>Rewards for listings/referrals</td><td><span class="status planned">Planned</span></td></tr>
+        <tr><td><strong>BuySafe Escrow</strong></td><td>Delivery confirmation</td><td>Funds held until delivery confirmed</td><td><span class="status planned">Planned</span></td></tr>
+        <tr><td><strong>Tokenization</strong></td><td>tokenize=true</td><td>Saved cards, deposit holds</td><td><span class="status planned">Planned</span></td></tr>
+        <tr><td><strong>ZIMRA Fiscalisation</strong></td><td>Panier API</td><td>Tax-compliant invoices</td><td><span class="status planned">Planned</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Tech Stack -->
+  <div class="diagram">
+    <h2>Technical Architecture</h2>
+    <div class="arch-grid">
+      <div class="arch-box primary">
+        <span class="tag">FRONTEND</span>
+        <h3>React 18 + TypeScript</h3>
+        <ul>
+          <li>Vite build, Tailwind CSS</li>
+          <li>shadcn/ui (48+ components)</li>
+          <li>TanStack Query (data fetching)</li>
+          <li>Zustand (auth state)</li>
+          <li>Lazy-loaded routes</li>
+          <li>Mobile-first, WCAG 2.1 AA</li>
+        </ul>
+      </div>
+      <div class="arch-box secondary">
+        <span class="tag">BACKEND</span>
+        <h3>Supabase</h3>
+        <ul>
+          <li>PostgreSQL + RLS (Grade A security)</li>
+          <li>18 Edge Functions (Deno)</li>
+          <li>Auth with JWT</li>
+          <li>Realtime subscriptions</li>
+          <li>Storage (images, stock cards)</li>
+          <li>Atomic RPC functions</li>
+        </ul>
+      </div>
+      <div class="arch-box tertiary">
+        <span class="tag">PAYMENTS</span>
+        <h3>Multi-Provider</h3>
+        <ul>
+          <li>Paynow Gateway (primary)</li>
+          <li>EcoCash express checkout</li>
+          <li>OneMoney express checkout</li>
+          <li>Stripe (card fallback)</li>
+          <li>Cloudflare bypass pattern</li>
+          <li>Dual webhook handler</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="note" style="margin-top: 32px;">
+    <strong>For supervisor review:</strong> This diagram shows the complete Paynow ecosystem integration plan. Green chips are live/deployed. Orange chips are planned features on separate git branches. The BillPay and SMS branches are ready for review and can be merged when approved. Contact Paynow support for BillPay Vendor API credentials and txt.co.zw REMOTE user access.
+  </div>
+</div>
+</body>
+</html>
