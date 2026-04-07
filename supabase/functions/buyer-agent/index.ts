@@ -3,6 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createLogger } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,6 +106,8 @@ serve(async (req: Request) => {
   }
 
   try {
+    const log = createLogger('buyer-agent', req);
+    const start = Date.now();
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -112,11 +115,13 @@ serve(async (req: Request) => {
     const baseUrl = Deno.env.get("SUPABASE_URL")!;
 
     const { action, agentId } = await req.json();
+    log.info('cycle started', { agentId, action });
 
     const { data: agent, error: agentError } = await supabase
       .from("agents").select("*").eq("id", agentId).eq("agent_type", "buyer").single();
 
     if (agentError || !agent) {
+      log.error('agent not found', { agentId, error: agentError?.message });
       return new Response(JSON.stringify({ error: "Buyer agent not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -127,10 +132,12 @@ serve(async (req: Request) => {
         .from("agent_goals").select("*").eq("agent_id", agentId).eq("status", "active");
 
       if (!goals?.length) {
+        log.info('no active goals', { agentId });
         return new Response(JSON.stringify({ message: "No active goals", decisions: 0, bids: 0 }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      log.info('processing goals', { agentId, goalCount: goals.length });
 
       await supabase.from("agent_activity_log").insert({
         agent_id: agentId, event_type: "scan_started",

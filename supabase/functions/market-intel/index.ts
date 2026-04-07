@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createLogger } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,7 +18,10 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const log = createLogger('market-intel', req);
+    const start = Date.now();
     const { action, agentId } = await req.json();
+    log.info('market intel report started', { agentId, action });
 
     const { data: agent } = await supabase
       .from("agents")
