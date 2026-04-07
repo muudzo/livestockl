@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
+import { createLogger } from "../_shared/logger.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -9,7 +10,7 @@ const supabase = createClient(
 /**
  * Marks a payment as paid, updates listing to sold, and notifies both parties.
  */
-async function completePayment(reference: string, providerRef: string) {
+async function completePayment(reference: string, providerRef: string, log: import("../_shared/logger.ts").Logger) {
   const { data: updated, error } = await supabase
     .from("payments")
     .update({
@@ -23,10 +24,15 @@ async function completePayment(reference: string, providerRef: string) {
     .maybeSingle();
 
   if (error) {
-    console.error("Failed to update payment:", error);
+    log.error("Failed to update payment", { reference, providerRef, error: error.message });
     return;
   }
-  if (!updated) return; // Already processed (idempotent)
+  if (!updated) {
+    log.info("Payment already processed (idempotent skip)", { reference });
+    return;
+  }
+
+  log.info("Payment marked as paid", { reference, providerRef, amount: updated.amount, userId: updated.user_id });
 
   // Mark item as sold + notify buyer + get seller info — all in parallel
   const [, , sellerResult] = await Promise.all([
@@ -61,7 +67,8 @@ async function completePayment(reference: string, providerRef: string) {
 /**
  * Marks a payment as failed.
  */
-async function failPayment(reference: string) {
+async function failPayment(reference: string, log: import("../_shared/logger.ts").Logger) {
+  log.warn("Payment marked as failed", { reference });
   await supabase
     .from("payments")
     .update({ status: "failed", updated_at: new Date().toISOString() })
@@ -110,6 +117,8 @@ Deno.serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
+  const log = createLogger('payment-webhook', req);
+
   try {
     const contentType = req.headers.get("content-type") || "";
     const body = await req.text();
@@ -118,13 +127,13 @@ Deno.serve(async (req) => {
     // Paynow sends application/x-www-form-urlencoded with status updates
     if (contentType.includes("x-www-form-urlencoded") || (!contentType.includes("json") && body.includes("paynowreference"))) {
       const params = parsePaynowBody(body);
-      console.log("Paynow callback received:", params.reference, params.status);
+      log.info("Paynow callback received", { reference: params.reference, status: params.status, provider: "paynow" });
 
       const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
       if (integrationKey) {
         const valid = await verifyPaynowHash(params, integrationKey);
         if (!valid) {
-          console.error("Paynow hash verification failed for:", params.reference);
+          log.error("Paynow hash verification failed", { reference: params.reference });
           return new Response("Invalid hash", { status: 403 });
         }
       }
@@ -134,13 +143,16 @@ Deno.serve(async (req) => {
       const status = (params.status || "").toLowerCase();
 
       if (!reference) {
+        log.warn("Paynow callback missing reference");
         return new Response("Missing reference", { status: 400 });
       }
 
       if (status === "paid" || status === "delivered") {
-        await completePayment(reference, paynowRef);
+        await completePayment(reference, paynowRef, log);
       } else if (status === "cancelled" || status === "failed" || status === "disputed") {
-        await failPayment(reference);
+        await failPayment(reference, log);
+      } else {
+        log.info("Paynow callback non-terminal status, no action", { reference, status });
       }
       // "awaiting delivery", "sent", "created" — no action, still pending
 
@@ -153,7 +165,7 @@ Deno.serve(async (req) => {
     if (signature) {
       const endpointSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
       if (!endpointSecret) {
-        console.error("STRIPE_WEBHOOK_SECRET not configured");
+        log.error("STRIPE_WEBHOOK_SECRET not configured");
         return new Response("Webhook secret not configured", { status: 500 });
       }
 
@@ -165,15 +177,17 @@ Deno.serve(async (req) => {
       try {
         event = stripe.webhooks.constructEvent(body, signature, endpointSecret);
       } catch (err) {
-        console.error("Stripe signature verification failed:", (err as Error).message);
+        log.error("Stripe signature verification failed", { error: (err as Error).message });
         return new Response("Invalid signature", { status: 403 });
       }
+
+      log.info("Stripe webhook event received", { eventType: event.type, provider: "stripe" });
 
       if (event.type === "checkout.session.completed") {
         const session = event.data.object as Stripe.Checkout.Session;
         const reference = session.metadata?.reference;
         if (reference) {
-          await completePayment(reference, session.id);
+          await completePayment(reference, session.id, log);
         }
       }
 
@@ -181,7 +195,7 @@ Deno.serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         const reference = session.metadata?.reference;
         if (reference) {
-          await failPayment(reference);
+          await failPayment(reference, log);
         }
       }
 
@@ -189,10 +203,10 @@ Deno.serve(async (req) => {
     }
 
     // Unknown callback format
-    console.error("Unknown webhook format. Content-Type:", contentType);
+    log.error("Unknown webhook format", { contentType });
     return new Response("Unknown webhook format", { status: 400 });
   } catch (err) {
-    console.error("Webhook error:", err);
+    log.error("Webhook error", { error: (err as Error).message, stack: (err as Error).stack });
     return new Response("Internal error", { status: 500 });
   }
 });

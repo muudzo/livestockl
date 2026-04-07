@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createLogger } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -77,6 +78,8 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const log = createLogger('payment-orchestrator', req);
+
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -84,6 +87,7 @@ serve(async (req: Request) => {
     );
 
     const { action, paymentOrderId, agentId, livestockId, amount } = await req.json();
+    log.info("Orchestrator action received", { action, paymentOrderId, agentId, livestockId, amount });
 
     if (action === "initiate_payment") {
       // Create a payment order from an auction win
@@ -122,6 +126,8 @@ serve(async (req: Request) => {
 
       if (orderError) throw orderError;
 
+      log.info("Payment order created", { paymentOrderId: order.id, agentId, livestockId, amount, method: "ecocash" });
+
       // Log to settlement ledger
       await supabase.from("settlement_ledger").insert({
         payment_order_id: order.id,
@@ -138,7 +144,7 @@ serve(async (req: Request) => {
       });
 
       // Now execute the payment (with retries and fallback)
-      return await executePayment(supabase, order, agent);
+      return await executePayment(supabase, order, agent, log);
     }
 
     if (action === "retry_payment") {
@@ -167,7 +173,8 @@ serve(async (req: Request) => {
         .eq("id", order.agent_id)
         .single();
 
-      return await executePayment(supabase, order, agent);
+      log.info("Retrying payment order", { paymentOrderId, agentId: order.agent_id });
+      return await executePayment(supabase, order, agent, log);
     }
 
     // Get payment status and ledger for an order
@@ -193,13 +200,14 @@ serve(async (req: Request) => {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err: any) {
+    log.error("Orchestrator error", { error: err.message, stack: err.stack });
     return new Response(JSON.stringify({ error: err.message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
 
-async function executePayment(supabase: any, order: any, agent: any) {
+async function executePayment(supabase: any, order: any, agent: any, log: import("../_shared/logger.ts").Logger) {
   let currentMethod = order.method;
   let attempt = order.attempt_count;
   let lastError: string | null = null;
@@ -209,6 +217,7 @@ async function executePayment(supabase: any, order: any, agent: any) {
 
   // Try current method, then fallback chain
   const methodsToTry = FALLBACK_CHAIN.slice(FALLBACK_CHAIN.indexOf(currentMethod));
+  log.info("Executing payment", { paymentOrderId: order.id, startMethod: currentMethod, methodsToTry, maxAttempts });
 
   for (const method of methodsToTry) {
     if (paid) break;
@@ -220,6 +229,8 @@ async function executePayment(supabase: any, order: any, agent: any) {
       .eq("id", order.id);
 
     if (method !== currentMethod) {
+      log.warn("Falling back to next payment method", { paymentOrderId: order.id, from: currentMethod, to: method, reason: lastError });
+
       await supabase.from("settlement_ledger").insert({
         payment_order_id: order.id,
         event: "fallback_method",
@@ -249,6 +260,8 @@ async function executePayment(supabase: any, order: any, agent: any) {
         details: { amount: order.amount },
       });
 
+      log.info("Payment attempt starting", { paymentOrderId: order.id, method, attempt, amount: order.amount });
+
       // Simulate the payment call
       const result = simulatePaynowPayment(method, attempt);
 
@@ -258,6 +271,7 @@ async function executePayment(supabase: any, order: any, agent: any) {
       if (result.success) {
         paid = true;
         paynowRef = result.reference;
+        log.info("Payment attempt succeeded", { paymentOrderId: order.id, method, attempt, reference: paynowRef, amount: order.amount });
 
         // Update order
         await supabase
@@ -317,6 +331,7 @@ async function executePayment(supabase: any, order: any, agent: any) {
         break;
       } else {
         lastError = result.error;
+        log.warn("Payment attempt failed", { paymentOrderId: order.id, method, attempt, error: result.error });
 
         await supabase.from("settlement_ledger").insert({
           payment_order_id: order.id,
@@ -351,6 +366,8 @@ async function executePayment(supabase: any, order: any, agent: any) {
 
   // If all methods exhausted
   if (!paid) {
+    log.error("Payment failed after all methods exhausted", { paymentOrderId: order.id, totalAttempts: attempt, lastError, agentId: order.agent_id });
+
     await supabase
       .from("agent_payment_orders")
       .update({ status: "failed", attempt_count: attempt, last_error: lastError })
@@ -374,6 +391,14 @@ async function executePayment(supabase: any, order: any, agent: any) {
   const paidCount = allOrders?.filter((o: any) => o.status === "paid").length || 0;
   const firstAttemptPaid = allOrders?.filter((o: any) => o.status === "paid" && o.attempt_count === 1).length || 0;
   const retryRecovered = paidCount - firstAttemptPaid;
+
+  log.info("Payment orchestration complete", {
+    paymentOrderId: order.id,
+    status: paid ? "paid" : "failed",
+    method: currentMethod,
+    totalAttempts: attempt,
+    metrics: { total, paidCount, firstAttemptPaid, retryRecovered },
+  });
 
   return new Response(JSON.stringify({
     payment_order_id: order.id,

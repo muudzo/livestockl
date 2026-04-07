@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
+import { createLogger } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") || "*",
@@ -31,6 +32,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  const log = createLogger('initiate-payment', req);
 
   try {
     const { reference, amount, livestockTitle, method, phone } = await req.json();
@@ -158,7 +161,7 @@ Deno.serve(async (req) => {
             paynowParams[decodeURIComponent(key)] = decodeURIComponent(rest.join("="));
           }
 
-          console.log("Paynow express checkout response:", JSON.stringify(paynowParams));
+          log.info("Paynow express checkout response", { reference, paymentMethod, paynowStatus: paynowParams.status, pollUrl: paynowParams.pollurl });
 
           if (paynowParams.status?.toLowerCase() === "ok" || paynowParams.status?.toLowerCase() === "sent") {
             await supabase
@@ -184,10 +187,10 @@ Deno.serve(async (req) => {
           }
 
           const mobileError = paynowParams.error || paynowBody;
-          console.error("Paynow express checkout error:", mobileError);
+          log.error("Paynow express checkout error", { reference, paymentMethod, error: mobileError });
           // Fall through to web checkout as fallback
         } catch (fetchErr) {
-          console.error("Paynow express checkout failed:", (fetchErr as Error).message);
+          log.error("Paynow express checkout failed", { reference, paymentMethod, error: (fetchErr as Error).message });
           // Fall through to web checkout
         }
       }
@@ -246,12 +249,12 @@ Deno.serve(async (req) => {
 
         // Paynow returned an error
         const paynowError = paynowParams.error || paynowBody;
-        console.error("Paynow API error:", paynowError);
+        log.error("Paynow web checkout API error", { reference, paymentMethod, error: paynowError });
 
         // Fall through to browser form submission as backup
       } catch (fetchErr) {
         // Cloudflare block or network error — fall back to browser form submission
-        console.error("Paynow direct call failed (likely Cloudflare):", (fetchErr as Error).message);
+        log.error("Paynow direct call failed (likely Cloudflare)", { reference, paymentMethod, error: (fetchErr as Error).message });
       }
 
       // FALLBACK: Return signed form data for browser to submit directly
@@ -344,7 +347,7 @@ Deno.serve(async (req) => {
       reference,
     });
   } catch (err) {
-    console.error("Payment initiation error:", err);
+    log.error("Payment initiation error", { error: (err as Error).message, stack: (err as Error).stack });
     return jsonResponse({ error: (err as Error).message }, 500);
   }
 });
