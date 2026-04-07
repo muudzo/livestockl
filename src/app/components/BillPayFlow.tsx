@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { ArrowLeft, Zap, Phone, GraduationCap, Droplet, Building2, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Zap, Phone, GraduationCap, Droplet, Building2, Loader2, CheckCircle, AlertCircle, Clock } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -72,7 +72,7 @@ export function BillPayFlow() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="font-semibold text-lg">
-          {step === 'select' ? 'Pay a Bill' : step === 'result' ? 'Payment Complete' : selectedBiller?.name || 'Bill Payment'}
+          {step === 'select' ? 'Pay a Bill' : step === 'result' ? (payResult?.status === 'processing' ? 'Processing' : 'Payment Complete') : selectedBiller?.name || 'Bill Payment'}
         </h1>
       </div>
 
@@ -211,7 +211,54 @@ export function BillPayFlow() {
         )}
 
         {/* STEP 4: Result */}
-        {step === 'result' && (
+        {step === 'result' && payResult?.status === 'processing' && (
+          <div className="flex flex-col items-center text-center pt-8 space-y-5">
+            <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center">
+              <Clock className="w-12 h-12 text-amber-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold">Payment Processing</h2>
+              <p className="text-muted-foreground mt-1">
+                Your US${Number(amount).toFixed(2)} payment to {selectedBiller?.name} is being processed.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                You will be notified when the payment completes. This usually takes a few minutes.
+              </p>
+            </div>
+
+            <div className="w-full bg-card border rounded-xl p-4 text-left space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Reference</span>
+                <span className="font-mono text-xs">{payResult?.reference}</span>
+              </div>
+              {payResult?.billpayReference && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">BillPay Ref</span>
+                  <span className="font-mono text-xs">{payResult.billpayReference}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Account</span>
+                <span>{accountNumber}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Status</span>
+                <Badge variant="outline" className="text-amber-600 border-amber-300">Pending</Badge>
+              </div>
+            </div>
+
+            <div className="w-full space-y-3 pt-4">
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700" onClick={() => { setStep('select'); setAccountNumber(''); setAmount(''); setAuthResult(null); setPayResult(null); }}>
+                Pay Another Bill
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => navigate('/payments')}>
+                Check Payment History
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 'result' && payResult?.status !== 'processing' && (
           <div className="flex flex-col items-center text-center pt-8 space-y-5">
             <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-12 h-12 text-emerald-600" />

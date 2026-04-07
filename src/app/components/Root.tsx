@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Plus, List, Bell, LogOut, ChevronRight } from "lucide-react";
+import { Plus, List, Bell, LogOut, ChevronRight, Zap } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
 
@@ -22,6 +22,7 @@ export function Root() {
   const secondaryNav = [
     { icon: Plus, label: 'Post a listing', path: '/post' },
     { icon: List, label: 'My listings', path: '/my-listings' },
+    { icon: Zap, label: 'Pay Bills', path: '/pay-bill' },
     { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount || 0 },
   ];
 

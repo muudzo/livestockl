@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search } from "lucide-react";
+import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, GraduationCap, Droplet } from "lucide-react";
 import { categories } from "../data/mockData";
 import { useLivestockList } from "../../hooks/useLivestock";
 import { useFavorites, useToggleFavorite } from "../../hooks/useFavorites";
@@ -120,6 +120,30 @@ export function HomeFeed() {
               </Badge>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Services — BillPay quick access */}
+      <div className="px-4 pt-4">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Services</h2>
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {[
+            { label: 'ZESA', icon: <Zap className="w-5 h-5" />, color: 'bg-amber-100 text-amber-600' },
+            { label: 'Airtime', icon: <Phone className="w-5 h-5" />, color: 'bg-blue-100 text-blue-600' },
+            { label: 'School Fees', icon: <GraduationCap className="w-5 h-5" />, color: 'bg-purple-100 text-purple-600' },
+            { label: 'Water', icon: <Droplet className="w-5 h-5" />, color: 'bg-cyan-100 text-cyan-600' },
+          ].map((svc) => (
+            <button
+              key={svc.label}
+              onClick={() => navigate('/pay-bill')}
+              className="flex flex-col items-center gap-1.5 min-w-[72px] py-2 rounded-xl hover:bg-muted transition-colors active:scale-95"
+            >
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center ${svc.color}`}>
+                {svc.icon}
+              </div>
+              <span className="text-[11px] font-medium text-muted-foreground">{svc.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 

@@ -179,10 +179,26 @@ Deno.serve(async (req) => {
     }
 
     if (billpayData.Status === "BeingProcessed") {
+      const ref = billpayRequest.Reference as string;
+
+      // Save with pending status so we can track and reconcile later
+      await serviceClient.from("bill_payments").insert({
+        user_id: user.id,
+        reference: ref,
+        biller_code: billerCode,
+        biller_name: billerCode,
+        account_number: accountNumber,
+        account_holder: billpayData.MemberName || "Pending verification",
+        amount,
+        status: "pending",
+        billpay_reference: billpayData.BillPayReference,
+      });
+
       return jsonResponse({
         status: "processing",
         action: "pay",
-        message: "Payment is being processed. Check status in 3 minutes.",
+        reference: ref,
+        message: "Payment is being processed. You will be notified when it completes.",
         billpayReference: billpayData.BillPayReference,
       });
     }

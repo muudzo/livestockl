@@ -67,6 +67,7 @@ export function useBillPayPay() {
 
       if (error) throw new Error('BillPay service unavailable');
       if (data?.status === 'error') throw new Error(data.error);
+      // Pass through both 'ok' and 'processing' statuses to the UI
       return data;
     },
     onSuccess: () => {

@@ -18,6 +18,7 @@ const MessagesScreen = lazy(() => import('./components/MessagesScreen').then(m =
 const AgentDashboard = lazy(() => import('./components/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
 const AgentSetup = lazy(() => import('./components/AgentSetup').then(m => ({ default: m.AgentSetup })));
 const BillPayFlow = lazy(() => import('./components/BillPayFlow'));
+const TestBillPayPayment = lazy(() => import('./components/TestBillPayPayment'));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
@@ -81,6 +82,10 @@ export const router = createBrowserRouter([
       {
         path: "agents/new",
         element: <ProtectedRoute><LazyLoad><AgentSetup /></LazyLoad></ProtectedRoute>,
+      },
+      {
+        path: "test-billpay",
+        element: <LazyLoad><TestBillPayPayment /></LazyLoad>,
       },
       {
         path: "*",
