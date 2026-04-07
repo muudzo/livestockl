@@ -353,7 +353,7 @@ CREATE INDEX IF NOT EXISTS idx_conversations_last_msg
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created
   ON public.messages(conversation_id, created_at DESC);
 
--- Bill Payments (BillPay Vendor API integration)
+-- Bill Payments (BillPay Vendor API v1.33 integration)
 CREATE TABLE IF NOT EXISTS public.bill_payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES public.profiles(id),
@@ -363,8 +363,35 @@ CREATE TABLE IF NOT EXISTS public.bill_payments (
   account_number text NOT NULL,
   account_holder text,
   amount numeric NOT NULL CHECK (amount > 0),
-  status text DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed')),
+  total_amount numeric,
+  currency text DEFAULT 'USD',
+  requires_forex boolean DEFAULT false,
+  status text DEFAULT 'pending' CHECK (status IN (
+    'pending', 'authorized', 'being_processed', 'paid', 'failed', 'flagged', 'reversed'
+  )),
+  -- Paynow references
   billpay_reference text,
+  biller_payment_reference text,
+  wallet_debit_reference text,
+  -- Revenue tracking
+  vendor_commission numeric DEFAULT 0,
+  vendor_service_fee numeric DEFAULT 0,
+  vendor_service_fee_currency text,
+  -- Full API response data (JSONB)
+  products jsonb DEFAULT '[]',
+  auth_data jsonb,
+  vouchers jsonb DEFAULT '[]',
+  receipt_smses jsonb DEFAULT '[]',
+  receipt_html jsonb DEFAULT '[]',
+  display_data jsonb DEFAULT '{}',
+  payer_details jsonb,
+  -- User-facing narration (never expose TechnicalNarration)
+  narration text,
+  -- Reconciliation tracking
+  status_check_count integer DEFAULT 0,
+  last_status_check_at timestamptz,
+  flagged_at timestamptz,
+  -- Links
   linked_payment_id uuid REFERENCES public.payments(id),
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
@@ -372,6 +399,14 @@ CREATE TABLE IF NOT EXISTS public.bill_payments (
 
 CREATE INDEX IF NOT EXISTS idx_bill_payments_user ON public.bill_payments(user_id);
 CREATE INDEX IF NOT EXISTS idx_bill_payments_reference ON public.bill_payments(reference);
+CREATE INDEX IF NOT EXISTS idx_bill_payments_status ON public.bill_payments(status);
+CREATE INDEX IF NOT EXISTS idx_bill_payments_reconcile ON public.bill_payments(status, updated_at)
+  WHERE status IN ('being_processed', 'flagged');
+
+DROP TRIGGER IF EXISTS bill_payments_updated_at ON public.bill_payments;
+CREATE TRIGGER bill_payments_updated_at
+  BEFORE UPDATE ON public.bill_payments
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 ALTER TABLE public.bill_payments ENABLE ROW LEVEL SECURITY;
 
@@ -380,6 +415,29 @@ CREATE POLICY "Users can view own bill payments" ON public.bill_payments
 
 CREATE POLICY "Users can insert own bill payments" ON public.bill_payments
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Billers Cache (populated by billpay-billers Edge Function from ListBillers API)
+CREATE TABLE IF NOT EXISTS public.billers_cache (
+  biller_code text PRIMARY KEY,
+  biller_name text NOT NULL,
+  description text,
+  icon_url text,
+  logo_url text,
+  enabled boolean DEFAULT true,
+  member_number_field_label text,
+  member_number_field_desc text,
+  member_number_field_regex text,
+  allow_multiple_products boolean DEFAULT false,
+  vendor_must_invoice boolean DEFAULT false,
+  products jsonb DEFAULT '[]',
+  raw_config jsonb,
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.billers_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can read billers cache" ON public.billers_cache
+  FOR SELECT USING (auth.uid() IS NOT NULL);
 
 -- Prevent self-conversations
 ALTER TABLE public.conversations
