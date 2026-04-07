@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
+import { frontendLogger } from '../lib/logger';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -107,9 +108,14 @@ export const useAuthStore = create<AuthState>()(
         }
 
         set({ loading: true });
+        frontendLogger.info('auth_login_attempt', { email });
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         set({ loading: false });
-        if (error) throw error;
+        if (error) {
+          frontendLogger.error('auth_login_failed', { email, error: error.message });
+          throw error;
+        }
+        frontendLogger.info('auth_login_success', { email });
       },
 
       signup: async (email, password, meta) => {
@@ -135,16 +141,22 @@ export const useAuthStore = create<AuthState>()(
         }
 
         set({ loading: true });
+        frontendLogger.info('auth_signup_attempt', { email });
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: { data: meta },
         });
         set({ loading: false });
-        if (error) throw error;
+        if (error) {
+          frontendLogger.error('auth_signup_failed', { email, error: error.message });
+          throw error;
+        }
+        frontendLogger.info('auth_signup_success', { email });
       },
 
       logout: async () => {
+        frontendLogger.info('auth_logout');
         if (isSupabaseConfigured) {
           await supabase.auth.signOut();
         }

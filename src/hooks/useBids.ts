@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockLivestock } from '../app/data/mockData';
 import { useAuthStore } from '../stores/authStore';
+import { frontendLogger } from '../lib/logger';
 
 export function useBids(livestockId: string | undefined) {
   const queryClient = useQueryClient();
@@ -75,6 +76,8 @@ export function usePlaceBid() {
         return { id: 'mock-bid-' + Date.now(), amount };
       }
 
+      frontendLogger.info('bid_placed', { livestockId, amount, userId: user.id });
+
       // Use atomic database function for bid placement
       const { data, error } = await (supabase.rpc as any)('place_bid', {
         p_livestock_id: livestockId,
@@ -82,7 +85,10 @@ export function usePlaceBid() {
         p_amount: amount,
       });
 
-      if (error) throw error;
+      if (error) {
+        frontendLogger.error('bid_failed', { livestockId, amount, error: error.message });
+        throw error;
+      }
       return { id: data, amount };
     },
     onSuccess: (_, { livestockId }) => {

@@ -5,6 +5,7 @@ import { router } from "./routes";
 import { Toaster } from "./components/ui/sonner";
 import { useAuthStore } from "../stores/authStore";
 import { ConnectionStatus } from "./components/ConnectionStatus";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,11 +41,13 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthInitializer>
-        <RouterProvider router={router} />
-        <Toaster />
-      </AuthInitializer>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthInitializer>
+          <RouterProvider router={router} />
+          <Toaster />
+        </AuthInitializer>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

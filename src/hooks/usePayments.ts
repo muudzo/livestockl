@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockPayments } from '../app/data/mockData';
 import { useAuthStore } from '../stores/authStore';
+import { frontendLogger } from '../lib/logger';
 
 export function usePaymentHistory() {
   const user = useAuthStore((s) => s.user);
@@ -72,6 +73,7 @@ export function useInitiatePayment() {
       if (!user) throw new Error('Not authenticated');
 
       const reference = `ZL-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`.toUpperCase();
+      frontendLogger.info('payment_initiated', { livestockId, amount, method, reference });
 
       if (!isSupabaseConfigured) {
         return { reference, status: 'pending' as const };
@@ -118,11 +120,13 @@ export function useInitiatePayment() {
       });
 
       if (fnError) {
+        frontendLogger.error('payment_edge_function_failed', { reference, error: fnError.message });
         await supabase.from('payments').delete().eq('reference', reference);
         throw new Error('Payment service unavailable. Please try again.');
       }
 
       if (result?.error) {
+        frontendLogger.error('payment_provider_error', { reference, error: result.error, provider: result?.provider });
         await supabase.from('payments').delete().eq('reference', reference);
         throw new Error(result.error);
       }
@@ -186,8 +190,12 @@ export function useInitiatePayment() {
 
       return payment;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      frontendLogger.info('payment_created', { reference: data?.reference, method });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+    },
+    onError: (error: Error) => {
+      frontendLogger.error('payment_failed', { error: error.message });
     },
   });
 }
