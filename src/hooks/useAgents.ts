@@ -270,6 +270,8 @@ const ACTION_MAP: Record<AgentType, string> = {
 };
 
 // Run an agent (invoke Edge Function)
+// Note: Agent functions require CRON_SECRET auth — frontend calls will return 401.
+// Agents should be triggered via cron jobs or admin tools, not the UI.
 export function useRunAgent() {
   const queryClient = useQueryClient();
 

@@ -19,6 +19,15 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Auth gate: test endpoint requires CRON_SECRET — must not be public in production
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = Deno.env.get("CRON_SECRET");
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized — test endpoint" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   try {
     const { amount } = await req.json();
 
@@ -81,7 +90,7 @@ serve(async (req) => {
     );
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err.message, stack: err.stack }),
+      JSON.stringify({ error: err.message }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

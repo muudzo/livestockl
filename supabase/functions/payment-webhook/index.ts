@@ -121,12 +121,15 @@ Deno.serve(async (req) => {
       console.log("Paynow callback received:", params.reference, params.status);
 
       const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
-      if (integrationKey) {
-        const valid = await verifyPaynowHash(params, integrationKey);
-        if (!valid) {
-          console.error("Paynow hash verification failed for:", params.reference);
-          return new Response("Invalid hash", { status: 403 });
-        }
+      if (!integrationKey) {
+        console.error("PAYNOW_INTEGRATION_KEY not configured — refusing to process unverified webhook");
+        return new Response("Webhook verification not configured", { status: 500 });
+      }
+
+      const valid = await verifyPaynowHash(params, integrationKey);
+      if (!valid) {
+        console.error("Paynow hash verification failed for:", params.reference);
+        return new Response("Invalid hash", { status: 403 });
       }
 
       const reference = params.reference;
