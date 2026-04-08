@@ -294,6 +294,7 @@ export function BillPayFlow() {
                   step="0.01"
                   min={product?.MinAmount || 0.01}
                   max={product?.MaxAmount || undefined}
+                  className="h-14 text-xl font-semibold tracking-wide"
                   placeholder={
                     product?.MinAmount != null && product?.MaxAmount != null
                       ? `US$${product.MinAmount} – US$${product.MaxAmount}`

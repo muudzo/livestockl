@@ -402,7 +402,7 @@ export function PostListing() {
           <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">AUCTION DETAILS</h3>
           <div className="space-y-2">
             <Label htmlFor="price">Starting Price (US$)</Label>
-            <Input id="price" className="transition-all duration-200" type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} required disabled={isEditMode && hasBids} />
+            <Input id="price" className="h-14 text-xl font-semibold tracking-wide transition-all duration-200" type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} required disabled={isEditMode && hasBids} />
             {isEditMode && hasBids && (
               <p className="text-xs text-muted-foreground">Price cannot be changed after bids are placed</p>
             )}

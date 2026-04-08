@@ -170,7 +170,7 @@ export function AgentSetup() {
             <div>
               <label className="text-sm font-medium block mb-1">Max Price (US$)</label>
               <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="600" className="w-full px-3 py-2 border rounded-lg" />
+                placeholder="600" className="w-full px-4 py-3 border rounded-lg text-xl font-semibold tracking-wide" />
             </div>
             <div>
               <label className="text-sm font-medium block mb-1">Preferred Breed</label>
@@ -195,7 +195,7 @@ export function AgentSetup() {
             <div>
               <label className="text-sm font-medium block mb-1">Quantity</label>
               <input type="number" value={quantity} onChange={(e) => setQuantity(e.target.value)}
-                min="1" className="w-full px-3 py-2 border rounded-lg" />
+                min="1" className="w-full px-4 py-3 border rounded-lg text-lg font-semibold" />
             </div>
           </div>
 

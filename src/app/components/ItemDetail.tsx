@@ -322,13 +322,13 @@ export function ItemDetail() {
             <p className="text-sm text-muted-foreground">Minimum bid: US${minBid.toLocaleString()}</p>
             <div className="flex gap-2">
               <div className="flex-1 relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">US$</span>
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">US$</span>
                 <Input
                   type="number"
                   placeholder={minBid.toString()}
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
-                  className="pl-12 h-12 text-lg"
+                  className="pl-14 h-14 text-xl font-semibold tracking-wide"
                   aria-label="Enter bid amount in US dollars"
                 />
               </div>
