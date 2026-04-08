@@ -19,21 +19,24 @@ describe('useLivestockList', () => {
     const { result } = renderHook(() => useLivestockList(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.length).toBe(mockLivestock.length);
+    const items = result.current.data?.pages.flat();
+    expect(items?.length).toBe(mockLivestock.length);
   });
 
   it('returns all mock items when category is "All"', async () => {
     const { result } = renderHook(() => useLivestockList('All'), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data?.length).toBe(mockLivestock.length);
+    const items = result.current.data?.pages.flat();
+    expect(items?.length).toBe(mockLivestock.length);
   });
 
   it('filters by category correctly', async () => {
     const { result } = renderHook(() => useLivestockList('Cattle'), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    const allCattle = result.current.data?.every(item => item.category === 'Cattle');
+    const items = result.current.data?.pages.flat();
+    const allCattle = items?.every(item => item.category === 'Cattle');
     expect(allCattle).toBe(true);
   });
 });

@@ -17,7 +17,8 @@ export function HomeFeed() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: livestock, isLoading, error, refetch } = useLivestockList(selectedCategory);
+  const { data: livestockPages, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useLivestockList(selectedCategory);
+  const livestock = livestockPages?.pages.flat();
   const { data: favoriteIds = [] } = useFavorites();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const startConversation = useStartConversation();
@@ -279,6 +280,24 @@ export function HomeFeed() {
         );
         })()}
       </div>
+
+      {/* Load More */}
+      {hasNextPage && (
+        <div className="flex justify-center py-6">
+          <Button
+            variant="outline"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="min-h-[44px] px-8"
+          >
+            {isFetchingNextPage ? (
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading...</>
+            ) : (
+              'Load More Listings'
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

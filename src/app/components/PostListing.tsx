@@ -47,6 +47,7 @@ export function PostListing() {
     duration: '',
   });
   const [prefilled, setPrefilled] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Pre-fill form when editing
   useEffect(() => {
@@ -126,29 +127,27 @@ export function PostListing() {
       return;
     }
 
-    if (photos.length === 0) {
-      toast.error('Please add at least one photo');
-      return;
-    }
+    // Validate all fields with inline errors
+    const errors: Record<string, string> = {};
 
-    // Validate select fields
-    const requiredSelects: { field: keyof typeof formData; label: string }[] = [
-      { field: 'category', label: 'Category' },
-      { field: 'location', label: 'Location' },
-      { field: 'health', label: 'Health status' },
-      ...(!isEditMode ? [{ field: 'duration' as keyof typeof formData, label: 'Duration' }] : []),
-    ];
+    if (photos.length === 0) errors.photos = 'Add at least one photo';
+    if (!formData.title.trim()) errors.title = 'Title is required';
+    if (!formData.category) errors.category = 'Select a category';
+    if (!formData.breed.trim()) errors.breed = 'Breed is required';
+    if (!formData.location) errors.location = 'Select a location';
+    if (!formData.health) errors.health = 'Select health status';
+    if (!isEditMode && !formData.duration) errors.duration = 'Select auction duration';
 
-    const missingFields = requiredSelects.filter(({ field }) => !formData[field]).map(({ label }) => label);
-    if (missingFields.length > 0) {
-      toast.error(`Please select: ${missingFields.join(', ')}`);
-      return;
-    }
-
-    // Validate starting price
     const parsedPrice = parseFloat(formData.startingPrice);
-    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
-      toast.error('Starting price must be a positive number');
+    if (!formData.startingPrice) {
+      errors.startingPrice = 'Enter a starting price';
+    } else if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      errors.startingPrice = 'Must be a positive number';
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error('Please fix the highlighted fields');
       return;
     }
 
@@ -267,8 +266,8 @@ export function PostListing() {
 
       <form onSubmit={handleSubmit} className="p-4 space-y-8">
         <div>
-          <Label className="mb-3 block text-xs font-semibold text-slate-500 uppercase tracking-wider">PHOTOS</Label>
-          <div className="grid grid-cols-4 gap-2">
+          <Label className={`mb-3 block text-xs font-semibold uppercase tracking-wider ${fieldErrors.photos ? 'text-red-500' : 'text-slate-500'}`}>PHOTOS {fieldErrors.photos && `— ${fieldErrors.photos}`}</Label>
+          <div className={`grid grid-cols-4 gap-2 ${fieldErrors.photos ? 'ring-2 ring-red-500 rounded-xl p-1' : ''}`}>
             {photos.map((photo, index) => (
               <div key={index} className="relative aspect-square bg-muted rounded-xl overflow-hidden transition-transform duration-200 hover:scale-[1.02]">
                 <img src={photo} alt={`Listing photo ${index + 1}`} className="w-full h-full object-cover" />
@@ -300,7 +299,8 @@ export function PostListing() {
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">BASIC INFO</h3>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
-            <Input id="title" className="transition-all duration-200" placeholder="e.g., Ngoni Bull" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
+            <Input id="title" className={`transition-all duration-200 ${fieldErrors.title ? 'border-red-500' : ''}`} placeholder="e.g., Ngoni Bull" value={formData.title} onChange={(e) => { setFormData({ ...formData, title: e.target.value }); setFieldErrors(prev => ({ ...prev, title: '' })); }} required />
+            {fieldErrors.title && <p className="text-xs text-red-500 mt-1">{fieldErrors.title}</p>}
           </div>
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
@@ -402,7 +402,8 @@ export function PostListing() {
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">AUCTION DETAILS</h3>
           <div className="space-y-2">
             <Label htmlFor="price">Starting Price (US$)</Label>
-            <Input id="price" className="h-14 text-xl font-semibold tracking-wide transition-all duration-200" type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} required disabled={isEditMode && hasBids} />
+            <Input id="price" className={`h-14 text-xl font-semibold tracking-wide transition-all duration-200 ${fieldErrors.startingPrice ? 'border-red-500' : ''}`} type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => { setFormData({ ...formData, startingPrice: e.target.value }); setFieldErrors(prev => ({ ...prev, startingPrice: '' })); }} required disabled={isEditMode && hasBids} />
+            {fieldErrors.startingPrice && <p className="text-xs text-red-500 mt-1">{fieldErrors.startingPrice}</p>}
             {isEditMode && hasBids && (
               <p className="text-xs text-muted-foreground">Price cannot be changed after bids are placed</p>
             )}

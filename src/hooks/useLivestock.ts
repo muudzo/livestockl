@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockLivestock } from '../app/data/mockData';
@@ -7,14 +7,15 @@ import { useAuthStore } from '../stores/authStore';
 const PAGE_SIZE = 20;
 
 export function useLivestockList(category?: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['livestock', category],
-    queryFn: async () => {
+    initialPageParam: 0,
+    queryFn: async ({ pageParam = 0 }) => {
       if (!isSupabaseConfigured) {
         const items = category && category !== 'All'
           ? mockLivestock.filter(i => i.category === category)
           : mockLivestock;
-        return items;
+        return items.slice(pageParam, pageParam + PAGE_SIZE);
       }
 
       let query = supabase
@@ -22,7 +23,7 @@ export function useLivestockList(category?: string) {
         .select('*, profiles!seller_id(first_name, last_name, avatar_url, verified, rating, sales_count)')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(PAGE_SIZE);
+        .range(pageParam, pageParam + PAGE_SIZE - 1);
 
       if (category && category !== 'All') {
         query = query.eq('category', category);
@@ -30,7 +31,11 @@ export function useLivestockList(category?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data || [];
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      if (lastPage.length < PAGE_SIZE) return undefined; // No more pages
+      return allPages.flat().length; // Next offset
     },
   });
 }
