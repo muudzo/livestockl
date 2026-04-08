@@ -271,8 +271,11 @@ export function useDeleteListing() {
 // Compress image client-side before upload (saves Supabase Storage quota)
 async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> {
   return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
+      URL.revokeObjectURL(objectUrl); // Prevent memory leak
+
       const canvas = document.createElement('canvas');
       let { width, height } = img;
 
@@ -286,15 +289,22 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
       const ctx = canvas.getContext('2d');
       if (!ctx) { resolve(file); return; }
 
+      // Fill white background so PNGs with transparency don't get black bg
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
+
       canvas.toBlob(
         (blob) => blob ? resolve(blob) : resolve(file),
         'image/jpeg',
         quality
       );
     };
-    img.onerror = () => reject(new Error('Failed to load image for compression'));
-    img.src = URL.createObjectURL(file);
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image for compression'));
+    };
+    img.src = objectUrl;
   });
 }
 
