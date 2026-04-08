@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="108" fill="#15803d"/>
+
+  <!--
+    ZL Monogram — Bold interlocking mark.
+
+    Concept: The Z (white) and L (light green) share a vertical stroke.
+    The Z's diagonal weaves THROUGH the L's stem — the upper half of
+    the diagonal passes IN FRONT of the L stem, the lower half passes
+    BEHIND it. This creates a true interlock like woven fabric.
+
+    Layout (centered in 512x512):
+    - Z occupies left-center: x 72..320
+    - L occupies right-center: x 280..424, sharing the zone 280..320 with Z
+    - Vertical center of letterforms: y 96..400
+    - Stroke weight: 52px (reads well at 192px)
+  -->
+
+  <!-- === LAYER 1: L stem (behind Z diagonal upper half) === -->
+  <!-- L vertical stem -->
+  <rect x="280" y="96" width="52" height="304" fill="#4ade80"/>
+  <!-- L horizontal foot -->
+  <rect x="280" y="348" width="148" height="52" fill="#4ade80"/>
+
+  <!-- === LAYER 2: Z letter === -->
+  <!-- Z top horizontal bar -->
+  <rect x="72" y="96" width="260" height="52" fill="#ffffff"/>
+  <!-- Z diagonal — FULL diagonal, white -->
+  <polygon points="280,148 332,148 124,348 72,348" fill="#ffffff"/>
+  <!-- Z bottom horizontal bar -->
+  <rect x="72" y="348" width="260" height="52" fill="#ffffff"/>
+
+  <!-- === LAYER 3: Interlock illusion === -->
+  <!-- L stem segment that passes IN FRONT of Z diagonal (lower portion) -->
+  <!-- This covers the diagonal from midpoint down, creating the weave -->
+  <rect x="280" y="256" width="52" height="92" fill="#4ade80"/>
+
+  <!-- === LAYER 4: Intersection accent === -->
+  <!-- Where Z diagonal crosses behind L stem (upper crossing) — dark green peek -->
+  <rect x="280" y="172" width="52" height="84" fill="#0d6b3a"/>
+  <!-- Where L stem crosses in front of Z diagonal (lower crossing) — stays #4ade80 (already drawn) -->
+
+  <!-- === Accent underline === -->
+  <rect x="72" y="420" width="356" height="10" rx="5" fill="#4ade80"/>
+</svg>
