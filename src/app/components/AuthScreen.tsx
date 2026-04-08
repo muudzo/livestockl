@@ -67,8 +67,8 @@ export function AuthScreen() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-50 to-amber-50">
       <Card className="w-full max-w-md shadow-lg rounded-xl">
         <CardHeader className="text-center">
-          <div className="text-3xl font-bold tracking-tight mb-1 text-emerald-700">ZL</div>
-          <CardTitle className="text-2xl font-bold">ZimLivestock</CardTitle>
+          <img src="/icons/icon-192x192.png" alt="Mimoo" className="w-16 h-16 mx-auto mb-1 rounded-xl" />
+          <CardTitle className="text-2xl font-bold">Mimoo</CardTitle>
           <CardDescription>Your livestock marketplace</CardDescription>
         </CardHeader>
         <CardContent>

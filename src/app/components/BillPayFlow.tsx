@@ -224,7 +224,7 @@ export function BillPayFlow() {
         {/* ── STEP 1: Select Biller ── */}
         {step === 'select' && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Pay bills directly from your ZimLivestock account</p>
+            <p className="text-sm text-muted-foreground">Pay bills directly from your Mimoo account</p>
             {billersLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
