@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 
 vi.mock('../lib/supabase', () => import('../test/mocks/supabase'));
+vi.mock('../lib/logger', () => import('../test/mocks/logger'));
 
 import { useBids, usePlaceBid } from './useBids';
 import { useAuthStore } from '../stores/authStore';
