@@ -75,7 +75,8 @@
     "express": "^5.2.1",
     "paynow": "^2.2.2",
     "tailwindcss": "4.1.12",
-    "vite": "6.3.5"
+    "vite": "6.3.5",
+    "vite-plugin-pwa": "^1.2.0"
   },
   "pnpm": {
     "overrides": {
