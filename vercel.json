@@ -4,5 +4,15 @@
   "framework": "vite",
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/end-auctions",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/billpay-reconcile",
+      "schedule": "*/10 * * * *"
+    }
   ]
 }
