@@ -75,7 +75,7 @@ create table if not exists public.payments (
   user_id uuid not null references public.profiles(id),
   livestock_id uuid not null references public.livestock_items(id),
   reference text unique not null,
-  amount numeric not null check (amount > 0),
+  amount numeric not null check (amount > 0 and amount <= 100000),
   method text not null check (method in ('EcoCash', 'OneMoney', 'Card')),
   status text default 'pending' check (status in ('pending', 'paid', 'failed')),
   paynow_reference text,
@@ -126,6 +126,7 @@ returns uuid as $$
 declare
   v_item record;
   v_bid_id uuid;
+  v_prev_bidder record;
 begin
   -- Verify the caller is the user they claim to be (prevents RLS bypass)
   IF p_user_id != auth.uid() THEN
@@ -174,6 +175,26 @@ begin
   set current_bid = p_amount,
       bid_count = bid_count + 1
   where id = p_livestock_id;
+
+  -- Notify seller that a new bid was placed
+  insert into public.notifications (user_id, type, title, message, priority)
+  values (v_item.seller_id, 'bid', 'New bid on your listing',
+          'Someone bid US$' || p_amount || ' on ' || v_item.title,
+          'medium');
+
+  -- Notify all previous bidders (excluding the current bidder) that they've been outbid
+  for v_prev_bidder in
+    select distinct on (user_id) user_id
+    from public.bids
+    where livestock_id = p_livestock_id
+      and user_id != p_user_id
+      and id != v_bid_id
+  loop
+    insert into public.notifications (user_id, type, title, message, priority)
+    values (v_prev_bidder.user_id, 'bid', 'You''ve been outbid!',
+            'A new bid of US$' || p_amount || ' was placed on ' || v_item.title || '. Place a higher bid to stay in the race!',
+            'high');
+  end loop;
 
   return v_bid_id;
 end;
@@ -353,6 +374,92 @@ CREATE INDEX IF NOT EXISTS idx_conversations_last_msg
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_created
   ON public.messages(conversation_id, created_at DESC);
 
+-- Bill Payments (BillPay Vendor API v1.33 integration)
+CREATE TABLE IF NOT EXISTS public.bill_payments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id),
+  reference text UNIQUE NOT NULL,
+  biller_code text NOT NULL,
+  biller_name text NOT NULL,
+  account_number text NOT NULL,
+  account_holder text,
+  amount numeric NOT NULL CHECK (amount > 0 AND amount <= 100000),
+  total_amount numeric,
+  currency text DEFAULT 'USD',
+  requires_forex boolean DEFAULT false,
+  status text DEFAULT 'pending' CHECK (status IN (
+    'pending', 'authorized', 'being_processed', 'paid', 'failed', 'flagged', 'reversed'
+  )),
+  -- Paynow references
+  billpay_reference text,
+  biller_payment_reference text,
+  wallet_debit_reference text,
+  -- Revenue tracking
+  vendor_commission numeric DEFAULT 0,
+  vendor_service_fee numeric DEFAULT 0,
+  vendor_service_fee_currency text,
+  -- Full API response data (JSONB)
+  products jsonb DEFAULT '[]',
+  auth_data jsonb,
+  vouchers jsonb DEFAULT '[]',
+  receipt_smses jsonb DEFAULT '[]',
+  receipt_html jsonb DEFAULT '[]',
+  display_data jsonb DEFAULT '{}',
+  payer_details jsonb,
+  -- User-facing narration (never expose TechnicalNarration)
+  narration text,
+  -- Reconciliation tracking
+  status_check_count integer DEFAULT 0,
+  last_status_check_at timestamptz,
+  flagged_at timestamptz,
+  -- Links
+  linked_payment_id uuid REFERENCES public.payments(id),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bill_payments_user ON public.bill_payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_bill_payments_reference ON public.bill_payments(reference);
+CREATE INDEX IF NOT EXISTS idx_bill_payments_status ON public.bill_payments(status);
+CREATE INDEX IF NOT EXISTS idx_bill_payments_reconcile ON public.bill_payments(status, updated_at)
+  WHERE status IN ('being_processed', 'flagged');
+
+DROP TRIGGER IF EXISTS bill_payments_updated_at ON public.bill_payments;
+CREATE TRIGGER bill_payments_updated_at
+  BEFORE UPDATE ON public.bill_payments
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+ALTER TABLE public.bill_payments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own bill payments" ON public.bill_payments
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own bill payments" ON public.bill_payments
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Billers Cache (populated by billpay-billers Edge Function from ListBillers API)
+CREATE TABLE IF NOT EXISTS public.billers_cache (
+  biller_code text PRIMARY KEY,
+  biller_name text NOT NULL,
+  description text,
+  icon_url text,
+  logo_url text,
+  enabled boolean DEFAULT true,
+  member_number_field_label text,
+  member_number_field_desc text,
+  member_number_field_regex text,
+  allow_multiple_products boolean DEFAULT false,
+  vendor_must_invoice boolean DEFAULT false,
+  products jsonb DEFAULT '[]',
+  raw_config jsonb,
+  updated_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.billers_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can read billers cache" ON public.billers_cache
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
 -- Prevent self-conversations
 ALTER TABLE public.conversations
   ADD CONSTRAINT no_self_conversation
@@ -368,3 +475,207 @@ BEGIN
     WHERE id = p_item_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================
+-- Agent Tables (AI Buyer/Seller/Sniper/Market Intel)
+-- All tables locked to service_role only. Frontend reads go
+-- through authenticated user policies where appropriate.
+-- ============================================================
+
+-- Agents (one per user per type)
+CREATE TABLE IF NOT EXISTS public.agents (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  agent_type text NOT NULL CHECK (agent_type IN ('buyer', 'seller', 'market_intel', 'sniper')),
+  name text NOT NULL,
+  status text DEFAULT 'paused' CHECK (status IN ('active', 'paused', 'stopped')),
+  config jsonb DEFAULT '{}',
+  stats jsonb DEFAULT '{"total_actions": 0, "total_spent": 0, "total_bids": 0, "wins": 0}',
+  last_run_at timestamptz,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agents_user ON public.agents(user_id);
+CREATE INDEX IF NOT EXISTS idx_agents_type_status ON public.agents(agent_type, status);
+
+ALTER TABLE public.agents ENABLE ROW LEVEL SECURITY;
+
+-- Users can view and manage their own agents
+CREATE POLICY "Users can view own agents" ON public.agents
+  FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can create own agents" ON public.agents
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own agents" ON public.agents
+  FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own agents" ON public.agents
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Agent Goals (what the agent is looking for)
+CREATE TABLE IF NOT EXISTS public.agent_goals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES public.agents(id) ON DELETE CASCADE,
+  category text NOT NULL CHECK (category IN ('Cattle', 'Goats', 'Sheep', 'Pigs', 'Poultry', 'Other')),
+  preferred_breed text,
+  preferred_location text,
+  min_health text DEFAULT 'Good' CHECK (min_health IN ('Excellent', 'Good', 'Fair')),
+  max_price numeric NOT NULL CHECK (max_price > 0 AND max_price <= 100000),
+  quantity integer NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  quantity_fulfilled integer DEFAULT 0,
+  status text DEFAULT 'active' CHECK (status IN ('active', 'fulfilled', 'cancelled')),
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_goals_agent ON public.agent_goals(agent_id);
+
+ALTER TABLE public.agent_goals ENABLE ROW LEVEL SECURITY;
+
+-- Goals visible to agent owner only
+CREATE POLICY "Users can view own agent goals" ON public.agent_goals
+  FOR SELECT USING (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+CREATE POLICY "Users can manage own agent goals" ON public.agent_goals
+  FOR INSERT WITH CHECK (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+CREATE POLICY "Users can update own agent goals" ON public.agent_goals
+  FOR UPDATE USING (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+CREATE POLICY "Users can delete own agent goals" ON public.agent_goals
+  FOR DELETE USING (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+
+-- Agent Bids (tracking which bids the agent placed)
+CREATE TABLE IF NOT EXISTS public.agent_bids (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES public.agents(id) ON DELETE CASCADE,
+  goal_id uuid REFERENCES public.agent_goals(id) ON DELETE SET NULL,
+  livestock_id uuid NOT NULL REFERENCES public.livestock_items(id) ON DELETE CASCADE,
+  bid_id uuid REFERENCES public.bids(id) ON DELETE SET NULL,
+  amount numeric NOT NULL CHECK (amount > 0),
+  strategy text NOT NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_bids_agent ON public.agent_bids(agent_id);
+CREATE INDEX IF NOT EXISTS idx_agent_bids_livestock ON public.agent_bids(livestock_id);
+
+ALTER TABLE public.agent_bids ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own agent bids" ON public.agent_bids
+  FOR SELECT USING (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+-- INSERT/UPDATE/DELETE restricted to service role (via Edge Functions)
+
+-- Agent Activity Log
+CREATE TABLE IF NOT EXISTS public.agent_activity_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES public.agents(id) ON DELETE CASCADE,
+  event_type text NOT NULL,
+  message text NOT NULL,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_activity_agent ON public.agent_activity_log(agent_id, created_at DESC);
+
+ALTER TABLE public.agent_activity_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own agent activity" ON public.agent_activity_log
+  FOR SELECT USING (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+-- INSERT/UPDATE/DELETE restricted to service role (via Edge Functions)
+
+-- Agent Decisions (reasoning trail)
+CREATE TABLE IF NOT EXISTS public.agent_decisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES public.agents(id) ON DELETE CASCADE,
+  goal_id uuid REFERENCES public.agent_goals(id) ON DELETE SET NULL,
+  livestock_id uuid REFERENCES public.livestock_items(id) ON DELETE SET NULL,
+  decision text NOT NULL CHECK (decision IN ('bid', 'skip', 'watch', 'buy_now')),
+  reasoning text NOT NULL,
+  confidence numeric CHECK (confidence >= 0 AND confidence <= 1),
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_decisions_agent ON public.agent_decisions(agent_id, created_at DESC);
+
+ALTER TABLE public.agent_decisions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own agent decisions" ON public.agent_decisions
+  FOR SELECT USING (
+    agent_id IN (SELECT id FROM public.agents WHERE user_id = auth.uid())
+  );
+
+-- Agent Payment Orders (agent-initiated payments)
+CREATE TABLE IF NOT EXISTS public.agent_payment_orders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid NOT NULL REFERENCES public.agents(id) ON DELETE CASCADE,
+  livestock_id uuid NOT NULL REFERENCES public.livestock_items(id),
+  user_id uuid NOT NULL REFERENCES public.profiles(id),
+  amount numeric NOT NULL CHECK (amount > 0 AND amount <= 100000),
+  status text DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed', 'cancelled')),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_payment_orders_agent ON public.agent_payment_orders(agent_id);
+CREATE INDEX IF NOT EXISTS idx_agent_payment_orders_status ON public.agent_payment_orders(status);
+
+ALTER TABLE public.agent_payment_orders ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own agent payment orders" ON public.agent_payment_orders
+  FOR SELECT USING (auth.uid() = user_id);
+-- INSERT/UPDATE/DELETE restricted to service role
+
+-- Settlement Ledger (audit trail for all payment state transitions)
+CREATE TABLE IF NOT EXISTS public.settlement_ledger (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  payment_order_id uuid REFERENCES public.agent_payment_orders(id) ON DELETE CASCADE,
+  event text NOT NULL,
+  provider text,
+  amount numeric,
+  metadata jsonb DEFAULT '{}',
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_settlement_ledger_order ON public.settlement_ledger(payment_order_id);
+
+ALTER TABLE public.settlement_ledger ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own settlement entries" ON public.settlement_ledger
+  FOR SELECT USING (
+    payment_order_id IN (
+      SELECT id FROM public.agent_payment_orders WHERE user_id = auth.uid()
+    )
+  );
+-- INSERT/UPDATE/DELETE restricted to service role
+
+-- Market Intel (public — intentionally readable by all)
+CREATE TABLE IF NOT EXISTS public.market_intel (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  agent_id uuid REFERENCES public.agents(id) ON DELETE SET NULL,
+  category text,
+  report_type text NOT NULL,
+  data jsonb NOT NULL DEFAULT '{}',
+  period_start timestamptz,
+  period_end timestamptz,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_market_intel_period ON public.market_intel(period_end DESC);
+
+ALTER TABLE public.market_intel ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Market intel is public" ON public.market_intel
+  FOR SELECT USING (true);
+-- INSERT/UPDATE/DELETE restricted to service role
+
+-- Enable realtime for agent activity log (used by frontend dashboard)
+ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_activity_log;

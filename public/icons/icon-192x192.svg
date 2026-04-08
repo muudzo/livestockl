@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="108" fill="#15803d"/>
+  <!-- L stem (base layer) -->
+  <rect x="280" y="96" width="52" height="304" fill="#4ade80"/>
+  <rect x="280" y="348" width="148" height="52" fill="#4ade80"/>
+  <!-- Z letter -->
+  <rect x="72" y="96" width="260" height="52" fill="#ffffff"/>
+  <polygon points="280,148 332,148 124,348 72,348" fill="#ffffff"/>
+  <rect x="72" y="348" width="260" height="52" fill="#ffffff"/>
+  <!-- Interlock: L stem front segment (lower crossing) -->
+  <rect x="280" y="256" width="52" height="92" fill="#4ade80"/>
+  <!-- Interlock: dark accent at upper crossing -->
+  <rect x="280" y="172" width="52" height="84" fill="#0d6b3a"/>
+  <!-- Accent underline -->
+  <rect x="72" y="420" width="356" height="10" rx="5" fill="#4ade80"/>
+</svg>

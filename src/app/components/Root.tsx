@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Plus, List, Bell, LogOut, ChevronRight } from "lucide-react";
+import { Plus, List, Bell, LogOut, ChevronRight, Zap } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
+import { TawkToChat } from "./TawkToChat";
 
 export function Root() {
   const location = useLocation();
@@ -22,6 +23,7 @@ export function Root() {
   const secondaryNav = [
     { icon: Plus, label: 'Post a listing', path: '/post' },
     { icon: List, label: 'My listings', path: '/my-listings' },
+    { icon: Zap, label: 'Pay Bills', path: '/pay-bill' },
     { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount || 0 },
   ];
 
@@ -41,6 +43,7 @@ export function Root() {
 
   return (
     <div className="h-screen flex flex-col bg-background max-w-[480px] mx-auto">
+      <TawkToChat />
       <div className="flex-1 overflow-y-auto">
         <Outlet />
       </div>
@@ -58,8 +61,8 @@ export function Root() {
                 aria-current={active ? 'page' : undefined}
                 className={`flex-1 text-center py-3 transition-all ${
                   active
-                    ? 'text-foreground font-bold text-[13px]'
-                    : 'text-muted-foreground/40 font-medium text-[12px] hover:text-muted-foreground/70'
+                    ? 'text-foreground font-bold text-[14px]'
+                    : 'text-muted-foreground/60 font-medium text-[13px] hover:text-muted-foreground/80'
                 }`}
               >
                 {item.label}

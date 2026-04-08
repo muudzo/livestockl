@@ -8,3 +8,4 @@ dist
 # Confidential API docs (not for public repo)
 docs/paynow-billpay-vendor-api.md
 docs/txt-co-zw-sms-api.md
+.vercel

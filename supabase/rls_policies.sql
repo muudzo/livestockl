@@ -119,7 +119,7 @@ create policy "Users can view own conversations"
 
 create policy "Users can create conversations they are part of"
   on public.conversations for insert
-  with check (auth.uid() = participant_1);
+  with check (auth.uid() = participant_1 or auth.uid() = participant_2);
 
 create policy "Users can update own conversations"
   on public.conversations for update

@@ -4,6 +4,7 @@ import { Loader2, CheckCircle, XCircle } from "lucide-react";
 import { usePaymentStatus } from "../../hooks/usePayments";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { Button } from "./ui/button";
+import { PostSaleBillPayPrompt } from "./PostSaleBillPayPrompt";
 
 type Status = 'pending' | 'success' | 'failed';
 
@@ -98,6 +99,8 @@ export function PaymentStatus() {
         {status === 'failed' && (
           <Button onClick={() => navigate(-1)} className="w-full mt-3">Try Again</Button>
         )}
+
+        {status === 'success' && <PostSaleBillPayPrompt />}
       </div>
     </div>
   );

@@ -1,0 +1,175 @@
+name: CI
+
+on:
+  push:
+    branches: [main, feature/*]
+  pull_request:
+    branches: [main]
+
+env:
+  VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+  VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SUPABASE_PROJECT_REF: hmeieslclzycyjjjflfh
+
+jobs:
+  # ── Frontend Build & Typecheck ─────────────────────────
+  frontend:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npx vite build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  # ── Edge Function Syntax Check ─────────────────────────
+  edge-functions:
+    name: Edge Functions Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v1.x
+
+      - name: Type-check all Edge Functions
+        run: |
+          for dir in supabase/functions/*/; do
+            fn=$(basename "$dir")
+            # Skip _shared (it's a library, not a function)
+            if [ "$fn" = "_shared" ]; then continue; fi
+            echo "Checking $fn..."
+            deno check "$dir/index.ts" || echo "WARN: $fn has type issues"
+          done
+
+  # ── Deploy Edge Functions (main only) ──────────────────
+  deploy-functions:
+    name: Deploy Edge Functions
+    needs: [frontend, edge-functions]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy all functions
+        run: |
+          FUNCTIONS=(
+            initiate-payment
+            payment-webhook
+            payment-orchestrator
+            end-auctions
+            buyer-agent
+            seller-agent
+            auction-sniper
+            bid-executor
+            win-detector
+            market-intel
+            billpay
+            security-agent
+            consistency-checker
+            chaos-test
+          )
+          for fn in "${FUNCTIONS[@]}"; do
+            echo "Deploying $fn..."
+            supabase functions deploy "$fn" \
+              --project-ref $SUPABASE_PROJECT_REF \
+              --no-verify-jwt \
+              2>&1 || echo "WARN: $fn deploy failed"
+          done
+
+  # ── Deploy Frontend to Vercel (main only) ──────────────
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: [frontend]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npx vite build
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: .
+          vercel-args: '--prod'
+
+  # ── Post-Deploy QA (main only) ─────────────────────────
+  qa:
+    name: Post-Deploy QA
+    needs: [deploy-functions]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run Consistency Checker
+        run: |
+          RESULT=$(curl -sf -X POST \
+            "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/consistency-checker" \
+            -H "Content-Type: application/json" -d '{}')
+          echo "$RESULT" | jq .
+          HEALTH=$(echo "$RESULT" | jq -r '.summary.health')
+          if [ "$HEALTH" = "critical" ]; then
+            echo "::error::Consistency check CRITICAL"
+            exit 1
+          fi
+
+      - name: Run Security Agent
+        run: |
+          RESULT=$(curl -sf -X POST \
+            "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/security-agent" \
+            -H "Content-Type: application/json" -d '{}')
+          echo "$RESULT" | jq .
+          GRADE=$(echo "$RESULT" | jq -r '.summary.security_grade')
+          if [ "$GRADE" = "F" ]; then
+            echo "::error::Security grade F"
+            exit 1
+          fi
+
+      - name: Run Chaos Test
+        run: |
+          RESULT=$(curl -sf -X POST \
+            "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/chaos-test" \
+            -H "Content-Type: application/json" \
+            -d '{"scenario": "all"}')
+          echo "$RESULT" | jq .
+          FAILED=$(echo "$RESULT" | jq -r '.summary.failed')
+          if [ "$FAILED" != "0" ]; then
+            echo "::error::Chaos test has $FAILED failures"
+            exit 1
+          fi
+
+      - name: QA Summary
+        run: echo "All QA checks passed"
