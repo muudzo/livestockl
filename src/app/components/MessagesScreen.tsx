@@ -249,7 +249,7 @@ function ChatView({ conversationId }: { conversationId: string }) {
                 >
                   <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
                   <p
-                    className={`text-[10px] mt-1 ${
+                    className={`text-[11px] mt-1 ${
                       isOwn ? 'text-white/70' : 'text-muted-foreground'
                     }`}
                   >

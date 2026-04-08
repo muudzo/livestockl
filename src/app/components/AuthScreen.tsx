@@ -108,7 +108,7 @@ export function AuthScreen() {
                 <div className="text-right">
                   <button
                     type="button"
-                    className="text-xs text-emerald-600 hover:text-emerald-700 hover:underline"
+                    className="text-sm text-emerald-600 hover:text-emerald-700 hover:underline py-2"
                     onClick={() => setShowForgotPassword(!showForgotPassword)}
                   >
                     Forgot password?
@@ -123,6 +123,7 @@ export function AuthScreen() {
                         <Input
                           type="email"
                           placeholder="Enter your email"
+                          aria-label="Email address for password reset"
                           value={resetEmail}
                           onChange={(e) => setResetEmail(e.target.value)}
                           className="transition-all duration-200"
@@ -224,9 +225,9 @@ export function AuthScreen() {
         <CardFooter className="text-center text-sm text-muted-foreground">
           <p className="w-full">
             By continuing, you agree to our{' '}
-            <a href="#" className="text-emerald-600 hover:underline">Terms</a>
+            <a href="#" className="text-emerald-600 hover:underline inline-block py-1">Terms</a>
             {' & '}
-            <a href="#" className="text-emerald-600 hover:underline">Privacy</a>
+            <a href="#" className="text-emerald-600 hover:underline inline-block py-1">Privacy</a>
           </p>
         </CardFooter>
       </Card>

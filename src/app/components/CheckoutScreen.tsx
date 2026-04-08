@@ -181,7 +181,7 @@ export function CheckoutScreen() {
 
       <div className="p-4 space-y-6 pb-32">
         <div>
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Order Summary</h2>
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Order Summary</h2>
           <div className="bg-card border rounded-xl p-4 flex gap-3">
             <div className="w-20 h-20 bg-muted rounded-lg overflow-hidden flex-shrink-0">
               <img src={imageUrl} alt={item.title} className="w-full h-full object-cover" />
@@ -213,7 +213,7 @@ export function CheckoutScreen() {
         <Separator className="my-6" />
 
         <div>
-          <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Payment Method</h2>
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Payment Method</h2>
           <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
             <div className="space-y-3">
               <label htmlFor="ecocash" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'ecocash' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>

@@ -59,10 +59,10 @@ export function Root() {
                 onClick={() => handleNav(item.path)}
                 aria-label={item.label}
                 aria-current={active ? 'page' : undefined}
-                className={`flex-1 text-center py-3 transition-all ${
+                className={`flex-1 text-center py-3 min-h-[44px] transition-all ${
                   active
                     ? 'text-foreground font-bold text-[14px]'
-                    : 'text-muted-foreground/60 font-medium text-[13px] hover:text-muted-foreground/80'
+                    : 'text-muted-foreground font-medium text-[13px] hover:text-foreground/80'
                 }`}
               >
                 {item.label}
@@ -74,10 +74,10 @@ export function Root() {
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="More options"
-            className={`flex-1 text-center py-3 relative transition-all ${
+            className={`flex-1 text-center py-3 min-h-[44px] relative transition-all ${
               menuOpen
                 ? 'text-foreground font-bold text-[13px]'
-                : 'text-muted-foreground/40 font-medium text-[12px] hover:text-muted-foreground/70'
+                : 'text-muted-foreground font-medium text-[12px] hover:text-foreground/80'
             }`}
           >
             {!menuOpen && unreadCount && unreadCount > 0 && (
@@ -101,7 +101,7 @@ export function Root() {
               {user && (
                 <div className="px-5 pt-5 pb-4">
                   <p className="text-base font-bold tracking-tight leading-none">{user.first_name} {user.last_name}</p>
-                  <p className="text-[11px] text-muted-foreground/50 mt-1 font-mono">{user.email}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1 font-mono">{user.email}</p>
                 </div>
               )}
 
@@ -117,7 +117,7 @@ export function Root() {
                     className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-foreground/[0.02] transition-colors group"
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className="w-3.5 h-3.5 text-muted-foreground/40" strokeWidth={1.5} />
+                      <Icon className="w-3.5 h-3.5 text-muted-foreground" strokeWidth={1.5} />
                       <span className="text-[13px] text-foreground/80 group-hover:text-foreground transition-colors">{item.label}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -126,7 +126,7 @@ export function Root() {
                           {item.badge}
                         </span>
                       )}
-                      <ChevronRight className="w-3 h-3 text-muted-foreground/20" />
+                      <ChevronRight className="w-3 h-3 text-muted-foreground" />
                     </div>
                   </button>
                 );
@@ -138,7 +138,7 @@ export function Root() {
               {user && (
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left text-muted-foreground/40 hover:text-foreground/60 transition-colors"
+                  className="w-full flex items-center gap-3 px-5 py-3.5 text-left text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
                   <span className="text-[13px]">Log out</span>

@@ -267,7 +267,7 @@ export function PostListing() {
 
       <form onSubmit={handleSubmit} className="p-4 space-y-8">
         <div>
-          <Label className="mb-3 block text-xs font-semibold text-slate-400 uppercase tracking-wider">PHOTOS</Label>
+          <Label className="mb-3 block text-xs font-semibold text-slate-500 uppercase tracking-wider">PHOTOS</Label>
           <div className="grid grid-cols-4 gap-2">
             {photos.map((photo, index) => (
               <div key={index} className="relative aspect-square bg-muted rounded-xl overflow-hidden transition-transform duration-200 hover:scale-[1.02]">
@@ -276,7 +276,7 @@ export function PostListing() {
                   type="button"
                   onClick={() => handlePhotoRemove(index)}
                   aria-label={`Remove photo ${index + 1}`}
-                  className="absolute top-1 right-1 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
+                  className="absolute top-1 right-1 w-9 h-9 bg-red-500 text-white rounded-full flex items-center justify-center transition-all duration-150 active:scale-90"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -297,7 +297,7 @@ export function PostListing() {
         </div>
 
         <div className="space-y-5">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">BASIC INFO</h3>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">BASIC INFO</h3>
           <div className="space-y-2">
             <Label htmlFor="title">Title</Label>
             <Input id="title" className="transition-all duration-200" placeholder="e.g., Ngoni Bull" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} required />
@@ -332,7 +332,7 @@ export function PostListing() {
         </div>
 
         <div className="space-y-5">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">LOCATION & HEALTH</h3>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">LOCATION & HEALTH</h3>
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
             <Select value={formData.location} onValueChange={(v) => setFormData({ ...formData, location: v })}>
@@ -366,7 +366,7 @@ export function PostListing() {
                     setStockCardFile(null);
                     setStockCardPreview(null);
                   }}
-                  className="w-7 h-7 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0"
+                  className="w-9 h-9 bg-red-100 text-red-600 rounded-full flex items-center justify-center shrink-0"
                   aria-label="Remove stock card"
                 >
                   <X className="w-4 h-4" />
@@ -399,7 +399,7 @@ export function PostListing() {
         </div>
 
         <div className="space-y-5">
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">AUCTION DETAILS</h3>
+          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">AUCTION DETAILS</h3>
           <div className="space-y-2">
             <Label htmlFor="price">Starting Price (US$)</Label>
             <Input id="price" className="h-14 text-xl font-semibold tracking-wide transition-all duration-200" type="number" placeholder="e.g., 800" value={formData.startingPrice} onChange={(e) => setFormData({ ...formData, startingPrice: e.target.value })} required disabled={isEditMode && hasBids} />

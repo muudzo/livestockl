@@ -215,7 +215,7 @@ export function BillPayFlow() {
       <div className="p-4">
         {/* Step progress */}
         {(step === 'details' || step === 'confirm') && (
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-6" role="progressbar" aria-valuenow={step === 'confirm' ? 2 : 1} aria-valuemin={1} aria-valuemax={2} aria-label={`Step ${step === 'confirm' ? '2' : '1'} of 2`}>
             <div className={`h-1 flex-1 rounded-full ${step === 'details' || step === 'confirm' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
             <div className={`h-1 flex-1 rounded-full ${step === 'confirm' ? 'bg-emerald-500' : 'bg-slate-200'}`} />
           </div>
@@ -230,12 +230,12 @@ export function BillPayFlow() {
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
             ) : !billers || billers.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12" role="alert">
                 <p className="font-semibold text-slate-700">No billers available</p>
-                <p className="text-sm text-slate-500 mt-1">Unable to load billers right now.</p>
+                <p className="text-sm text-slate-500 mt-1">Unable to load billers right now. Check your connection.</p>
                 <button
                   onClick={() => window.location.reload()}
-                  className="mt-4 px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 active:scale-95 transition-all"
+                  className="mt-4 px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 active:scale-95 transition-all min-h-[44px]"
                 >
                   Try Again
                 </button>
@@ -508,8 +508,8 @@ export function BillPayFlow() {
                           </p>
                           <button
                             onClick={() => copyToClipboard(v.VoucherCode || v.Pin)}
-                            className="p-2.5 hover:bg-emerald-100 rounded-lg"
-                            aria-label="Copy token"
+                            className="p-3 hover:bg-emerald-100 rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+                            aria-label="Copy token to clipboard"
                           >
                             <Copy className="w-5 h-5 text-emerald-600" />
                           </button>

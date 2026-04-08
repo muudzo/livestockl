@@ -78,7 +78,7 @@ export function MyListings() {
             <div className="text-center py-16">
               <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <p className="text-muted-foreground mb-1 font-medium">No listings yet</p>
-              <p className="text-sm text-slate-400 mb-5">Start selling by posting your first livestock listing</p>
+              <p className="text-sm text-slate-500 mb-5">Start selling by posting your first livestock listing</p>
               <Button onClick={() => navigate('/post')}>Post Your First Listing</Button>
             </div>
           ) : (
@@ -94,7 +94,7 @@ export function MyListings() {
                     <Badge className={item.status === 'active' ? 'bg-emerald-600 hover:bg-emerald-600 text-white' : 'bg-slate-400 hover:bg-slate-400 text-white'}>
                       {item.status === 'active' ? 'Active' : 'Ended'}
                     </Badge>
-                    <p className="text-sm text-slate-400 mt-1">{getBidCount(item)} bids • {getViewCount(item)} views</p>
+                    <p className="text-sm text-slate-500 mt-1">{getBidCount(item)} bids • {getViewCount(item)} views</p>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
@@ -140,7 +140,7 @@ export function MyListings() {
             <div className="text-center py-16">
               <Trophy className="w-12 h-12 text-slate-300 mx-auto mb-3" />
               <p className="text-muted-foreground mb-1 font-medium">No wins yet</p>
-              <p className="text-sm text-slate-400 mb-5">Browse active auctions and place bids to win livestock</p>
+              <p className="text-sm text-slate-500 mb-5">Browse active auctions and place bids to win livestock</p>
               <Button onClick={() => navigate('/')}>Browse Listings</Button>
             </div>
           ) : (
@@ -153,7 +153,7 @@ export function MyListings() {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{item.title}</h3>
                     <p className="text-lg font-bold text-emerald-700">Won at US${getCurrentBid(item).toLocaleString()}</p>
-                    <p className="text-sm text-slate-400">{item.location} • {item.breed}</p>
+                    <p className="text-sm text-slate-500">{item.location} • {item.breed}</p>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">

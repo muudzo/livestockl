@@ -201,14 +201,16 @@ export function ItemDetail() {
           <img src={imageUrls[currentImageIndex] || imageUrl} alt={`${item.title} - ${item.breed} - image ${currentImageIndex + 1}`} className="w-full h-full object-cover" />
           {imageUrls.length > 1 && (
             <>
-              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-1.5">
+              <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-1">
                 {imageUrls.map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
-                    aria-label={`View image ${i + 1}`}
-                    className={`h-2.5 rounded-full transition-all duration-200 ${i === currentImageIndex ? 'bg-white w-3' : 'bg-white/50 w-2.5'}`}
-                  />
+                    aria-label={`View image ${i + 1} of ${imageUrls.length}`}
+                    className="w-8 h-8 flex items-center justify-center"
+                  >
+                    <span className={`block h-2.5 rounded-full transition-all duration-200 ${i === currentImageIndex ? 'bg-white w-3' : 'bg-white/50 w-2.5'}`} />
+                  </button>
                 ))}
               </div>
               <button
@@ -240,21 +242,21 @@ export function ItemDetail() {
         <div className="p-4 space-y-5">
           <div>
             <h1 className="text-2xl font-bold">{item.title}</h1>
-            <p className="text-2xl font-bold text-emerald-700 mt-1" aria-label={`Current bid: ${currentBid} US dollars`}><span className="text-sm font-normal text-slate-400">Current Bid </span>US${currentBid.toLocaleString()}</p>
-            <p className="text-sm text-slate-400 mt-1">Starting: US${startingPrice.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1" aria-label={`Current bid: ${currentBid} US dollars`}><span className="text-sm font-normal text-slate-500">Current Bid </span>US${currentBid.toLocaleString()}</p>
+            <p className="text-sm text-slate-500 mt-1">Starting: US${startingPrice.toLocaleString()}</p>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-slate-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400">Age</p>
+              <p className="text-xs text-slate-500">Age</p>
               <p className="font-semibold text-slate-900 mt-1">{item.age}</p>
             </div>
             <div className="bg-slate-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400">Weight</p>
+              <p className="text-xs text-slate-500">Weight</p>
               <p className="font-semibold text-slate-900 mt-1">{item.weight}</p>
             </div>
             <div className="bg-slate-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-slate-400">Location</p>
+              <p className="text-xs text-slate-500">Location</p>
               <p className="font-semibold text-slate-900 mt-1">{item.location}</p>
             </div>
           </div>
@@ -293,6 +295,9 @@ export function ItemDetail() {
 
           <div>
             <h3 className="font-semibold mb-3">Bid History</h3>
+            {displayBids.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4 text-center">No bids yet. Be the first to bid!</p>
+            ) : (
             <div className="space-y-2">
               {displayBids.map((bid: any) => (
                 <div
@@ -312,6 +317,7 @@ export function ItemDetail() {
                 </div>
               ))}
             </div>
+            )}
           </div>
         </div>
       </div>

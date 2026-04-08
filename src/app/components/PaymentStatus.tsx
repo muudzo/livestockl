@@ -80,7 +80,7 @@ export function PaymentStatus() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-card border rounded-lg shadow-lg p-8">
+      <div className="max-w-md w-full bg-card border rounded-lg shadow-lg p-8" role="status" aria-live="polite">
         <div className="flex justify-center mb-6">{getIcon()}</div>
         <h1 className="text-2xl font-bold text-center mb-4">{getHeading()}</h1>
         <div className="bg-muted rounded-lg p-3 mb-4">

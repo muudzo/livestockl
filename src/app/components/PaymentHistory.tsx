@@ -63,7 +63,7 @@ export function PaymentHistory() {
           <div className="text-center py-12">
             <CreditCard className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <p className="font-semibold text-lg text-slate-700">No payments yet</p>
-            <p className="text-sm text-slate-400 mt-1">Your payment history will appear here</p>
+            <p className="text-sm text-slate-500 mt-1">Your payment history will appear here</p>
           </div>
         ) : (
           payments.map((payment: any) => (
@@ -79,7 +79,7 @@ export function PaymentHistory() {
                   )}
                   <div>
                     <p className="font-semibold font-mono text-sm text-slate-600">{payment.reference}</p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-slate-500">
                       {payment.method} • {formatDate(payment.date ?? payment.created_at)}
                     </p>
                   </div>

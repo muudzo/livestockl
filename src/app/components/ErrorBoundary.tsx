@@ -43,13 +43,14 @@ export class ErrorBoundary extends Component<Props, State> {
               window.location.reload();
             }}
             style={{
-              padding: '10px 24px',
+              padding: '12px 24px',
               background: '#1a1a1a',
               color: '#fff',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontSize: '14px',
+              fontSize: '16px',
+              minHeight: '44px',
             }}
           >
             Reload App

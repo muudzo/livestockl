@@ -91,7 +91,7 @@ export function HomeFeed() {
               aria-label="Search livestock listings"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-xl border-0 bg-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-200"
+              className="w-full pl-9 pr-4 py-3 rounded-xl border-0 bg-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all duration-200"
             />
           </div>
         </div>
@@ -166,12 +166,12 @@ export function HomeFeed() {
             ))}
           </div>
         ) : error ? (
-          <div className="text-center py-16">
+          <div className="text-center py-16" role="alert">
             <p className="font-semibold text-lg text-slate-700">Something went wrong</p>
-            <p className="text-sm text-slate-500 mt-1">Unable to load listings. Please try again.</p>
+            <p className="text-sm text-slate-500 mt-1">Unable to load listings. Check your connection and try again.</p>
             <button
               onClick={() => refetch()}
-              className="mt-4 px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 active:scale-95 transition-all"
+              className="mt-4 px-6 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 active:scale-95 transition-all min-h-[44px]"
             >
               Try Again
             </button>
@@ -202,7 +202,7 @@ export function HomeFeed() {
             const seller = getSellerInfo(item);
             return (
               <div key={item.id} className="bg-card rounded-xl shadow-sm overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
-                <div className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)}>
+                <div role="link" tabIndex={0} aria-label={`View details for ${item.title}`} className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/item/${item.id}`); } }}>
                   <img src={getImageUrl(item)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   <div className="absolute bottom-2 left-2">
                     <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
@@ -223,7 +223,7 @@ export function HomeFeed() {
                   <div>
                     <h3 className="font-semibold text-lg">{item.title}</h3>
                     <p className="text-xl font-bold text-emerald-700" aria-label={`Current bid: ${getCurrentBid(item)} US dollars`}>
-                      <span className="text-xs font-normal text-slate-400">Current Bid </span>
+                      <span className="text-xs font-normal text-slate-500">Current Bid </span>
                       US${getCurrentBid(item).toLocaleString()}
                     </p>
                   </div>
@@ -251,7 +251,7 @@ export function HomeFeed() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 text-sm text-slate-400">
+                  <div className="flex items-center gap-4 text-sm text-slate-500">
                     <div className="flex items-center gap-1">
                       <Gavel className="w-4 h-4" />
                       <span>{getBidCount(item)} bids</span>

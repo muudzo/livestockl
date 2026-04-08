@@ -103,8 +103,10 @@ export function Notifications() {
             {['all', 'bids', 'messages', 'auctions'].map(f => (
               <Badge
                 key={f}
+                role="button"
+                aria-pressed={filter === f}
                 variant={filter === f ? 'default' : 'outline'}
-                className={`cursor-pointer whitespace-nowrap capitalize transition-colors duration-150 ${
+                className={`cursor-pointer whitespace-nowrap capitalize transition-colors duration-150 py-1.5 px-3 ${
                   filter === f
                     ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                     : 'bg-slate-100 text-slate-700 border-0 hover:bg-slate-200'
@@ -147,7 +149,7 @@ export function Notifications() {
                 </div>
                 <button
                   onClick={() => dismissNotification(notification.id)}
-                  className="w-8 h-8 flex items-center justify-center text-muted-foreground transition-colors duration-200 hover:text-red-500"
+                  className="w-11 h-11 flex items-center justify-center text-muted-foreground transition-colors duration-200 hover:text-red-500 shrink-0"
                   aria-label="Dismiss notification"
                 >
                   <X className="w-4 h-4" />
