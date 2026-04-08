@@ -294,52 +294,8 @@ export function useRunAgent() {
 }
 
 // Auto-run all active agents on an interval
-export function useAutoRunAgents(intervalMs = 15000) {
-  const { data: agents } = useAgents();
-  const queryClient = useQueryClient();
-  const runningRef = useRef(false);
-
-  useEffect(() => {
-    if (!agents?.length) return;
-
-    const activeAgents = agents.filter(a => a.status === 'active');
-    if (!activeAgents.length) return;
-
-    const runAll = async () => {
-      if (runningRef.current) return;
-      runningRef.current = true;
-
-      for (const agent of activeAgents) {
-        try {
-          const action = ACTION_MAP[agent.agent_type];
-          const fnName = FUNCTION_MAP[agent.agent_type];
-          console.log(`[${agent.name}] Running ${fnName} with action=${action}...`);
-          const { data, error } = await supabase.functions.invoke(fnName, {
-            body: { action, agentId: agent.id },
-          });
-          if (error) {
-            // Try to get the actual error body
-            const body = typeof error === 'object' && 'context' in error ? (error as any).context : error;
-            console.error(`[${agent.name}] Error:`, error.message, body);
-          } else {
-            console.log(`[${agent.name}] Result:`, data);
-          }
-        } catch (err) {
-          console.error(`[${agent.name}] Failed:`, err);
-        }
-      }
-
-      runningRef.current = false;
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      queryClient.invalidateQueries({ queryKey: ['agent_activity'] });
-      queryClient.invalidateQueries({ queryKey: ['agent_decisions'] });
-    };
-
-    // Run immediately on mount
-    runAll();
-
-    // Then run on interval
-    const timer = setInterval(runAll, intervalMs);
-    return () => clearInterval(timer);
-  }, [agents?.map(a => `${a.id}:${a.status}`).join(','), intervalMs, queryClient]);
+// DISABLED: Agent functions now require CRON_SECRET — frontend calls return 401.
+// Re-enable when agents are triggered via cron jobs instead of frontend polling.
+export function useAutoRunAgents(_intervalMs = 15000) {
+  // No-op: agent edge functions are CRON_SECRET gated and cannot be called from the browser.
 }

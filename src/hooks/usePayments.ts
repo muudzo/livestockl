@@ -190,8 +190,8 @@ export function useInitiatePayment() {
 
       return payment;
     },
-    onSuccess: (data) => {
-      frontendLogger.info('payment_created', { reference: data?.reference, method });
+    onSuccess: (data, variables) => {
+      frontendLogger.info('payment_created', { reference: data?.reference, method: variables.method });
       queryClient.invalidateQueries({ queryKey: ['payments'] });
     },
     onError: (error: Error) => {
