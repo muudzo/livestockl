@@ -16,7 +16,7 @@ export function HomeFeed() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { data: livestock, isLoading, error } = useLivestockList(selectedCategory);
+  const { data: livestock, isLoading, error, refetch } = useLivestockList(selectedCategory);
   const { data: favoriteIds = [] } = useFavorites();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const startConversation = useStartConversation();
@@ -169,6 +169,12 @@ export function HomeFeed() {
           <div className="text-center py-16">
             <p className="font-semibold text-lg text-slate-700">Something went wrong</p>
             <p className="text-sm text-slate-500 mt-1">Unable to load listings. Please try again.</p>
+            <button
+              onClick={() => refetch()}
+              className="mt-4 px-6 py-2.5 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 active:scale-95 transition-all"
+            >
+              Try Again
+            </button>
           </div>
         ) : (() => {
           const filteredLivestock = (livestock || []).filter((item: any) => {
@@ -207,7 +213,7 @@ export function HomeFeed() {
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
                     aria-label={favoriteIds.includes(item.id) ? "Remove from favorites" : "Add to favorites"}
-                    className="absolute top-2 right-2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all duration-200 active:scale-90"
+                    className="absolute top-2 right-2 w-11 h-11 bg-white/90 rounded-full flex items-center justify-center shadow-md hover:bg-white transition-all duration-200 active:scale-90"
                   >
                     <Heart className={`w-5 h-5 ${favoriteIds.includes(item.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                   </button>

@@ -61,8 +61,8 @@ export function Root() {
                 aria-current={active ? 'page' : undefined}
                 className={`flex-1 text-center py-3 transition-all ${
                   active
-                    ? 'text-foreground font-bold text-[13px]'
-                    : 'text-muted-foreground/40 font-medium text-[12px] hover:text-muted-foreground/70'
+                    ? 'text-foreground font-bold text-[14px]'
+                    : 'text-muted-foreground/60 font-medium text-[13px] hover:text-muted-foreground/80'
                 }`}
               >
                 {item.label}

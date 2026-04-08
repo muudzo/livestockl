@@ -257,14 +257,13 @@ export function CheckoutScreen() {
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">+263</span>
               <Input
                 id="phone"
                 type="tel"
                 placeholder="0771 234 567"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="pl-10 h-11 transition-all duration-200"
+                className="h-11 transition-all duration-200"
                 aria-label="Phone number"
                 required
               />
@@ -327,7 +326,7 @@ export function CheckoutScreen() {
             disabled={initiatePayment.isPending}
           >
             {initiatePayment.isPending ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin text-emerald-600" />Processing...</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin text-white" />Processing...</>
             ) : `Pay US$${total.toLocaleString()}`}
           </Button>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
