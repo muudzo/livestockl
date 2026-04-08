@@ -233,16 +233,15 @@ export function useStartConversation() {
         return newConv;
       }
 
-      // Ensure consistent ordering: lower UUID first
-      const p1 = user.id < sellerId ? user.id : sellerId;
-      const p2 = user.id < sellerId ? sellerId : user.id;
+      // Current user is always participant_1 when creating (RLS requires auth.uid() = participant_1)
+      const p1 = user.id;
+      const p2 = sellerId;
 
-      // Try to find existing conversation
+      // Try to find existing conversation (check both orderings since either party could have created it)
       let query = supabase
         .from('conversations')
         .select('*')
-        .eq('participant_1', p1)
-        .eq('participant_2', p2);
+        .or(`and(participant_1.eq.${p1},participant_2.eq.${p2}),and(participant_1.eq.${p2},participant_2.eq.${p1})`);
 
       if (livestockId) {
         query = query.eq('livestock_id', livestockId);
