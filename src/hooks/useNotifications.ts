@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockNotifications } from '../app/data/mockData';
 import { useAuthStore } from '../stores/authStore';
@@ -26,8 +26,9 @@ export function useNotifications() {
     },
   });
 
-  // Realtime subscription for new notifications
+  // Realtime subscription for new notifications (debounced)
   const userId = user?.id;
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => {
     if (!userId || !isSupabaseConfigured) return;
 
@@ -37,12 +38,16 @@ export function useNotifications() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
         () => {
-          queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+          clearTimeout(debounceRef.current);
+          debounceRef.current = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['notifications', userId] });
+          }, 1000);
         }
       )
       .subscribe();
 
     return () => {
+      clearTimeout(debounceRef.current);
       supabase.removeChannel(channel);
     };
   }, [userId, queryClient]);

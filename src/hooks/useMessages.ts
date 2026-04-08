@@ -115,7 +115,8 @@ export function useMessages(conversationId: string | undefined) {
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId!)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(200);
 
       if (error) throw error;
       return data;
