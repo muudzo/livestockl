@@ -10,6 +10,8 @@ export function useBids(livestockId: string | undefined) {
   const query = useQuery({
     queryKey: ['bids', livestockId],
     enabled: !!livestockId,
+    staleTime: 10_000,        // 10s — bids must be near-realtime, not 5min global default
+    refetchInterval: 15_000,  // Poll every 15s as fallback when Realtime drops
     queryFn: async () => {
       if (!isSupabaseConfigured) {
         const item = mockLivestock.find(i => i.id === livestockId);
@@ -47,7 +49,11 @@ export function useBids(livestockId: string | undefined) {
           }, 1000);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn(`Realtime subscription failed for bids:${livestockId}, falling back to polling`);
+        }
+      });
 
     return () => {
       clearTimeout(debounceRef.current);
