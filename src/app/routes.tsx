@@ -2,23 +2,46 @@ import { createBrowserRouter, Link } from "react-router";
 import { lazy, Suspense } from "react";
 import { Root } from "./components/Root";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 
-const HomeFeed = lazy(() => import('./components/HomeFeed').then(m => ({ default: m.HomeFeed })));
-const AuthScreen = lazy(() => import('./components/AuthScreen').then(m => ({ default: m.AuthScreen })));
-const ItemDetail = lazy(() => import('./components/ItemDetail').then(m => ({ default: m.ItemDetail })));
-const CheckoutScreen = lazy(() => import('./components/CheckoutScreen').then(m => ({ default: m.CheckoutScreen })));
-const PaymentStatus = lazy(() => import('./components/PaymentStatus').then(m => ({ default: m.PaymentStatus })));
-const PostListing = lazy(() => import('./components/PostListing').then(m => ({ default: m.PostListing })));
-const MyListings = lazy(() => import('./components/MyListings').then(m => ({ default: m.MyListings })));
-const PaymentHistory = lazy(() => import('./components/PaymentHistory').then(m => ({ default: m.PaymentHistory })));
-const Notifications = lazy(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
-const MessagesScreen = lazy(() => import('./components/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
+// Auto-reload on stale chunk errors (happens after deploys when SW cache is outdated)
+function lazyWithRetry(factory: () => Promise<any>) {
+  return lazy(() =>
+    factory().catch((err) => {
+      if (
+        err.message?.includes('Failed to fetch dynamically imported module') ||
+        err.message?.includes('Importing a module script failed')
+      ) {
+        // Clear SW cache and reload once
+        const reloaded = sessionStorage.getItem('chunk_reload');
+        if (!reloaded) {
+          sessionStorage.setItem('chunk_reload', '1');
+          window.location.reload();
+          return new Promise(() => {}); // never resolves — page is reloading
+        }
+        sessionStorage.removeItem('chunk_reload');
+      }
+      throw err;
+    })
+  );
+}
 
-const AgentDashboard = lazy(() => import('./components/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
-const AgentSetup = lazy(() => import('./components/AgentSetup').then(m => ({ default: m.AgentSetup })));
-const BillPayFlow = lazy(() => import('./components/BillPayFlow'));
-const TestBillPayPayment = lazy(() => import('./components/TestBillPayPayment'));
+const HomeFeed = lazyWithRetry(() => import('./components/HomeFeed').then(m => ({ default: m.HomeFeed })));
+const AuthScreen = lazyWithRetry(() => import('./components/AuthScreen').then(m => ({ default: m.AuthScreen })));
+const ItemDetail = lazyWithRetry(() => import('./components/ItemDetail').then(m => ({ default: m.ItemDetail })));
+const CheckoutScreen = lazyWithRetry(() => import('./components/CheckoutScreen').then(m => ({ default: m.CheckoutScreen })));
+const PaymentStatus = lazyWithRetry(() => import('./components/PaymentStatus').then(m => ({ default: m.PaymentStatus })));
+const PostListing = lazyWithRetry(() => import('./components/PostListing').then(m => ({ default: m.PostListing })));
+const MyListings = lazyWithRetry(() => import('./components/MyListings').then(m => ({ default: m.MyListings })));
+const PaymentHistory = lazyWithRetry(() => import('./components/PaymentHistory').then(m => ({ default: m.PaymentHistory })));
+const Notifications = lazyWithRetry(() => import('./components/Notifications').then(m => ({ default: m.Notifications })));
+const MessagesScreen = lazyWithRetry(() => import('./components/MessagesScreen').then(m => ({ default: m.MessagesScreen })));
+
+const AgentDashboard = lazyWithRetry(() => import('./components/AgentDashboard').then(m => ({ default: m.AgentDashboard })));
+const AgentSetup = lazyWithRetry(() => import('./components/AgentSetup').then(m => ({ default: m.AgentSetup })));
+const BillPayFlow = lazyWithRetry(() => import('./components/BillPayFlow'));
+const TestBillPayPayment = lazyWithRetry(() => import('./components/TestBillPayPayment'));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   return (
