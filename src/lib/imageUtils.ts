@@ -1,31 +1,20 @@
-const SUPABASE_STORAGE_URL = 'https://hmeieslclzycyjjjflfh.supabase.co/storage/v1';
-
 /**
- * Generate a thumbnail URL using Supabase Storage image transformations.
- * Falls back to original URL if not a Supabase storage URL.
+ * Generate a thumbnail URL for a livestock image.
+ *
+ * NOTE: Supabase Storage Image Transformations (/render/image/ endpoint)
+ * require a Pro plan. On the free tier those URLs 404, breaking all images.
+ * We return the original URL as-is until the project is on a paid plan.
  */
-export function getThumbnailUrl(url: string, width = 400): string {
+export function getThumbnailUrl(url: string, _width = 400): string {
   if (!url) return '';
-
-  // Only transform Supabase storage URLs
-  if (!url.includes('supabase.co/storage')) return url;
-
-  // Supabase render endpoint: /storage/v1/render/image/public/{bucket}/{path}
-  // Replace /storage/v1/object/public/ with /storage/v1/render/image/public/
-  const transformed = url.replace(
-    '/storage/v1/object/public/',
-    '/storage/v1/render/image/public/'
-  );
-
-  // Add width parameter
-  const separator = transformed.includes('?') ? '&' : '?';
-  return `${transformed}${separator}width=${width}&resize=contain`;
+  return url;
 }
 
 /**
  * Get full-size image URL (for detail views).
- * Uses a larger width but still not the raw upload.
+ * Currently returns the original URL unchanged (see note above).
  */
-export function getFullImageUrl(url: string, width = 800): string {
-  return getThumbnailUrl(url, width);
+export function getFullImageUrl(url: string, _width = 800): string {
+  if (!url) return '';
+  return url;
 }
