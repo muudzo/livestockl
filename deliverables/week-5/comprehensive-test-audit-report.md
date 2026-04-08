@@ -30,7 +30,7 @@
 | Area | Score | Status |
 |------|-------|--------|
 | RLS Policies (Core Tables) | 9/10 | PASS |
-| RLS Policies (Agent Tables) | 4/10 | NEEDS SCHEMA DEFINITION |
+| RLS Policies (Agent Tables) | 9/10 | PASS (all 8 tables defined with RLS) |
 | Payment Security | 9/10 | PASS (webhook hash now mandatory) |
 | BillPay Integration | 9/10 | PASS |
 | Auth Implementation | 8/10 | GOOD |
@@ -47,9 +47,10 @@
 4. ~~test-paynow-checkout has no auth~~ -- Gated behind CRON_SECRET + stack trace leak removed
 
 **Remaining before 100 users:**
-1. Define agent tables in schema.sql with RLS policies
+1. ~~Define agent tables in schema.sql with RLS policies~~ -- DONE
 2. Set up Vitest + Playwright test automation
-3. Add max payment amount constraint
+3. ~~Add max payment amount constraint~~ -- DONE (US$100,000 cap)
+4. Run schema migration on production database
 
 ---
 
@@ -109,20 +110,21 @@ All 10 core tables have `ENABLE ROW LEVEL SECURITY`:
 | bill_payments | Own only | Own only | Service role only | None | 10/10 |
 | billers_cache | Auth users only | Service role only | Service role only | Service role only | 10/10 |
 
-### RLS Coverage — Agent Tables (CRITICAL GAPS)
+### RLS Coverage — Agent Tables (FIXED)
 
-| Table | RLS Enabled? | Policies Defined? | Risk |
-|-------|-------------|-------------------|------|
-| agents | UNKNOWN | NOT IN schema.sql or rls_policies.sql | CRITICAL |
-| agent_bids | UNKNOWN | NOT IN schema.sql or rls_policies.sql | CRITICAL |
-| agent_goals | UNKNOWN | NOT IN schema.sql or rls_policies.sql | CRITICAL |
-| agent_activity_log | UNKNOWN | NOT IN schema.sql or rls_policies.sql | HIGH |
-| agent_payment_orders | UNKNOWN | NOT IN schema.sql or rls_policies.sql | CRITICAL |
-| settlement_ledger | UNKNOWN | NOT IN schema.sql or rls_policies.sql | HIGH |
-| agent_decisions | UNKNOWN | NOT IN schema.sql or rls_policies.sql | MEDIUM |
-| market_intel | UNKNOWN | NOT IN schema.sql or rls_policies.sql | LOW (intentionally public) |
+| Table | RLS Enabled | SELECT | INSERT/UPDATE/DELETE | Status |
+|-------|------------|--------|---------------------|--------|
+| agents | YES | Own agents (user_id) | Own agents (user_id) | FIXED |
+| agent_goals | YES | Own agent's goals | Own agent's goals | FIXED |
+| agent_bids | YES | Own agent's bids | Service role only | FIXED |
+| agent_activity_log | YES | Own agent's activity | Service role only | FIXED |
+| agent_decisions | YES | Own agent's decisions | Service role only | FIXED |
+| agent_payment_orders | YES | Own orders (user_id) | Service role only | FIXED |
+| settlement_ledger | YES | Own order's entries | Service role only | FIXED |
+| market_intel | YES | Public (by design) | Service role only | FIXED |
 
-**Risk:** If these tables exist without RLS enabled, any authenticated user with the anon key can read/write ALL agent data, payment orders, and settlement records.
+All 8 agent tables now defined in `schema.sql` with RLS enabled and owner-scoped policies.
+Mutation-sensitive tables (bids, activity, decisions, payments, ledger) restrict writes to service role only.
 
 ### Policy Weaknesses Found
 
@@ -471,14 +473,14 @@ The project has 3 QA Edge Functions that can be invoked manually:
 |---|--------------|----------|--------|--------|
 | 1 | **Paynow webhook hash verification is conditional** | `payment-webhook/index.ts:123` | Attacker can forge payment callbacks if env var missing | **FIXED** — Returns 500 if key missing |
 | 2 | **6 agent Edge Functions have zero authentication** | `bid-executor`, `buyer-agent`, `auction-sniper`, `seller-agent`, `market-intel`, `win-detector` | Unauthenticated users can manipulate auctions | **FIXED** — All gated behind CRON_SECRET |
-| 3 | **Agent tables may lack RLS** | Not defined in `schema.sql` or `rls_policies.sql` | Any user with anon key could read/write all agent data | OPEN — Needs schema definition |
+| 3 | ~~**Agent tables may lack RLS**~~ | Now defined in `schema.sql:481-650` | Any user with anon key could read/write all agent data | **FIXED** — All 8 tables with RLS + owner-scoped policies |
 | 4 | **bid-executor bypasses place_bid validation** | `bid-executor/index.ts` | Used `sync_listing_bid` — skipped all auction rules | **FIXED** — Now validates: active, not expired, not own listing, amount > current_bid, amount >= starting_price |
 
 ### MEDIUM
 
 | # | Vulnerability | Location | Impact | Fix |
 |---|--------------|----------|--------|-----|
-| 5 | No maximum payment amount | `initiate-payment/index.ts` | Test payments (null livestock_id) accept any amount | Add CHECK constraint `amount <= 100000` or similar |
+| 5 | ~~No maximum payment amount~~ | `schema.sql` payments + bill_payments | Test payments accept any amount | **FIXED** — `CHECK (amount <= 100000)` on both tables |
 | 6 | Conversation impersonation | `rls_policies.sql:122` | User can create conversations appearing to be from another user | Require `auth.uid() = participant_1` always |
 | 7 | `sync_listing_bid` callable by anyone | `schema.sql:469` | Any authenticated user can force-sync any listing | Add caller check or restrict to service role |
 | 8 | ~~`test-paynow-checkout` leaks stack traces~~ | `test-paynow-checkout/index.ts` | Internal paths exposed in error responses | **FIXED** — `err.stack` removed |
