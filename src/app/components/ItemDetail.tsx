@@ -105,6 +105,10 @@ export function ItemDetail() {
       navigate('/auth');
       return;
     }
+    if (!sellerId) {
+      toast.error('Seller information unavailable');
+      return;
+    }
     try {
       const conv = await startConversation.mutateAsync({ sellerId, livestockId: id });
       navigate(`/messages/${conv.id}`);
