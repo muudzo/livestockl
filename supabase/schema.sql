@@ -126,6 +126,7 @@ returns uuid as $$
 declare
   v_item record;
   v_bid_id uuid;
+  v_prev_bidder record;
 begin
   -- Verify the caller is the user they claim to be (prevents RLS bypass)
   IF p_user_id != auth.uid() THEN
@@ -174,6 +175,26 @@ begin
   set current_bid = p_amount,
       bid_count = bid_count + 1
   where id = p_livestock_id;
+
+  -- Notify seller that a new bid was placed
+  insert into public.notifications (user_id, type, title, message, priority)
+  values (v_item.seller_id, 'bid', 'New bid on your listing',
+          'Someone bid US$' || p_amount || ' on ' || v_item.title,
+          'medium');
+
+  -- Notify all previous bidders (excluding the current bidder) that they've been outbid
+  for v_prev_bidder in
+    select distinct on (user_id) user_id
+    from public.bids
+    where livestock_id = p_livestock_id
+      and user_id != p_user_id
+      and id != v_bid_id
+  loop
+    insert into public.notifications (user_id, type, title, message, priority)
+    values (v_prev_bidder.user_id, 'bid', 'You''ve been outbid!',
+            'A new bid of US$' || p_amount || ' was placed on ' || v_item.title || '. Place a higher bid to stay in the race!',
+            'high');
+  end loop;
 
   return v_bid_id;
 end;
