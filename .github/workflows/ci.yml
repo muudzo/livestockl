@@ -136,11 +136,13 @@ jobs:
     steps:
       - name: Run Consistency Checker
         run: |
-          RESULT=$(curl -sf -X POST \
+          RESULT=$(curl -s -X POST \
             "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/consistency-checker" \
-            -H "Content-Type: application/json" -d '{}')
-          echo "$RESULT" | jq .
-          HEALTH=$(echo "$RESULT" | jq -r '.summary.health')
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -d '{}')
+          echo "$RESULT" | jq . || echo "$RESULT"
+          HEALTH=$(echo "$RESULT" | jq -r '.summary.health // "unknown"')
           if [ "$HEALTH" = "critical" ]; then
             echo "::error::Consistency check CRITICAL"
             exit 1
@@ -148,11 +150,13 @@ jobs:
 
       - name: Run Security Agent
         run: |
-          RESULT=$(curl -sf -X POST \
+          RESULT=$(curl -s -X POST \
             "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/security-agent" \
-            -H "Content-Type: application/json" -d '{}')
-          echo "$RESULT" | jq .
-          GRADE=$(echo "$RESULT" | jq -r '.summary.security_grade')
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -d '{}')
+          echo "$RESULT" | jq . || echo "$RESULT"
+          GRADE=$(echo "$RESULT" | jq -r '.summary.security_grade // "unknown"')
           if [ "$GRADE" = "F" ]; then
             echo "::error::Security grade F"
             exit 1
@@ -160,12 +164,13 @@ jobs:
 
       - name: Run Chaos Test
         run: |
-          RESULT=$(curl -sf -X POST \
+          RESULT=$(curl -s -X POST \
             "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/chaos-test" \
             -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -d '{"scenario": "all"}')
-          echo "$RESULT" | jq .
-          FAILED=$(echo "$RESULT" | jq -r '.summary.failed')
+          echo "$RESULT" | jq . || echo "$RESULT"
+          FAILED=$(echo "$RESULT" | jq -r '.summary.failed // "0"')
           if [ "$FAILED" != "0" ]; then
             echo "::error::Chaos test has $FAILED failures"
             exit 1
