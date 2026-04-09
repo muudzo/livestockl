@@ -46,7 +46,7 @@ export function useBids(livestockId: string | undefined) {
           clearTimeout(debounceRef.current);
           debounceRef.current = setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ['bids', livestockId] });
-            queryClient.invalidateQueries({ queryKey: ['livestock', livestockId] });
+            queryClient.invalidateQueries({ queryKey: ['livestock', 'detail', livestockId] });
           }, 1000);
         }
       )
@@ -99,7 +99,7 @@ export function usePlaceBid() {
     },
     onSuccess: (_, { livestockId }) => {
       queryClient.invalidateQueries({ queryKey: ['bids', livestockId] });
-      queryClient.invalidateQueries({ queryKey: ['livestock', livestockId] });
+      queryClient.invalidateQueries({ queryKey: ['livestock', 'detail', livestockId] });
       queryClient.invalidateQueries({ queryKey: ['livestock'] });
     },
   });

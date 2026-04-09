@@ -37,12 +37,16 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
+          // If we have a persisted user, mark initialized immediately
+          // so the app renders instantly. Validate in the background.
+          const persistedUser = get().user;
+          if (persistedUser) {
+            set({ initialized: true });
+          }
+
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
-            const persistedUser = get().user;
-            // Validate persisted user matches server session to prevent session forgery
             if (persistedUser && persistedUser.id !== session.user.id) {
-              // Persisted user doesn't match server session — clear it
               set({ user: null });
             }
 
@@ -54,11 +58,9 @@ export const useAuthStore = create<AuthState>()(
 
             set({ user: profile, initialized: true });
           } else {
-            // No valid server session — clear any persisted user
             set({ user: null, initialized: true });
           }
         } catch {
-          // On error, clear persisted user to be safe
           set({ user: null, initialized: true });
         }
 

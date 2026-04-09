@@ -8,7 +8,7 @@ const PAGE_SIZE = 20;
 
 export function useLivestockList(category?: string) {
   return useInfiniteQuery({
-    queryKey: ['livestock', category],
+    queryKey: ['livestock', 'list', category],
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
       if (!isSupabaseConfigured) {
@@ -44,7 +44,7 @@ export function useLivestockItem(id: string | undefined) {
   const viewCountedRef = useRef<string | null>(null);
 
   const query = useQuery({
-    queryKey: ['livestock', id],
+    queryKey: ['livestock', 'detail', id],
     enabled: !!id,
     queryFn: async () => {
       if (!isSupabaseConfigured) {
@@ -80,6 +80,29 @@ export function useLivestockItem(id: string | undefined) {
   }, [id]);
 
   return query;
+}
+
+export function usePrefetchLivestockItem() {
+  const queryClient = useQueryClient();
+
+  return (id: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['livestock', 'detail', id],
+      queryFn: async () => {
+        if (!isSupabaseConfigured) {
+          return mockLivestock.find(i => i.id === id) || null;
+        }
+        const { data, error } = await supabase
+          .from('livestock_items')
+          .select('*, profiles!seller_id(first_name, last_name, avatar_url, verified, rating, sales_count)')
+          .eq('id', id)
+          .single();
+        if (error) throw error;
+        return data;
+      },
+      staleTime: 1000 * 60 * 5,
+    });
+  };
 }
 
 export function useCreateListing() {

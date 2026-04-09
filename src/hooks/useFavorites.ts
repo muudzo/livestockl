@@ -82,7 +82,6 @@ export function useToggleFavorite() {
         .maybeSingle();
 
       if (existing) {
-        // Delete directly by both conditions (idempotent)
         const { error } = await supabase
           .from('favorites')
           .delete()
@@ -90,7 +89,6 @@ export function useToggleFavorite() {
           .eq('livestock_id', livestockId);
         if (error) throw error;
       } else {
-        // Upsert to handle race condition (ignore duplicate)
         const { error } = await supabase
           .from('favorites')
           .upsert(
@@ -100,7 +98,25 @@ export function useToggleFavorite() {
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    // Optimistic update — toggle instantly, revert on error
+    onMutate: async (livestockId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['favorites', user?.id] });
+      const previous = queryClient.getQueryData<string[]>(['favorites', user?.id]);
+
+      queryClient.setQueryData<string[]>(['favorites', user?.id], (old = []) =>
+        old.includes(livestockId)
+          ? old.filter(id => id !== livestockId)
+          : [...old, livestockId]
+      );
+
+      return { previous };
+    },
+    onError: (_err, _livestockId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['favorites', user?.id], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.id] });
     },
   });
