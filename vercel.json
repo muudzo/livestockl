@@ -2,6 +2,7 @@
   "buildCommand": "vite build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "regions": ["dub1"],
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ],
