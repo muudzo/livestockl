@@ -154,6 +154,43 @@ export function useMyListings() {
   });
 }
 
+/**
+ * Client-side trigger for end_expired_auctions().
+ * On Vercel Hobby, the cron only runs once/day. This hook fires a one-shot
+ * RPC call when a user views a listing that is past end_time but still 'active',
+ * ensuring the winner gets determined promptly. The DB function uses an advisory
+ * lock so concurrent calls are safe and idempotent.
+ */
+export function useEndExpiredAuctions(item: { status?: string; end_time?: string } | null | undefined) {
+  const queryClient = useQueryClient();
+  const triggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (!item || !isSupabaseConfigured || triggeredRef.current) return;
+
+    const status = item.status ?? (item as any).status;
+    const endTime = item.end_time ?? (item as any).end_time;
+
+    if (status !== 'active' || !endTime) return;
+
+    const isExpired = new Date(endTime).getTime() <= Date.now();
+    if (!isExpired) return;
+
+    triggeredRef.current = true;
+    (supabase.rpc as any)('end_expired_auctions')
+      .then(() => {
+        // Refetch the item and bids so the UI updates immediately
+        queryClient.invalidateQueries({ queryKey: ['livestock'] });
+        queryClient.invalidateQueries({ queryKey: ['bids'] });
+        queryClient.invalidateQueries({ queryKey: ['won-items'] });
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      })
+      .catch(() => {
+        // Silent fail — the cron will catch it eventually
+      });
+  }, [item, queryClient]);
+}
+
 export function useWonItems() {
   const user = useAuthStore((s) => s.user);
 

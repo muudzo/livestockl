@@ -252,14 +252,23 @@ begin
       -- Notify winner
       insert into public.notifications (user_id, type, title, message, priority)
       values (v_winning_bid.user_id, 'auction_won', 'You won!',
-              'You won the auction for ' || v_item.title || ' at $' || v_winning_bid.amount,
+              'You won the auction for ' || v_item.title || ' at US$' || v_winning_bid.amount || '. Head to the listing to complete payment.',
               'high');
 
       -- Notify seller
       insert into public.notifications (user_id, type, title, message, priority)
-      values (v_item.seller_id, 'auction_ending', 'Auction ended',
-              'Your listing ' || v_item.title || ' sold for $' || v_winning_bid.amount,
+      values (v_item.seller_id, 'auction_ending', 'Auction sold!',
+              'Your listing ' || v_item.title || ' sold for US$' || v_winning_bid.amount || '.',
               'high');
+
+      -- Notify losing bidders
+      insert into public.notifications (user_id, type, title, message, priority)
+      select distinct b.user_id, 'auction_lost', 'Auction ended',
+             'The auction for ' || v_item.title || ' has ended. The winning bid was US$' || v_winning_bid.amount || '.',
+             'medium'
+      from public.bids b
+      where b.livestock_id = v_item.id
+        and b.user_id != v_winning_bid.user_id;
     else
       -- Notify seller that auction ended with no bids
       insert into public.notifications (user_id, type, title, message, priority)

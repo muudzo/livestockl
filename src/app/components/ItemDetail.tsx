@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2, SearchX } from "lucide-react";
-import { useLivestockItem } from "../../hooks/useLivestock";
+import { useLivestockItem, useEndExpiredAuctions } from "../../hooks/useLivestock";
 import { useBids, usePlaceBid } from "../../hooks/useBids";
 import { getFullImageUrl } from "../../lib/imageUtils";
 import { useStartConversation } from "../../hooks/useMessages";
@@ -24,6 +24,7 @@ export function ItemDetail() {
   const user = useAuthStore((s) => s.user);
 
   const { data: item, isLoading } = useLivestockItem(id);
+  useEndExpiredAuctions(item);
   const { data: bids } = useBids(id);
   const placeBid = usePlaceBid();
   const startConversation = useStartConversation();
