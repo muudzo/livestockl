@@ -8,11 +8,7 @@
   "crons": [
     {
       "path": "/api/cron/end-auctions",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/billpay-reconcile",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 */6 * * *"
     }
   ]
 }
