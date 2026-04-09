@@ -1,12 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
-import { Loader2, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { usePaymentStatus } from "../../hooks/usePayments";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { Button } from "./ui/button";
 import { PostSaleBillPayPrompt } from "./PostSaleBillPayPrompt";
 
 type Status = 'pending' | 'success' | 'failed';
+
+const SOFT_TIMEOUT_MS = 2 * 60 * 1000;   // 2 minutes — show warning
+const HARD_TIMEOUT_MS = 10 * 60 * 1000;  // 10 minutes — escalation
 
 export function PaymentStatus() {
   const { ref } = useParams();
@@ -23,12 +26,27 @@ export function PaymentStatus() {
   // Demo mode simulation
   const [demoStatus, setDemoStatus] = useState<Status>('pending');
 
+  // Pending timeout tracking
+  const pendingStartRef = useRef(Date.now());
+  const [elapsedMs, setElapsedMs] = useState(0);
+
   useEffect(() => {
     if (!isSupabaseConfigured && demoStatus === 'pending') {
       const timer = setTimeout(() => setDemoStatus('success'), 5000);
       return () => clearTimeout(timer);
     }
   }, [demoStatus]);
+
+  // Track elapsed pending time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setElapsedMs(Date.now() - pendingStartRef.current);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isSoftTimeout = elapsedMs >= SOFT_TIMEOUT_MS;
+  const isHardTimeout = elapsedMs >= HARD_TIMEOUT_MS;
 
   // Determine status: check Stripe redirect params first, then DB polling
   const getStatus = (): Status => {
@@ -48,6 +66,8 @@ export function PaymentStatus() {
   const status = getStatus();
 
   const getIcon = () => {
+    if (status === 'pending' && isHardTimeout) return <AlertTriangle className="w-20 h-20 text-orange-500" />;
+    if (status === 'pending' && isSoftTimeout) return <Clock className="w-20 h-20 text-yellow-500" />;
     switch (status) {
       case 'pending': return <Loader2 className="w-20 h-20 text-blue-600 animate-spin" />;
       case 'success': return <CheckCircle className="w-20 h-20 text-green-600" />;
@@ -56,6 +76,8 @@ export function PaymentStatus() {
   };
 
   const getHeading = () => {
+    if (status === 'pending' && isHardTimeout) return 'Payment Taking Too Long';
+    if (status === 'pending' && isSoftTimeout) return 'Still Waiting...';
     switch (status) {
       case 'pending': return stripeStatus === 'success' ? 'Confirming Payment' : 'Payment Pending';
       case 'success': return 'Payment Successful';
@@ -64,6 +86,12 @@ export function PaymentStatus() {
   };
 
   const getMessage = () => {
+    if (status === 'pending' && isHardTimeout) {
+      return 'We\'re still reconciling your payment with the provider. If you were charged, your payment is safe — please contact support with your reference number and we\'ll resolve this.';
+    }
+    if (status === 'pending' && isSoftTimeout) {
+      return 'This is taking longer than usual. Please ensure you approved the payment on your phone. We\'re still checking...';
+    }
     switch (status) {
       case 'pending':
         if (stripeStatus === 'success') return 'Your payment was received. Waiting for confirmation...';
@@ -78,6 +106,13 @@ export function PaymentStatus() {
     }
   };
 
+  const formatElapsed = () => {
+    const seconds = Math.floor(elapsedMs / 1000);
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-card border rounded-lg shadow-lg p-8" role="status" aria-live="polite">
@@ -88,8 +123,19 @@ export function PaymentStatus() {
         </div>
         <p className="text-center text-muted-foreground mb-6">{getMessage()}</p>
 
-        {status === 'pending' && (
-          <p className="text-center text-sm text-muted-foreground mb-6">Auto-checking every 5 seconds...</p>
+        {status === 'pending' && !isHardTimeout && (
+          <p className="text-center text-sm text-muted-foreground mb-6">
+            Auto-checking every 5 seconds... ({formatElapsed()})
+          </p>
+        )}
+
+        {status === 'pending' && isHardTimeout && (
+          <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-orange-800 dark:text-orange-200 font-medium mb-2">Need help?</p>
+            <p className="text-sm text-orange-700 dark:text-orange-300">
+              WhatsApp support or email with your reference: <span className="font-mono font-bold">{ref?.toUpperCase()}</span>
+            </p>
+          </div>
         )}
 
         <Button onClick={() => navigate('/')} variant={status === 'success' ? 'default' : 'outline'} className="w-full">
@@ -98,6 +144,10 @@ export function PaymentStatus() {
 
         {status === 'failed' && (
           <Button onClick={() => navigate(-1)} className="w-full mt-3">Try Again</Button>
+        )}
+
+        {status === 'pending' && isSoftTimeout && (
+          <Button onClick={() => navigate(-1)} variant="outline" className="w-full mt-3">Try Again</Button>
         )}
 
         {status === 'success' && <PostSaleBillPayPrompt />}

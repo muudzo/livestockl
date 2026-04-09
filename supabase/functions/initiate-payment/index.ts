@@ -2,10 +2,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
 import { createLogger } from "../_shared/logger.ts";
 
+const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN");
+
 const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") || "*",
+  "Access-Control-Allow-Origin": allowedOrigin || "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Reject requests from unknown origins in production
+function isOriginAllowed(req: Request): boolean {
+  if (!allowedOrigin) return true; // No restriction if not configured
+  const origin = req.headers.get("origin");
+  return !origin || origin === allowedOrigin;
+}
 
 function jsonResponse(data: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -31,6 +40,13 @@ async function computePaynowHash(values: Record<string, string>, integrationKey:
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  if (!isOriginAllowed(req)) {
+    return new Response(JSON.stringify({ error: "Origin not allowed" }), {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const log = createLogger('initiate-payment', req);

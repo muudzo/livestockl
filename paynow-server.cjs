@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { Paynow } = require("paynow");
@@ -7,10 +8,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const INTEGRATION_ID = "23657";
-const INTEGRATION_KEY = "13f76059-61a1-46b5-80fe-1914485a9f95";
-const RESULT_URL = "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/payment-webhook";
-const RETURN_URL = "http://localhost:5174/test-paynow?status=returned";
+const INTEGRATION_ID = process.env.PAYNOW_INTEGRATION_ID;
+const INTEGRATION_KEY = process.env.PAYNOW_INTEGRATION_KEY;
+const RESULT_URL = process.env.PAYNOW_RESULT_URL || "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/payment-webhook";
+const RETURN_URL = process.env.PAYNOW_RETURN_URL || "http://localhost:5174/test-paynow?status=returned";
+
+if (!INTEGRATION_ID || !INTEGRATION_KEY) {
+  console.error("Missing PAYNOW_INTEGRATION_ID or PAYNOW_INTEGRATION_KEY in .env");
+  process.exit(1);
+}
 
 const paynow = new Paynow(INTEGRATION_ID, INTEGRATION_KEY);
 paynow.resultUrl = RESULT_URL;
@@ -116,7 +122,7 @@ app.get("/api/check-payment-status/:pollUrl", async (req, res) => {
 const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`\nPaynow proxy server running on http://localhost:${PORT}`);
-  console.log(`Integration ID: ${INTEGRATION_ID}`);
+  console.log(`Integration ID: ${INTEGRATION_ID.slice(0, 3)}***`);
   console.log(`Result URL: ${RESULT_URL}`);
   console.log(`Return URL: ${RETURN_URL}\n`);
   console.log("Endpoints:");
