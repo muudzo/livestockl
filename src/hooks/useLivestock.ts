@@ -305,13 +305,13 @@ export function useDeleteListing() {
   });
 }
 
-// Compress image client-side before upload (saves Supabase Storage quota)
+// Compress and resize image client-side before upload
 async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const objectUrl = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      URL.revokeObjectURL(objectUrl); // Prevent memory leak
+      URL.revokeObjectURL(objectUrl);
 
       const canvas = document.createElement('canvas');
       let { width, height } = img;
@@ -326,7 +326,6 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
       const ctx = canvas.getContext('2d');
       if (!ctx) { resolve(file); return; }
 
-      // Fill white background so PNGs with transparency don't get black bg
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
@@ -348,7 +347,6 @@ async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promis
 export function useUploadImage() {
   return useMutation({
     mutationFn: async ({ file, userId }: { file: File; userId: string }) => {
-      // Validate file type and size
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
       if (!allowedTypes.includes(file.type)) {
         throw new Error('Only JPEG, PNG, WebP, and GIF images are allowed');
@@ -357,19 +355,30 @@ export function useUploadImage() {
         throw new Error('Image must be less than 5MB');
       }
 
-      // Compress to max 1200px wide JPEG (~200-400KB instead of 2-5MB)
-      const compressed = await compressImage(file);
-      const path = `${userId}/${Date.now()}.jpg`;
+      const timestamp = Date.now();
 
-      const { error } = await supabase.storage
+      // Upload thumbnail (200px wide, q=0.6 — ~15-30KB for card listings)
+      const thumbnail = await compressImage(file, 200, 0.6);
+      const thumbPath = `${userId}/${timestamp}_thumb.jpg`;
+
+      const { error: thumbError } = await supabase.storage
         .from('livestock-images')
-        .upload(path, compressed, { contentType: 'image/jpeg' });
+        .upload(thumbPath, thumbnail, { contentType: 'image/jpeg' });
+      if (thumbError) throw thumbError;
 
-      if (error) throw error;
+      // Upload full-size (800px wide, q=0.8 — ~100-200KB for detail view)
+      const full = await compressImage(file, 800, 0.8);
+      const fullPath = `${userId}/${timestamp}.jpg`;
 
+      const { error: fullError } = await supabase.storage
+        .from('livestock-images')
+        .upload(fullPath, full, { contentType: 'image/jpeg' });
+      if (fullError) throw fullError;
+
+      // Return the full-size URL (thumbnail derived via naming convention)
       const { data: { publicUrl } } = supabase.storage
         .from('livestock-images')
-        .getPublicUrl(path);
+        .getPublicUrl(fullPath);
 
       return publicUrl;
     },

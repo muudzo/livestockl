@@ -4,6 +4,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useMyListings, useWonItems, useDeleteListing } from "../../hooks/useLivestock";
+import { getThumbnailUrl } from "../../lib/imageUtils";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useStartConversation } from "../../hooks/useMessages";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -86,7 +88,7 @@ export function MyListings() {
               <div key={item.id} className="bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-md">
                 <div className="flex gap-3">
                   <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
-                    <img src={getImageUrl(item)} alt={item.title} className="w-full h-full object-cover" />
+                    <ImageWithFallback src={getThumbnailUrl(getImageUrl(item))} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{item.title}</h3>
@@ -148,7 +150,7 @@ export function MyListings() {
               <div key={item.id} className="bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-md">
                 <div className="flex gap-3">
                   <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
-                    <img src={getImageUrl(item)} alt={item.title} className="w-full h-full object-cover" />
+                    <ImageWithFallback src={getThumbnailUrl(getImageUrl(item))} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold truncate">{item.title}</h3>

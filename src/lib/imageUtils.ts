@@ -1,20 +1,23 @@
 /**
- * Generate a thumbnail URL for a livestock image.
+ * Derive the thumbnail URL from a full-size image URL.
  *
- * NOTE: Supabase Storage Image Transformations (/render/image/ endpoint)
- * require a Pro plan. On the free tier those URLs 404, breaking all images.
- * We return the original URL as-is until the project is on a paid plan.
+ * Upload convention: full image is `{timestamp}.jpg`,
+ * thumbnail is `{timestamp}_thumb.jpg` (200px wide, q=0.6).
+ * Falls back to the original URL for images uploaded before
+ * dual-size was introduced (backwards compatible).
  */
 export function getThumbnailUrl(url: string, _width = 400): string {
   if (!url) return '';
-  return url;
+  // Convert {timestamp}.jpg → {timestamp}_thumb.jpg
+  return url.replace(/\.jpg$/, '_thumb.jpg');
 }
 
 /**
  * Get full-size image URL (for detail views).
- * Currently returns the original URL unchanged (see note above).
+ * If a thumbnail URL is passed in, strip the _thumb suffix.
  */
 export function getFullImageUrl(url: string, _width = 800): string {
   if (!url) return '';
-  return url;
+  // Ensure we're using the full-size variant
+  return url.replace(/_thumb\.jpg$/, '.jpg');
 }

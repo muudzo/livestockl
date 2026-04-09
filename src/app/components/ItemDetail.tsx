@@ -4,6 +4,7 @@ import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2,
 import { useLivestockItem, useEndExpiredAuctions } from "../../hooks/useLivestock";
 import { useBids, usePlaceBid } from "../../hooks/useBids";
 import { getFullImageUrl } from "../../lib/imageUtils";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useStartConversation } from "../../hooks/useMessages";
 import { useIsFavorite, useToggleFavorite } from "../../hooks/useFavorites";
 import { useAuthStore } from "../../stores/authStore";
@@ -200,7 +201,7 @@ export function ItemDetail() {
 
       <div className="pb-32">
         <div className="relative aspect-[4/3] bg-muted">
-          <img src={getFullImageUrl(imageUrls[currentImageIndex] || imageUrl)} alt={`${item.title} - ${item.breed} - image ${currentImageIndex + 1}`} className="w-full h-full object-cover" fetchPriority="high" />
+          <ImageWithFallback src={getFullImageUrl(imageUrls[currentImageIndex] || imageUrl)} alt={`${item.title} - ${item.breed} - image ${currentImageIndex + 1}`} className="w-full h-full object-cover" fetchPriority="high" />
           {imageUrls.length > 1 && (
             <>
               <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-1">

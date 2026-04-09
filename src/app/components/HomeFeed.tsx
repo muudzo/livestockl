@@ -5,6 +5,7 @@ import { categories } from "../data/mockData";
 import { useLivestockList } from "../../hooks/useLivestock";
 import { useFavorites, useToggleFavorite } from "../../hooks/useFavorites";
 import { getThumbnailUrl } from "../../lib/imageUtils";
+import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useStartConversation } from "../../hooks/useMessages";
 import { useAuthStore } from "../../stores/authStore";
 import { Badge } from "./ui/badge";
@@ -205,7 +206,7 @@ export function HomeFeed() {
             return (
               <div key={item.id} className="bg-card rounded-xl shadow-sm overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5">
                 <div role="link" tabIndex={0} aria-label={`View details for ${item.title}`} className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/item/${item.id}`); } }}>
-                  <img src={getThumbnailUrl(getImageUrl(item), 400)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                  <ImageWithFallback src={getThumbnailUrl(getImageUrl(item), 400)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   <div className="absolute bottom-2 left-2">
                     <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
                   </div>
