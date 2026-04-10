@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { mockLivestock } from '../app/data/mockData';
 import { useAuthStore } from '../stores/authStore';
+import { frontendLogger } from '../lib/logger';
 
 const PAGE_SIZE = 20;
 
@@ -72,7 +73,15 @@ export function useLivestockItem(id: string | undefined) {
       if (!sessionStorage.getItem(key)) {
         sessionStorage.setItem(key, '1');
         viewCountedRef.current = id;
-        (supabase.rpc as any)('increment_view_count', { p_item_id: id }).then();
+        (supabase.rpc as any)('increment_view_count', { p_item_id: id })
+          .then((res: any) => {
+            if (res?.error) {
+              frontendLogger.error('view_count_rpc_failed', { id, error: res.error.message });
+            }
+          })
+          .catch((err: any) => {
+            frontendLogger.error('view_count_rpc_threw', { id, error: err?.message });
+          });
       } else {
         viewCountedRef.current = id;
       }
@@ -208,8 +217,9 @@ export function useEndExpiredAuctions(item: { status?: string; end_time?: string
         queryClient.invalidateQueries({ queryKey: ['won-items'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       })
-      .catch(() => {
-        // Silent fail — the cron will catch it eventually
+      .catch((err: any) => {
+        // Cron will catch it on next run, but log so we can see it on the dashboard
+        frontendLogger.error('end_expired_auctions_rpc_failed', { error: err?.message });
       });
   }, [item, queryClient]);
 }

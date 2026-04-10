@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2, SearchX } from "lucide-react";
+import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2, SearchX, AlertTriangle } from "lucide-react";
 import { useLivestockItem, useEndExpiredAuctions } from "../../hooks/useLivestock";
 import { useBids, usePlaceBid } from "../../hooks/useBids";
 import { getFullImageUrl } from "../../lib/imageUtils";
@@ -24,7 +24,7 @@ export function ItemDetail() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const user = useAuthStore((s) => s.user);
 
-  const { data: item, isLoading } = useLivestockItem(id);
+  const { data: item, isLoading, isError, error, refetch } = useLivestockItem(id);
   useEndExpiredAuctions(item);
   const { data: bids } = useBids(id);
   const placeBid = usePlaceBid();
@@ -60,6 +60,22 @@ export function ItemDetail() {
             <div className="h-4 bg-slate-200 animate-pulse rounded w-full" />
             <div className="h-4 bg-slate-200 animate-pulse rounded w-5/6" />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
+        <h2 className="text-xl font-semibold mb-2">Couldn't load listing</h2>
+        <p className="text-muted-foreground mb-6 max-w-sm">
+          {(error as any)?.message || 'Network or server error. Please try again.'}
+        </p>
+        <div className="flex gap-2">
+          <Button onClick={() => refetch()}>Retry</Button>
+          <Button variant="outline" onClick={() => navigate('/')}>Back home</Button>
         </div>
       </div>
     );
@@ -374,7 +390,7 @@ export function ItemDetail() {
         ) : isWinner ? (
           <div className="p-4">
             <Button onClick={() => navigate(`/checkout/${item.id}`)} className="w-full bg-green-600 hover:bg-green-700 active:scale-[0.98] transition-all duration-150">
-              Pay US${currentBid.toLocaleString()} — Stripe
+              Proceed to Checkout — US${currentBid.toLocaleString()}
             </Button>
           </div>
         ) : null}

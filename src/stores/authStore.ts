@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import type { Database } from '../lib/database.types';
 import { frontendLogger } from '../lib/logger';
+import { useDemoFavoritesStore } from './demoFavoritesStore';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -163,6 +164,9 @@ export const useAuthStore = create<AuthState>()(
           await supabase.auth.signOut();
         }
         set({ user: null });
+        // Clear per-user local stores so the next user doesn't inherit state.
+        // Reset both in-memory state and persisted localStorage copy.
+        useDemoFavoritesStore.getState().clear();
       },
     }),
     {

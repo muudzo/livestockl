@@ -84,13 +84,11 @@ export function CheckoutScreen() {
   const initiatePayment = useInitiatePayment();
 
   // Check if the current user has a winning bid on this item
-  const hasWinningBid = user && bids
-    ? bids.some((b: any) => {
-        const bidUserId = b.userId ?? b.user_id;
-        const isWinner = b.isWinner ?? b.is_winner;
-        return bidUserId === user.id && isWinner;
-      })
-    : false;
+  const hasWinningBid = !!(user && bids?.length && bids.some((b: any) => {
+    const bidUserId = b.userId ?? b.user_id;
+    const isWinner = b.isWinner ?? b.is_winner;
+    return bidUserId === user.id && isWinner;
+  }));
 
   if (isLoading || bidsLoading) {
     return <CheckoutSkeleton />;
@@ -135,10 +133,15 @@ export function CheckoutScreen() {
       return;
     }
 
+    let normalizedPhone = phoneNumber;
     if (paymentMethod === 'ecocash' || paymentMethod === 'onemoney') {
+      // Strip spaces, dashes, parens, and leading +263 / 263 country code
+      normalizedPhone = (phoneNumber || '')
+        .replace(/[\s\-().]/g, '')
+        .replace(/^\+?263/, '0');
       const phoneRegex = /^07[0-9]{8}$/;
-      if (!phoneNumber || !phoneRegex.test(phoneNumber.replace(/\s/g, ''))) {
-        toast.error('Please enter a valid Zimbabwe phone number (07XXXXXXXX)');
+      if (!normalizedPhone || !phoneRegex.test(normalizedPhone)) {
+        toast.error('Enter a 10-digit Zimbabwe mobile number starting with 07 (e.g. 0771234567)');
         return;
       }
     }
@@ -149,7 +152,7 @@ export function CheckoutScreen() {
         amount: total,
         livestockTitle: item?.title,
         method: methodMap[paymentMethod],
-        phone: phoneNumber || undefined,
+        phone: normalizedPhone || undefined,
       });
 
       navigate(`/payment-status/${result.reference}?method=${paymentMethod}&amount=${total}`);

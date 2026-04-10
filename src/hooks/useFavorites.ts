@@ -1,36 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
-
-// Demo mode: persist favorites in Zustand + localStorage
-interface DemoFavoritesState {
-  favoriteIds: string[];
-  add: (id: string) => void;
-  remove: (id: string) => void;
-  has: (id: string) => boolean;
-}
-
-const useDemoFavoritesStore = create<DemoFavoritesState>()(
-  persist(
-    (set, get) => ({
-      favoriteIds: [],
-      add: (id: string) =>
-        set((state) => ({
-          favoriteIds: state.favoriteIds.includes(id)
-            ? state.favoriteIds
-            : [...state.favoriteIds, id],
-        })),
-      remove: (id: string) =>
-        set((state) => ({
-          favoriteIds: state.favoriteIds.filter((fid) => fid !== id),
-        })),
-      has: (id: string) => get().favoriteIds.includes(id),
-    }),
-    { name: 'zimlivestock-favorites' }
-  )
-);
+import { useDemoFavoritesStore } from '../stores/demoFavoritesStore';
 
 export function useFavorites() {
   const user = useAuthStore((s) => s.user);

@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
+import { frontendLogger } from '../lib/logger';
 
 // Mock data for demo mode
 const mockConversations = [
@@ -102,10 +103,14 @@ export function useConversations() {
 
 export function useMessages(conversationId: string | undefined) {
   const queryClient = useQueryClient();
+  // When realtime fails, fall back to polling so users still see new messages
+  const [realtimeHealthy, setRealtimeHealthy] = useState(true);
 
   const query = useQuery({
     queryKey: ['messages', conversationId],
     enabled: !!conversationId,
+    // Poll every 10s if realtime isn't healthy
+    refetchInterval: realtimeHealthy ? false : 10_000,
     queryFn: async () => {
       if (!isSupabaseConfigured) {
         return mockMessages[conversationId!] || [];
@@ -142,7 +147,19 @@ export function useMessages(conversationId: string | undefined) {
           }, 1000);
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        // SUBSCRIBED | TIMED_OUT | CLOSED | CHANNEL_ERROR
+        if (status === 'SUBSCRIBED') {
+          setRealtimeHealthy(true);
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          setRealtimeHealthy(false);
+          frontendLogger.error('messages_realtime_unhealthy', {
+            conversationId,
+            status,
+            error: err?.message,
+          });
+        }
+      });
 
     return () => {
       clearTimeout(debounceRef.current);
