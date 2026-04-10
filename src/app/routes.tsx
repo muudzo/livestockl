@@ -1,11 +1,14 @@
 import { createBrowserRouter, Link } from "react-router";
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Root } from "./components/Root";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 
-// Auto-reload on stale chunk errors (happens after deploys when SW cache is outdated)
+// Auto-reload on stale chunk errors (happens after deploys when SW cache is outdated).
+// The guard ('chunk_reload' in sessionStorage) prevents an infinite reload loop
+// if the chunk is genuinely broken. LazyLoad clears the guard on successful mount
+// so the next stale-chunk event can reload again.
 function lazyWithRetry(factory: () => Promise<any>) {
   return lazy(() =>
     factory().catch((err) => {
@@ -13,14 +16,13 @@ function lazyWithRetry(factory: () => Promise<any>) {
         err.message?.includes('Failed to fetch dynamically imported module') ||
         err.message?.includes('Importing a module script failed')
       ) {
-        // Clear SW cache and reload once
         const reloaded = sessionStorage.getItem('chunk_reload');
         if (!reloaded) {
           sessionStorage.setItem('chunk_reload', '1');
           window.location.reload();
           return new Promise(() => {}); // never resolves — page is reloading
         }
-        sessionStorage.removeItem('chunk_reload');
+        // Already tried to reload; fall through to surface the error.
       }
       throw err;
     })
@@ -44,6 +46,16 @@ const BillPayFlow = lazyWithRetry(() => import('./components/BillPayFlow'));
 const TestBillPayPayment = lazyWithRetry(() => import('./components/TestBillPayPayment'));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
+  // Once a lazy route renders successfully, clear the chunk-reload guard so
+  // the next stale-chunk failure is allowed to trigger a fresh reload.
+  useEffect(() => {
+    try {
+      sessionStorage.removeItem('chunk_reload');
+    } catch {
+      // Ignore storage errors (private mode, quota)
+    }
+  }, []);
+
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
