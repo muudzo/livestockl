@@ -5,6 +5,7 @@ import { useLivestockItem } from "../../hooks/useLivestock";
 import { useBids } from "../../hooks/useBids";
 import { useInitiatePayment } from "../../hooks/usePayments";
 import { useAuthStore } from "../../stores/authStore";
+import { supabase, isSupabaseConfigured } from "../../lib/supabase";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -157,6 +158,36 @@ export function CheckoutScreen() {
 
       navigate(`/payment-status/${result.reference}?method=${paymentMethod}&amount=${total}`);
     } catch (err: any) {
+      // A "Failed to fetch" / TypeError during the browser-relay POST to Paynow
+      // can fire AFTER Paynow has already accepted the payment — response just
+      // didn't come back to the client (flaky mobile network, tab backgrounded,
+      // Paynow + Cloudflare ~20-30s latency). In that case the payments row
+      // was still created server-side and Paynow will (eventually) call the
+      // webhook. If we can find the just-created pending payment, navigate to
+      // the status page — usePaynowPoll will resolve the real state within 20s
+      // instead of us flashing a scary "Failed to fetch" toast on a success.
+      const looksLikeNetwork =
+        err?.name === 'TypeError' ||
+        /failed to fetch|network|load failed/i.test(err?.message || '');
+
+      if (looksLikeNetwork && isSupabaseConfigured && user) {
+        const { data: pending } = await supabase
+          .from('payments')
+          .select('reference')
+          .eq('user_id', user.id)
+          .eq('livestock_id', id!)
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pending?.reference) {
+          toast.info('Network hiccup — checking with Paynow…');
+          navigate(`/payment-status/${pending.reference}?method=${paymentMethod}&amount=${total}`);
+          return;
+        }
+      }
+
       toast.error(err.message || 'Payment initiation failed');
     }
   };
