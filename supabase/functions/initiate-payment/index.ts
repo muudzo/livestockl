@@ -204,7 +204,45 @@ Deno.serve(async (req) => {
 
           const mobileError = paynowParams.error || paynowBody;
           log.error("Paynow express checkout error", { reference, paymentMethod, error: mobileError });
-          // Fall through to web checkout as fallback
+
+          // Terminal user errors should NOT fall through to web checkout —
+          // e.g. insufficient balance on the mobile wallet will just hit
+          // the same error again and users see a confusing redirect.
+          // Surface these directly with a clean message.
+          const lowerErr = mobileError.toLowerCase();
+          const isUserTerminal =
+            lowerErr.includes("insufficient") ||
+            lowerErr.includes("balance") ||
+            lowerErr.includes("not enough") ||
+            lowerErr.includes("subscriber") ||
+            lowerErr.includes("invalid phone") ||
+            lowerErr.includes("invalid number") ||
+            lowerErr.includes("suspended") ||
+            lowerErr.includes("blocked");
+
+          if (isUserTerminal) {
+            // Mark payment failed so the client can retry cleanly
+            await supabase
+              .from("payments")
+              .update({ status: "failed" })
+              .eq("reference", reference)
+              .eq("status", "pending");
+
+            const userMessage = lowerErr.includes("insufficient") || lowerErr.includes("balance") || lowerErr.includes("not enough")
+              ? `Insufficient balance on your ${paymentMethod} wallet. Please top up and try again.`
+              : lowerErr.includes("invalid phone") || lowerErr.includes("invalid number") || lowerErr.includes("subscriber")
+              ? `This number isn't registered for ${paymentMethod}. Check the number or try card payment.`
+              : lowerErr.includes("suspended") || lowerErr.includes("blocked")
+              ? `Your ${paymentMethod} wallet appears suspended. Contact ${paymentMethod} support.`
+              : `${paymentMethod} payment declined: ${mobileError}`;
+
+            return jsonResponse({
+              error: userMessage,
+              code: "paynow_user_terminal",
+              reference,
+            }, 402);
+          }
+          // Non-terminal provider error — fall through to web checkout as a last resort
         } catch (fetchErr) {
           log.error("Paynow express checkout failed", { reference, paymentMethod, error: (fetchErr as Error).message });
           // Fall through to web checkout
