@@ -46,12 +46,24 @@ create policy "Sellers can delete own listings with no bids"
   using (auth.uid() = seller_id and bid_count = 0 and status = 'active');
 
 -- BIDS
+-- SELECT is open (auction bid history is public by design).
 create policy "Bids are viewable by everyone"
   on public.bids for select using (true);
 
-create policy "Authenticated users can place bids"
-  on public.bids for insert
-  with check (auth.uid() = user_id);
+-- NO direct INSERT policy. Bids MUST go through the place_bid() RPC which is
+-- SECURITY DEFINER and enforces every auction rule (amount > current_bid,
+-- starting_price floor, status='active', end_time > now(), no self-bid).
+-- Without this constraint a user could POST /rest/v1/bids directly and insert
+-- {livestock_id, user_id=self, amount=1} to win any auction for $1.
+-- See SECURITY DEFINER grant in schema.sql:201 — the RPC bypasses RLS.
+--
+-- Drop-guard for idempotent reseeds (in case the old permissive policy exists):
+drop policy if exists "Authenticated users can place bids" on public.bids;
+
+-- Explicit grant so the place_bid RPC is callable by authenticated users.
+grant execute on function public.place_bid(uuid, uuid, numeric) to authenticated;
+
+-- No UPDATE / DELETE policy either — bids are immutable from the user side.
 
 -- PAYMENTS
 create policy "Users can view own payments"
