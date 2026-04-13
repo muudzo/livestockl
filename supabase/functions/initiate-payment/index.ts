@@ -2,24 +2,49 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
 import { createLogger } from "../_shared/logger.ts";
 
-const allowedOrigin = Deno.env.get("ALLOWED_ORIGIN");
+// ALLOWED_ORIGIN is a comma-separated list of allowed browser origins for
+// CORS on this user-facing payment endpoint. Previous behaviour fell back to
+// "*" if the env var was unset, which means a production misconfiguration
+// silently opened the endpoint to any origin. That's now a hard failure.
+const allowedOriginsEnv = Deno.env.get("ALLOWED_ORIGIN") || "";
+const allowedOrigins = allowedOriginsEnv
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": allowedOrigin || "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Reject requests from unknown origins in production
-function isOriginAllowed(req: Request): boolean {
-  if (!allowedOrigin) return true; // No restriction if not configured
+function pickAllowedOrigin(req: Request): string | null {
+  // If nothing configured, refuse to answer CORS at all.
+  if (allowedOrigins.length === 0) return null;
   const origin = req.headers.get("origin");
-  return !origin || origin === allowedOrigin;
+  if (!origin) {
+    // Server-to-server / curl: reflect first allowed origin so CORS header
+    // is present but real browsers won't spoof Origin header.
+    return allowedOrigins[0];
+  }
+  return allowedOrigins.includes(origin) ? origin : null;
 }
 
+function buildCorsHeaders(req: Request): Record<string, string> {
+  const origin = pickAllowedOrigin(req);
+  return {
+    "Access-Control-Allow-Origin": origin ?? "null",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
+function isOriginAllowed(req: Request): boolean {
+  return pickAllowedOrigin(req) !== null;
+}
+
+// jsonResponse requires the incoming request to derive the allowed Origin.
+// Using a closure-captured req so we don't need to thread it through every call.
+let _currentReq: Request | null = null;
 function jsonResponse(data: Record<string, unknown>, status = 200) {
+  const cors = _currentReq ? buildCorsHeaders(_currentReq) : { "Content-Type": "application/json" };
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
@@ -38,11 +63,15 @@ async function computePaynowHash(values: Record<string, string>, integrationKey:
 }
 
 Deno.serve(async (req) => {
+  _currentReq = req;
+
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response("ok", { headers: buildCorsHeaders(req) });
   }
 
   if (!isOriginAllowed(req)) {
+    // Deliberate: no CORS headers on rejection. A misconfigured (missing env)
+    // or hostile-origin request just gets a plain 403.
     return new Response(JSON.stringify({ error: "Origin not allowed" }), {
       status: 403,
       headers: { "Content-Type": "application/json" },

@@ -24,7 +24,7 @@ const supabase = createClient(
 );
 
 const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") || "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
