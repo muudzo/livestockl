@@ -119,12 +119,18 @@ BEGIN
   VALUES ('DEMO · Mixed Boer Goats (5) — ending in 90 min', 'Goats', 'Boer Cross', '1-2 years', '40kg avg', 'Active, 90 min window. Keeps the feed populated through the supervisor Q&A overrun.', 'Kadoma', 'Good', 450, 480, ARRAY[img_boergoat], seller_a, 'active', 1, NOW() + interval '90 minutes', NOW() - interval '18 hours');
 
   -- ============================================================================
-  -- Opening bids on each active item for UI realism (one competing bid @ -$25)
+  -- Opening bids on each active item for UI realism.
+  -- We insert TWO bids: one at current_bid - 25 (earlier) and one at current_bid
+  -- (latest). The latest must match current_bid exactly — otherwise the
+  -- consistency-checker flags MAX(bids.amount) != livestock_items.current_bid
+  -- as CRITICAL (learned the hard way in CI run 24334599460).
   -- ============================================================================
   FOR item_id IN (SELECT id FROM livestock_items WHERE title LIKE 'DEMO ·%' AND status = 'active') LOOP
     INSERT INTO bids (livestock_id, user_id, amount, is_winner, created_at)
     SELECT item_id, seller_b, current_bid - 25, false, NOW() - interval '2 hours' FROM livestock_items WHERE id = item_id;
-    UPDATE livestock_items SET bid_count = 1 WHERE id = item_id;
+    INSERT INTO bids (livestock_id, user_id, amount, is_winner, created_at)
+    SELECT item_id, seller_a, current_bid,       false, NOW() - interval '30 minutes' FROM livestock_items WHERE id = item_id;
+    UPDATE livestock_items SET bid_count = 2 WHERE id = item_id;
   END LOOP;
 
   RAISE NOTICE 'Seed complete — 3 won + 6 active demo auctions for user %', buyer_id;
