@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { useAgents, useAutoRunAgents } from '../../hooks/useAgents';
+import { useAgents } from '../../hooks/useAgents';
 import { Bot, Plus, ChevronRight } from 'lucide-react';
 import { AgentCard } from './agents/AgentCard';
 import { GoalsList } from './agents/GoalsList';
@@ -16,8 +16,6 @@ export function AgentDashboard() {
   const { data: agents, isLoading } = useAgents();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const selectedAgent = agents?.find(a => a.id === selectedAgentId);
-
-  useAutoRunAgents(15000);
 
   useEffect(() => {
     if (!selectedAgentId && agents?.length) {
@@ -44,9 +42,9 @@ export function AgentDashboard() {
         </div>
         <div className="flex items-center gap-3">
           {agents?.some(a => a.status === 'active') && (
-            <div className="flex items-center gap-2 text-sm text-green-600">
+            <div className="flex items-center gap-2 text-sm text-green-600" title="Active agents respond to scheduled cron triggers and the Run Now button">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              Auto-running every 15s
+              Active — tap ⚡ to run
             </div>
           )}
           <Link to="/agents/new" className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90">

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createLogger } from "../_shared/logger.ts";
+import { authorizeAgent } from "../_shared/agentAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,15 +13,6 @@ serve(async (req: Request) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  // Auth gate: only allow calls with valid CRON_SECRET
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = Deno.env.get("CRON_SECRET");
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
-
   try {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -30,7 +22,16 @@ serve(async (req: Request) => {
     const log = createLogger('market-intel', req);
     const start = Date.now();
     const { action, agentId } = await req.json();
-    log.info('market intel report started', { agentId, action });
+
+    // Auth gate: cron OR owning user
+    const auth = await authorizeAgent(req, agentId);
+    if (!auth.ok) {
+      return new Response(JSON.stringify({ error: auth.error }), {
+        status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    log.info('market intel report started', { agentId, action, authMode: auth.mode });
 
     const { data: agent } = await supabase
       .from("agents")

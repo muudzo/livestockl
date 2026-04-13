@@ -269,33 +269,60 @@ const ACTION_MAP: Record<AgentType, string> = {
   sniper: 'scan_ending_soon',
 };
 
-// Run an agent (invoke Edge Function)
-// Note: Agent functions require CRON_SECRET auth — frontend calls will return 401.
-// Agents should be triggered via cron jobs or admin tools, not the UI.
+// Run an agent (invoke Edge Function).
+// Agent edge functions now accept EITHER CRON_SECRET (for scheduled runs) OR
+// an authenticated user JWT whose auth.uid matches agents.user_id. The
+// Supabase client automatically forwards the user's Authorization header.
 export function useRunAgent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ agent, action }: { agent: Agent; action: string }) => {
+    mutationFn: async ({ agent, action }: { agent: Agent; action?: string }) => {
+      const effectiveAction = action ?? ACTION_MAP[agent.agent_type];
       const { data, error } = await supabase.functions.invoke(FUNCTION_MAP[agent.agent_type], {
-        body: { action, agentId: agent.id },
+        body: { action: effectiveAction, agentId: agent.id },
       });
 
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { agent }) => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
-      queryClient.invalidateQueries({ queryKey: ['agent_activity'] });
-      queryClient.invalidateQueries({ queryKey: ['agent_decisions'] });
+      queryClient.invalidateQueries({ queryKey: ['agent_activity', agent.id] });
+      queryClient.invalidateQueries({ queryKey: ['agent_decisions', agent.id] });
       queryClient.invalidateQueries({ queryKey: ['market_intel'] });
     },
   });
 }
 
-// Auto-run all active agents on an interval
-// DISABLED: Agent functions now require CRON_SECRET — frontend calls return 401.
-// Re-enable when agents are triggered via cron jobs instead of frontend polling.
+// Rename an agent (owner-only via RLS)
+export function useUpdateAgent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ agentId, name, config }: { agentId: string; name?: string; config?: Record<string, any> }) => {
+      const patch: Record<string, any> = {};
+      if (name !== undefined) patch.name = name;
+      if (config !== undefined) patch.config = config;
+      if (Object.keys(patch).length === 0) return null;
+
+      const { data, error } = await supabase
+        .from('agents')
+        .update(patch)
+        .eq('id', agentId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Agent;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+    },
+  });
+}
+
+// Auto-run has been replaced by explicit "Run Now" buttons + cron schedules.
+// Kept as a no-op for any stale callers; will be removed in a later sweep.
 export function useAutoRunAgents(_intervalMs = 15000) {
-  // No-op: agent edge functions are CRON_SECRET gated and cannot be called from the browser.
+  // No-op: UI now uses explicit Run Now buttons instead of client-side auto-runs.
 }
