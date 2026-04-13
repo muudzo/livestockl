@@ -570,3 +570,68 @@ In Paynow Dashboard > Integration Settings:
 
 ### The #2 recommendation:
 **Provide a lightweight JavaScript SDK** that abstracts hash computation, form encoding, and the two-endpoint split. This single change would reduce integration code by ~40% and eliminate the webhook hash ordering problem entirely.
+
+### The #3 recommendation (added 2026-04-13):
+**Ship structured error codes and document the `status=error` response shape.** Today error responses return `error=Insufficient balance` as free-text — integrators must keyword-match to distinguish user-terminal errors (insufficient balance, invalid number, suspended wallet) from provider-retry errors (network hiccup, rate limit, transient). See today's classifier in `supabase/functions/initiate-payment/index.ts:205-245` — a fragile keyword list that would break the moment Paynow tweaks phrasing. A structured `{ code: "insufficient_balance", retryable: false, message: "..." }` would make the classifier a one-liner.
+
+---
+
+## 15. Sandbox Test Audit (2026-04-13)
+
+Audit performed today against Paynow's 4 documented-in-dev-chat test phone numbers. All statuses are **code-verified**, not live-verified — Cloudflare still blocks `www.paynow.co.zw/interface/*` from our edge functions' egress IPs, so live-against-Paynow testing required the browser-relay pattern. See commit `f608193` (insufficient-funds fix) and commit `f19aba4` (pollurl fallback) for today's shipped improvements.
+
+### 15.1 Per-number coverage
+
+| Test number | Scenario | Code path status | Gap |
+|---|---|---|---|
+| `0771111111` | Success | ✅ End-to-end: `initiate-payment:146-202` → Paynow → `payment-webhook:153-154` → `completePayment`. Listing marked sold, buyer + seller notified. | Pollurl was stored but never client-polled. **Fixed today in `f19aba4`** (new `payment-poll-sync` edge function + `usePaynowPoll` hook every 20s). |
+| `0772222222` | Delayed success | ✅ Webhook handles non-terminal statuses as no-op (`payment-webhook:158`). Soft-timeout warning at 2 min (`PaymentStatus.tsx:48`). | Status copy previously said "Auto-checking every 5 seconds" implying live provider polling. **Fixed today** to honest "Checking payment status…". |
+| `0773333333` | User cancel | ✅ Webhook maps `cancelled/failed/disputed` → `failPayment` (`payment-webhook:155-156`), idempotent via `.eq("status","pending")` guard. | Paynow's `returnurl` does not carry a cancellation signal (unlike Stripe's `?stripe_status=cancelled`). User lands on status screen in `pending` state and must wait for webhook. Pending live test. |
+| `0774444444` | Insufficient funds | ✅ **Previously broken** — `status=error&error=Insufficient+balance` response silently fell through to web-checkout fallback. **Fixed today in `f608193`** — keyword classifier returns HTTP 402 with clean user copy like *"Insufficient balance on your EcoCash wallet. Please top up and try again."* |
+
+### 15.2 `f608193` classifier — keyword families
+
+| Keyword match | Classification | User-facing copy |
+|---|---|---|
+| `insufficient` / `balance` / `not enough` | user-terminal | "Insufficient balance on your {method} wallet. Please top up and try again." |
+| `invalid phone` / `invalid number` / `subscriber` | user-terminal | "This number isn't registered for {method}. Check the number or try card payment." |
+| `suspended` / `blocked` | user-terminal | "Your {method} wallet appears suspended. Contact {method} support." |
+| anything else | fall through to web checkout | (unchanged) |
+
+**Fragility caveat:** if Paynow changes phrasing (e.g. `error=Wallet funds too low` instead of `Insufficient balance`), the classifier silently degrades to "unknown → web checkout fallback", which re-introduces the bad UX. This is the concrete evidence behind recommendation #3 above.
+
+### 15.3 Coverage gaps (pending live test)
+
+The 4 test numbers above cover major buyer-side scenarios. **Not covered:**
+
+- **Network failure** — Paynow endpoint unreachable during `initiate-payment`
+- **Rate limit** — what does Paynow return if we exceed some threshold? Status, retry-after?
+- **Malformed request** — missing fields, invalid hash, unknown integration ID
+- **Duplicate reference** — same `reference` re-submitted (idempotency behaviour?)
+- **Webhook replay attack** — same webhook POST twice from different source IPs
+- **Amount/currency validation** — what does Paynow do with $0.00 or $999,999?
+
+All six scenarios would benefit from dedicated sandbox test numbers or simulators. Currently: **pending live test** against Paynow production/sandbox.
+
+### 15.4 Documentation gaps confirmed today
+
+- **`status=error` response shape** — not publicly documented. Fields observed: `status`, `error` (free-text). Fields expected but unobserved: an error code, a retryable hint, a reference to the offending field.
+- **`returnurl` cancellation signal** — no mention in public docs of whether Paynow appends `?status=cancelled` or similar on user-cancel from the hosted page. Today our observed behaviour is: no signal at all, user lands on our status page in `pending` state.
+- **Pollurl semantics** — `pollurl` is returned as a string but the accepted HTTP method and response format are not in the official docs. Our poll-sync function uses `POST` with no body based on trial and error; this should be confirmed with Paynow.
+
+### 15.5 DX sub-scores added
+
+| Dimension | Score | Evidence |
+|---|---|---|
+| API response parsing | **5/10** | URL-encoded, no JSON, every integrator writes a custom parser (`parsePaynowBody` helper duplicated in `payment-webhook` and `payment-poll-sync`) |
+| Hash / auth ergonomics | **4/10** | HMAC-SHA512 concat of values + integration key. No official TS/Deno helper. Field ordering on the webhook verification is unclear — required reading the npm `paynow` package source to figure out |
+| Sandbox test coverage | **5/10** | 4 buyer-side scenarios covered. Zero server-side failure-mode simulators (network, rate-limit, malformed, duplicate). |
+| Sandbox discoverability | **2/10** | The 4 test numbers are not in public docs — found via dev-chat / tribal knowledge |
+
+These pull the overall score from **4.2 → 4.0**.
+
+### 15.6 Gotchas added today
+
+- `status=error` on `/interface/remotetransaction` was silently falling through to `/interface/initiatetransaction` — a different error response shape causing "redirect to web checkout instead of showing insufficient-funds error." **Fixed in `f608193`.**
+- `pollurl` is returned on initiation and stored in `paynow_reference` but never actively polled. If the webhook is delayed/dropped, users wait until the 10-min hard timeout. **Fixed in `f19aba4`** with `payment-poll-sync` edge function polling every 20s server-side.
+- `returnurl` does not carry a user-cancellation signal. Integrator must rely entirely on webhook for cancel-vs-pending disambiguation.

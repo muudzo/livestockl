@@ -233,3 +233,65 @@
 - **BillPay Simulation Prefixes:** PP (pending), PF (failure), PFF (flagged)
 - **Frontend:** React 18 + Vite + Tailwind + shadcn/ui
 - **Runtime:** Deno (Supabase Edge Functions)
+
+---
+
+## 8. Sandbox Test Coverage Audit (2026-04-13)
+
+Follow-up audit 4 days after the April 9 test session, triggered by the Phase 1 + Phase 2 PWA hardening cycle. Used parallel specialist agents to map each sandbox scenario to its code path, then shipped two fixes: the insufficient-funds classifier (`f608193`) and the active pollurl fallback (`f19aba4`). All statuses below are **code-verified**, not live-verified — Cloudflare still blocks server-side access to `www.paynow.co.zw/interface/*` from Supabase edge function egress IPs.
+
+### 8.1 Per-number coverage
+
+| Number | Scenario | Code path | Pre-audit status | Post-audit status |
+|---|---|---|---|---|
+| `0771111111` | Success | `initiate-payment:146-202` → Paynow → `payment-webhook:153-154` → `completePayment` | ✅ Working end-to-end, but sole dependency on webhook delivery | ✅ Working + pollurl fallback shipped in `f19aba4` |
+| `0772222222` | Delayed success | Webhook no-ops on non-terminal statuses (`:158`); soft-timeout warns at 2 min | ⚠️ "Auto-checking every 5 seconds" copy misleading (only polls DB, not provider) | ✅ Copy tightened to "Checking payment status…" + real provider polling via `f19aba4` |
+| `0773333333` | User cancel | Webhook maps `cancelled/failed/disputed` → `failPayment` | ✅ Working; minor UX gap where `returnurl` carries no cancel signal | ✅ Unchanged (cancel signal gap documented) |
+| `0774444444` | Insufficient funds | Paynow returns `status=error&error=Insufficient+balance` on initiate | ❌ **Broken** — silently fell through to web checkout, confusing redirect UX | ✅ Fixed in `f608193` — HTTP 402 with clean user copy |
+
+### 8.2 Commit `f608193` — insufficient-funds classifier
+
+New keyword classifier in `supabase/functions/initiate-payment/index.ts:205-245` maps Paynow's free-text `error` strings to user-terminal categories:
+
+| Keyword match | Behaviour | User-facing copy |
+|---|---|---|
+| `insufficient` / `balance` / `not enough` | user-terminal, return 402 | "Insufficient balance on your {method} wallet. Please top up and try again." |
+| `invalid phone` / `invalid number` / `subscriber` | user-terminal, return 402 | "This number isn't registered for {method}. Check the number or try card payment." |
+| `suspended` / `blocked` | user-terminal, return 402 | "Your {method} wallet appears suspended. Contact {method} support." |
+| anything else | fall through to web checkout | (unchanged — legacy behaviour preserved) |
+
+Payment is marked `failed` on the server before returning 402, so the client's retry flow works cleanly. The classifier is conservative — unknown errors still fall through, matching pre-fix behaviour. See `benchmarks/paynow-dx-notes.md` §15 for the DX recommendation (Paynow should ship structured error codes to make this a one-liner).
+
+### 8.3 Gaps identified today
+
+| Gap | Status | Evidence |
+|---|---|---|
+| Misleading "Auto-checking every 5 seconds" status copy | **Fixed in `f19aba4`** | `PaymentStatus.tsx:127` — tightened to honest "Checking payment status…" |
+| Webhook-only success path (users wait up to 10 min if webhook dropped) | **Mitigated by `f19aba4`** | New `payment-poll-sync` edge function polls Paynow server-side every 20s while payment is pending |
+| `returnurl` carries no cancellation signal on user-cancel from Paynow hosted page | **Open** — pending live test | User lands on status screen in `pending` state; relies on webhook for cancel-vs-pending |
+| `pollurl` format + accepted HTTP method not in official docs | **Open** | `payment-poll-sync` uses `POST` with no body based on trial and error; confirm with Paynow |
+
+### 8.4 Scenarios NOT covered by the 4 test numbers
+
+- **Network failure** — Paynow endpoint unreachable during `initiate-payment`
+- **Rate limit** — no known test hook to trigger; unknown response shape
+- **Malformed request** — missing fields, invalid hash, unknown integration ID
+- **Duplicate reference** — same `reference` re-submitted (idempotency behaviour?)
+- **Webhook replay attack** — same webhook POST twice from different source IPs
+- **Amount/currency edge cases** — $0.00, $999,999, negative, non-USD
+
+All 6 pending live test or dedicated sandbox simulators. These are captured as action items for the next Paynow engineering sync.
+
+### 8.5 Audit summary metrics
+
+| Metric | Value |
+|---|---|
+| Buyer-side scenarios code-verified | 4/4 |
+| Bugs found | 1 (insufficient-funds fall-through) |
+| Bugs fixed today | 1 (`f608193`) |
+| UX gaps identified | 2 (misleading copy + webhook-only success) |
+| UX gaps fixed today | 2 (`f19aba4`) |
+| Documentation gaps opened for Paynow follow-up | 3 (error payload shape, returnurl cancel signal, pollurl semantics) |
+| Scenarios pending live test | 6 (network, rate-limit, malformed, duplicate, replay, amount edge cases) |
+
+**Commits referenced:** `84aed2e` (Phase 1 runtime), `5b0e1b0` (Phase 2 PWA), `f608193` (insufficient-funds fix), `f19aba4` (pollurl fallback).
