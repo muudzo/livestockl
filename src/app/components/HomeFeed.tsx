@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useDeferredValue } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, GraduationCap, Droplet } from "lucide-react";
@@ -18,8 +18,12 @@ export function HomeFeed() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  // useDeferredValue yields a low-priority debounced version of searchQuery —
+  // React batches it to ~one-tick-per-keystroke-lull, so we don't re-query
+  // Supabase on every character. No manual setTimeout debounce needed.
+  const deferredSearch = useDeferredValue(searchQuery);
 
-  const { data: livestockPages, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useLivestockList(selectedCategory);
+  const { data: livestockPages, isLoading, error, refetch, fetchNextPage, hasNextPage, isFetchingNextPage } = useLivestockList(selectedCategory, deferredSearch);
   const livestock = livestockPages?.pages.flat();
   const { data: favoriteIds = [] } = useFavorites();
   const { mutate: toggleFavorite } = useToggleFavorite();
@@ -187,17 +191,11 @@ export function HomeFeed() {
             </button>
           </div>
         ) : (() => {
-          const filteredLivestock = (livestock || []).filter((item: any) => {
-            if (!searchQuery.trim()) return true;
-            const q = searchQuery.toLowerCase();
-            return (
-              item.title?.toLowerCase().includes(q) ||
-              item.breed?.toLowerCase().includes(q) ||
-              item.location?.toLowerCase().includes(q) ||
-              item.description?.toLowerCase().includes(q) ||
-              item.category?.toLowerCase().includes(q)
-            );
-          });
+          // Search + category filtering is now done server-side in
+          // useLivestockList (via .ilike() across title/breed/location/
+          // description). Client-side filter would only hide results on
+          // the current page, giving wrong results after scroll.
+          const filteredLivestock = livestock || [];
           return !filteredLivestock.length ? (
           <div className="text-center py-16">
             <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />

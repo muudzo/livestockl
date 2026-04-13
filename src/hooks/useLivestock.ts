@@ -7,15 +7,24 @@ import { frontendLogger } from '../lib/logger';
 
 const PAGE_SIZE = 20;
 
-export function useLivestockList(category?: string) {
+export function useLivestockList(category?: string, search?: string) {
+  const searchTrim = (search || '').trim().toLowerCase();
   return useInfiniteQuery({
-    queryKey: ['livestock', 'list', category],
+    queryKey: ['livestock', 'list', category, searchTrim],
     initialPageParam: 0,
     queryFn: async ({ pageParam = 0 }) => {
       if (!isSupabaseConfigured) {
-        const items = category && category !== 'All'
+        let items = category && category !== 'All'
           ? mockLivestock.filter(i => i.category === category)
           : mockLivestock;
+        if (searchTrim) {
+          items = items.filter(i =>
+            i.title?.toLowerCase().includes(searchTrim) ||
+            i.breed?.toLowerCase().includes(searchTrim) ||
+            i.location?.toLowerCase().includes(searchTrim) ||
+            i.description?.toLowerCase().includes(searchTrim)
+          );
+        }
         return items.slice(pageParam, pageParam + PAGE_SIZE);
       }
 
@@ -28,6 +37,15 @@ export function useLivestockList(category?: string) {
 
       if (category && category !== 'All') {
         query = query.eq('category', category);
+      }
+
+      if (searchTrim) {
+        // Server-side search across title/breed/location/description. Escape
+        // % and , which are special in PostgREST's .or() syntax.
+        const safe = searchTrim.replace(/[%,()]/g, ' ');
+        query = query.or(
+          `title.ilike.%${safe}%,breed.ilike.%${safe}%,location.ilike.%${safe}%,description.ilike.%${safe}%`
+        );
       }
 
       const { data, error } = await query;
