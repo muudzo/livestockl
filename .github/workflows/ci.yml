@@ -17,9 +17,26 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  # ── Schema Guard (PR + push) ───────────────────────────
+  # Blocks merges that silently drop an RLS policy, CHECK constraint, FK,
+  # or table without a [force-schema] override. Runs early so destructive
+  # changes are caught before we waste CI minutes on the rest.
+  schema-guard:
+    name: Schema Guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50  # need history to diff against base
+      - name: Run schema-guard
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref && format('origin/{0}', github.event.pull_request.base.ref) || 'origin/main' }}
+        run: bash scripts/schema-guard.sh
+
   # ── Frontend Build & Typecheck ─────────────────────────
   frontend:
     name: Frontend Build
+    needs: [schema-guard]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -149,6 +166,9 @@ jobs:
           fi
 
       - name: Run Security Agent
+        # Per the QA gate spec: ANY critical OR high-severity failure is a
+        # hard stop — not just a failing letter grade. Low-severity failures
+        # are allowed but logged.
         run: |
           RESULT=$(curl -s -X POST \
             "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/security-agent" \
@@ -156,13 +176,27 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -d '{}')
           echo "$RESULT" | jq . || echo "$RESULT"
+
           GRADE=$(echo "$RESULT" | jq -r '.summary.security_grade // "unknown"')
-          if [ "$GRADE" = "F" ]; then
-            echo "::error::Security grade F"
+          CRITICAL=$(echo "$RESULT" | jq -r '.summary.critical_failures // 0')
+          HIGH_FAILS=$(echo "$RESULT" | jq -r '
+            [.results[]? | select(.status == "fail" and .severity == "high")] | length
+          ')
+
+          if [ "$GRADE" = "F" ] || [ "$CRITICAL" != "0" ] || [ "$HIGH_FAILS" != "0" ]; then
+            echo "::error::Security gate failed — grade=$GRADE critical=$CRITICAL high_severity_failures=$HIGH_FAILS"
             exit 1
           fi
 
       - name: Run Chaos Test
+        # Per the QA gate spec: WARN is allowed only when it's a documented
+        # fixture/data-availability issue (e.g. "no eligible listing for
+        # payment_chaos"). Any other WARN is treated as a soft failure and
+        # blocks the build — chaos warnings should never be silent.
+        # Hard FAIL on any failed > 0.
+        # Allowed warning patterns (regex, anchored to the message body):
+        #   - "No listings"     payment_chaos can't find an eligible listing
+        #   - "fixture"          explicitly tagged as a fixture mismatch
         run: |
           RESULT=$(curl -s -X POST \
             "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/chaos-test" \
@@ -170,9 +204,22 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -d '{"scenario": "all"}')
           echo "$RESULT" | jq . || echo "$RESULT"
+
           FAILED=$(echo "$RESULT" | jq -r '.summary.failed // "0"')
           if [ "$FAILED" != "0" ]; then
-            echo "::error::Chaos test has $FAILED failures"
+            echo "::error::Chaos test has $FAILED hard failures"
+            exit 1
+          fi
+
+          # Inspect every warn — fail unless the message matches the allowlist
+          UNALLOWED=$(echo "$RESULT" | jq -r '
+            .results
+            | map(select(.status == "warn"))
+            | map(select(.message | test("(?i)no listings|fixture") | not))
+            | length
+          ')
+          if [ "$UNALLOWED" != "0" ]; then
+            echo "::error::Chaos test has $UNALLOWED unexpected warning(s) — see results above. If a new warning is benign, add its pattern to the allowlist in ci.yml."
             exit 1
           fi
 
