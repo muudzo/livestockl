@@ -52,6 +52,47 @@ export function usePaymentStatus(reference: string | undefined) {
   });
 }
 
+/**
+ * Active Paynow poll fallback — invokes the payment-poll-sync edge
+ * function every 20s while payment is pending. This is a belt-and-braces
+ * path for delayed or missed webhooks: if Paynow never POSTs the
+ * webhook, the UI would otherwise wait until the 10-min hard timeout.
+ * With polling, the client can detect a terminal status within ~20s
+ * of Paynow's state changing.
+ *
+ * - Only runs when Supabase is configured AND status is still pending
+ * - Sync function is idempotent on the server (guarded by payment.status)
+ * - On terminal response, invalidates usePaymentStatus so the UI updates
+ */
+export function usePaynowPoll(reference: string | undefined, currentStatus: string | undefined) {
+  const queryClient = useQueryClient();
+  const shouldPoll = isSupabaseConfigured && !!reference && currentStatus === 'pending';
+
+  return useQuery({
+    queryKey: ['paynow-poll-sync', reference],
+    enabled: shouldPoll,
+    refetchInterval: shouldPoll ? 20_000 : false,
+    // Don't block the UI on this; it's purely a nudge to invalidate the DB poll
+    retry: false,
+    staleTime: 0,
+    queryFn: async () => {
+      if (!reference) return null;
+      const { data, error } = await supabase.functions.invoke('payment-poll-sync', {
+        body: { reference },
+      });
+      if (error) {
+        // Quietly degrade — DB poll still runs, webhook may still arrive
+        return null;
+      }
+      // If the function reports terminal, invalidate so usePaymentStatus refetches immediately
+      if (data?.status === 'paid' || data?.status === 'failed') {
+        queryClient.invalidateQueries({ queryKey: ['payment-status', reference] });
+      }
+      return data;
+    },
+  });
+}
+
 export function useInitiatePayment() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);

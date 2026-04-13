@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import { Loader2, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
-import { usePaymentStatus } from "../../hooks/usePayments";
+import { usePaymentStatus, usePaynowPoll } from "../../hooks/usePayments";
 import { isSupabaseConfigured } from "../../lib/supabase";
 import { Button } from "./ui/button";
 import { PostSaleBillPayPrompt } from "./PostSaleBillPayPrompt";
@@ -20,8 +20,12 @@ export function PaymentStatus() {
   const method = searchParams.get('method') || '';
   const stripeStatus = searchParams.get('stripe_status');
 
-  // Use real polling when Supabase is configured
+  // DB poll — updated when the Paynow webhook fires and writes to the DB
   const { data: paymentData } = usePaymentStatus(isSupabaseConfigured ? ref : undefined);
+
+  // Active Paynow poll fallback — triggers payment-poll-sync edge function
+  // every 20s while pending so we're not solely dependent on webhook delivery
+  usePaynowPoll(ref, paymentData?.status);
 
   // Demo mode simulation
   const [demoStatus, setDemoStatus] = useState<Status>('pending');
@@ -125,7 +129,7 @@ export function PaymentStatus() {
 
         {status === 'pending' && !isHardTimeout && (
           <p className="text-center text-sm text-muted-foreground mb-6">
-            Auto-checking every 5 seconds... ({formatElapsed()})
+            Checking payment status… ({formatElapsed()})
           </p>
         )}
 
