@@ -1,7 +1,10 @@
 # ZimLivestock Internship — Deliverables Tracker
 **Intern:** Tatenda Nyemudzo
 **Period:** March 12 – April 23, 2026
-**Date:** March 23, 2026 (Monday, Week 2)
+**Last updated:** April 14, 2026 (Tuesday, Week 5)
+**First compiled:** March 23, 2026
+
+> For the supervisor-facing summary, see [INTERNSHIP-HANDOVER.md](INTERNSHIP-HANDOVER.md). This tracker is the line-by-line evidence log; the handover is the narrative.
 
 ---
 
@@ -9,10 +12,37 @@
 
 | Phase | Dates | Status | Completion |
 |-------|-------|--------|------------|
-| Week 1–2: Research & Foundation | Mar 12–25 | In progress | 85% |
-| Week 3–4: Product Iteration & Payment Integration | Mar 26–Apr 8 | Not started | 0% |
-| Week 5: Testing, Validation & Feedback | Apr 9–15 | Not started | 0% |
+| Week 1–2: Research & Foundation | Mar 12–25 | Complete (1 field visit outstanding) | 95% |
+| Week 3–4: Product Iteration & Payment Integration | Mar 26–Apr 8 | Complete | 100% |
+| Week 5: Testing, Validation & Feedback | Apr 9–15 | In progress | 75% |
 | Week 6: Final Deliverables & Presentation | Apr 16–23 | Not started | 0% |
+
+## Week 5 Update — 14 April 2026
+
+Since the 23 March snapshot below, the following has shipped:
+
+- **Prototype live in production** — [app-nine-sigma-jgoqp90f2p.vercel.app](https://app-nine-sigma-jgoqp90f2p.vercel.app). PWA installable, offline fallback, manifest compliant (Criterion 13 ✅)
+- **5 payment providers benchmarked end-to-end** with per-provider test edge functions and a ranked executive report (Criteria 2, 8, 12 ✅)
+- **Paynow integration architecturally complete** — still blocked by Cloudflare on `www.paynow.co.zw`; this is itself the top DX finding. Stripe fallback works live. (Criterion 5 — code done, runtime blocked upstream)
+- **BillPay + Tawk.to feature branches** built, awaiting supervisor review ([feature-branch-review.md](../deliverables/week-5/feature-branch-review.md))
+- **Enterprise validation audit (13 Apr)** — 3 SEV-1s closed same-day (bids RLS bypass, CORS wildcard, paginated search). [Full audit](../deliverables/week-5/enterprise-audit-2026-04-13.md)
+- **Post-deploy QA gate** — consistency + security + chaos edge functions gating every merge to main (Criterion 9 ✅ simulated; live Paynow sandbox still pending)
+- **Phase 1 + Phase 2 hardening** shipped against the PWA launch audit (Criterion 11 ✅) — see [session log 13 Apr](../session-logs/2026-04-13.md)
+- **Stakeholder feedback form** ready ([stakeholder-feedback-form.md](../deliverables/week-5/stakeholder-feedback-form.md)); demos being scheduled for end of Week 5 (Criteria 7, 10 — partial)
+
+**Still outstanding:**
+
+- 1 more auction-house / farmer visit (Criterion 1)
+- 2+ stakeholder demos executed with structured feedback (Criteria 7, 10)
+- 5-min presentation deck (Criterion 14, Week 6)
+- CI secrets: `VERCEL_TOKEN`, `CRON_SECRET` need wiring in GitHub Actions
+- Paynow insufficient-funds fall-through fix; kill `test-pesepay-checkout` stack leak
+
+---
+
+## Historical snapshot from 23 March 2026
+
+> *The per-criterion detail below was written in Week 2. Where status has moved since, the Week 5 Update above is authoritative.*
 
 ---
 
@@ -243,18 +273,20 @@
 
 ## Final Deliverables Checklist
 
+*As of 14 April 2026:*
+
 | # | Deliverable | Status | Location |
 |---|-------------|--------|----------|
-| 1 | Functional livestock marketplace prototype | DONE | `/src/` (frontend) + `/backend/` (Go) + `/supabase/` (Edge Functions) |
-| 2 | Paynow payment integration | DONE (code), BLOCKED (runtime) | 835 lines across 5 files + Go client (444 lines). Cloudflare prevents live API calls. |
-| 3 | Paynow DX benchmark report | DRAFT DONE | `benchmarks/payment-provider-benchmark-report.md` |
+| 1 | Functional livestock marketplace prototype | DONE | `/src/` (frontend) + `/supabase/` (Edge Functions). Go backend removed 30 Mar; Supabase-only stack. |
+| 2 | Paynow payment integration | DONE (code), BLOCKED (live API) | 835 lines across payment/orchestrator/webhook. Cloudflare on `www.paynow.co.zw` blocks all server-side clients — itself the top DX finding. Stripe fallback functional. |
+| 3 | Paynow DX benchmark report | DONE | `benchmarks/payment-provider-benchmark-report.md` — final polish queued for Week 6 |
 | 4 | Actionable DX recommendations | 7 of 5 done (EXCEEDED) | In benchmark report |
-| 5 | Auction house research summary | DONE | `research/auction-field-visit-2026-03-19.md` |
+| 5 | Auction house research summary | DONE (2nd visit outstanding) | `research/auction-field-visit-2026-03-19.md` |
 | 6 | System architecture diagram | DONE | `docs/architecture-diagram.html` |
 | 7 | Wireframes | DONE | `docs/wireframes.html` (12 screens) |
-| 8 | Project README | NOT DONE | Need to create |
-| 9 | Deployed prototype URL | NOT DONE | Supabase live, frontend needs deploy |
-| 10 | 5-minute presentation | NOT DONE | Stanford SEED brief as starting point |
+| 8 | Project README | DONE | `README.md` refreshed 14 Apr |
+| 9 | Deployed prototype URL | DONE | https://app-nine-sigma-jgoqp90f2p.vercel.app |
+| 10 | 5-minute presentation | NOT DONE | Week 6. Stanford SEED brief as starting point. |
 
 ---
 
@@ -304,5 +336,5 @@
 
 ---
 
-*Last updated: 23 March 2026*
-*Next review: 30 March 2026 (Week 3 standup)*
+*Last updated: 14 April 2026*
+*Next review: end of Week 5 (15 April 2026) — confirm stakeholder demos run, Paynow fall-through fix shipped, CI secrets wired*
