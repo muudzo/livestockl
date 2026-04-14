@@ -195,7 +195,15 @@ export function AuctionPilot() {
     [pages],
   );
 
-  const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  // Demo deep-link: ?id=<uuid> auto-selects a specific listing on load so
+  // the trace is populated the moment the page renders. Falls through to
+  // first available listing when no param is present.
+  const initialId = (() => {
+    if (typeof window === "undefined") return undefined;
+    const p = new URLSearchParams(window.location.search).get("id");
+    return p && /^[0-9a-f-]{36}$/i.test(p) ? p : undefined;
+  })();
+  const [selectedId, setSelectedId] = useState<string | undefined>(initialId);
   useEffect(() => {
     if (!selectedId && items.length) setSelectedId(items[0].id);
   }, [items, selectedId]);
@@ -252,7 +260,19 @@ export function AuctionPilot() {
         </CardContent>
       </Card>
 
-      {/* Controller — full width */}
+      {/* Guarantee line — single sentence above the proof surface */}
+      <div className="border-l-2 border-primary pl-4 py-1">
+        <p className="text-sm md:text-base text-foreground">
+          Every state change is recorded, ordered, and verifiable.
+          None can be skipped, none can be duplicated.
+          This is the audit a Paynow settlement sits inside.
+        </p>
+      </div>
+
+      {/* System event trace — the proof mechanism, rendered first */}
+      <EventFeed transitions={transitions} loading={transitionsQuery.isLoading} />
+
+      {/* Controller — full width, secondary to the trace */}
       <Card>
         <CardHeader>
           <CardTitle>Demo Controller</CardTitle>
@@ -298,8 +318,6 @@ export function AuctionPilot() {
         </CardContent>
       </Card>
 
-      {/* System event trace — the proof mechanism */}
-      <EventFeed transitions={transitions} loading={transitionsQuery.isLoading} />
 
       {/* Footer pitch callout */}
       <Card className="bg-gradient-to-br from-primary/5 to-emerald-50 border-primary/20">
