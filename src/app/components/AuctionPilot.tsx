@@ -4,7 +4,7 @@
 // the record-clearance edge function — if they're not migrated yet we
 // degrade to a friendly message instead of crashing.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { CheckCircle2, Circle, Loader2, ShieldCheck, ArrowRight, AlertTriangle } from "lucide-react";
@@ -252,55 +252,54 @@ export function AuctionPilot() {
         </CardContent>
       </Card>
 
-      {/* Controller + Sidebar */}
-      <div className="grid md:grid-cols-[1fr_320px] gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Demo Controller</CardTitle>
-            <CardDescription>Pick a listing, then advance the state machine.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-1.5">
-              <Label>Livestock item</Label>
-              {loadingList ? (
-                <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Loading listings…
-                </div>
-              ) : items.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No active listings available.</div>
-              ) : (
-                <Select value={selectedId} onValueChange={setSelectedId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an item…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {items.map(item => (
-                      <SelectItem key={item.id} value={item.id}>
-                        {item.title} — US${item.current_bid.toLocaleString()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {selected && (
-              <StateActions
-                item={selected}
-                state={currentState}
-                ctx={ctxQuery.data}
-                pilotTablesMissing={pilotTablesMissing}
-                onRefetch={() => {
-                  ctxQuery.refetch();
-                  transitionsQuery.refetch();
-                }}
-              />
+      {/* Controller — full width */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Demo Controller</CardTitle>
+          <CardDescription>Pick a listing, then advance the state machine.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="space-y-1.5">
+            <Label>Livestock item</Label>
+            {loadingList ? (
+              <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading listings…
+              </div>
+            ) : items.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No active listings available.</div>
+            ) : (
+              <Select value={selectedId} onValueChange={setSelectedId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an item…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {items.map(item => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.title} — US${item.current_bid.toLocaleString()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        <EventFeed transitions={transitions} loading={transitionsQuery.isLoading} />
-      </div>
+          {selected && (
+            <StateActions
+              item={selected}
+              state={currentState}
+              ctx={ctxQuery.data}
+              pilotTablesMissing={pilotTablesMissing}
+              onRefetch={() => {
+                ctxQuery.refetch();
+                transitionsQuery.refetch();
+              }}
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* System event trace — the proof mechanism */}
+      <EventFeed transitions={transitions} loading={transitionsQuery.isLoading} />
 
       {/* Footer pitch callout */}
       <Card className="bg-gradient-to-br from-primary/5 to-emerald-50 border-primary/20">
@@ -374,6 +373,12 @@ function StateActions({
   const [notes, setNotes] = useState("");
   const [clearanceStatus, setClearanceStatus] = useState<"approved" | "pending" | "blocked">("approved");
   const [submitting, setSubmitting] = useState(false);
+  // One idempotency key per form instance. Retries of the same submission
+  // (double-click, network retry) hit the server with the same key and are
+  // deduped via the (livestock_id, idempotency_key) unique index. Rotated
+  // after a successful submit so the next genuinely-new clearance gets a
+  // fresh key.
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
 
   async function submitClearance() {
     if (!officerName || !officerBadge || !district) {
@@ -391,14 +396,15 @@ function StateActions({
           officer_badge: officerBadge,
           district,
           notes: notes || null,
+          idempotency_key: idempotencyKeyRef.current,
         },
       });
       if (error) throw error;
       toast.success("Clearance recorded");
       setOfficerName(""); setOfficerBadge(""); setDistrict(""); setNotes("");
+      idempotencyKeyRef.current = crypto.randomUUID();
       onRefetch();
       queryClient.invalidateQueries({ queryKey: ["pilot-transitions", item.id] });
-      // Use data to stay TS-happy and so we can log what came back.
       if (data && (data as any).transition_id) {
         console.info("record-clearance transition_id:", (data as any).transition_id);
       }
@@ -525,41 +531,50 @@ function StateActions({
   );
 }
 
+const STATE_TRACE_COLOR: Record<StateKey, string> = {
+  registered: "text-zinc-300",
+  auctioned: "text-amber-300",
+  cleared: "text-emerald-300",
+  paid: "text-cyan-300",
+  transferred: "text-violet-300",
+};
+
 function EventFeed({ transitions, loading }: { transitions: Transition[]; loading: boolean }) {
+  // Render newest-last so the trace reads top-to-bottom like a system log.
+  const ordered = [...transitions].reverse();
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Event feed</CardTitle>
-        <CardDescription>Live ownership transitions.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="text-muted-foreground text-sm flex items-center gap-2">
-            <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-          </div>
-        ) : transitions.length === 0 ? (
-          <div className="text-muted-foreground text-sm">No transitions yet. Advance the state machine to populate the feed.</div>
+    <div className="rounded-md border border-zinc-800 bg-zinc-950 text-zinc-100 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-zinc-800 bg-zinc-900">
+        <div className="font-mono text-[11px] tracking-widest text-zinc-400">SYSTEM EVENT TRACE</div>
+        <div className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-500">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          realtime
+        </div>
+      </div>
+      <pre className="font-mono text-[12px] leading-relaxed px-3 py-3 m-0 overflow-x-auto whitespace-pre">
+{loading ? (
+          <span className="text-zinc-500">loading trace…</span>
+        ) : ordered.length === 0 ? (
+          <span className="text-zinc-500">// no transitions yet — advance the state machine to populate</span>
         ) : (
-          <ol className="space-y-3">
-            {transitions.map(t => (
-              <li key={t.id} className="border-l-2 border-muted pl-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <Badge className={STATE_BADGE[t.state] + " border-transparent"}>{t.state}</Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(t.created_at).toLocaleString()}
-                  </span>
-                </div>
-                <div className="text-sm mt-1">{t.event || "(no description)"}</div>
-                {(t.from_owner_id || t.to_owner_id) && (
-                  <div className="text-xs text-muted-foreground mt-0.5 font-mono">
-                    {(t.from_owner_id || "—").slice(0, 8)} → {(t.to_owner_id || "—").slice(0, 8)}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ol>
+          ordered.map(t => {
+            const d = new Date(t.created_at);
+            const ts = d.toISOString().slice(11, 19);
+            const state = t.state.toUpperCase().padEnd(12);
+            const actor = (t.from_owner_id || t.to_owner_id)
+              ? `  ${(t.from_owner_id || "--").slice(0, 8)}→${(t.to_owner_id || "--").slice(0, 8)}`
+              : "";
+            return (
+              <div key={t.id}>
+                <span className="text-zinc-500">[{ts}]</span>{" "}
+                <span className={STATE_TRACE_COLOR[t.state]}>{state}</span>{" "}
+                <span className="text-zinc-200">{t.event || "(no description)"}</span>
+                <span className="text-zinc-600">{actor}</span>
+              </div>
+            );
+          })
         )}
-      </CardContent>
-    </Card>
+      </pre>
+    </div>
   );
 }
