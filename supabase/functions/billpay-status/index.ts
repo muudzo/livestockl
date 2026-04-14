@@ -35,7 +35,13 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { reference, action } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return json({ error: "Invalid JSON body" }, 400);
+    }
+    const { reference, action } = body || {};
     const actionType = (action || "status").toLowerCase();
 
     if (!reference) return json({ error: "reference is required" }, 400);

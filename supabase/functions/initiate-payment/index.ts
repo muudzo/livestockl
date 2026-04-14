@@ -81,7 +81,15 @@ Deno.serve(async (req) => {
   const log = createLogger('initiate-payment', req);
 
   try {
-    const { reference, amount, livestockTitle, method, phone } = await req.json();
+    // Parse body with its own guard — malformed JSON should be a 400,
+    // not the 500 the outer catch would return.
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
+    }
+    const { reference, amount, livestockTitle, method, phone } = body || {};
 
     // Input validation
     if (!reference || typeof reference !== "string") {

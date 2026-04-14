@@ -146,7 +146,13 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authErr } = await userClient.auth.getUser();
     if (authErr || !user) return jsonResponse({ error: "Not authenticated" }, 401);
 
-    const { reference } = (await req.json()) as { reference?: string };
+    let body: { reference?: string };
+    try {
+      body = (await req.json()) as { reference?: string };
+    } catch {
+      return jsonResponse({ error: "Invalid JSON body" }, 400);
+    }
+    const { reference } = body || {};
     if (!reference) return jsonResponse({ error: "Missing reference" }, 400);
 
     // ─── Look up payment, verify ownership, extract pollurl ───

@@ -67,7 +67,12 @@ Deno.serve(async (req) => {
   // ── POST: Webhook from Paynow for biller config updates ──
   if (req.method === "POST") {
     try {
-      const billerCodes: string[] = await req.json();
+      let billerCodes: string[];
+      try {
+        billerCodes = await req.json();
+      } catch {
+        return json({ error: "Invalid JSON body" }, 400);
+      }
       if (!Array.isArray(billerCodes) || billerCodes.length === 0) {
         return json({ error: "Expected array of biller codes" }, 400);
       }
