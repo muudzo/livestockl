@@ -13,16 +13,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  *   Flagged payments: 600 second intervals
  */
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+
+let _currentReq: Request | null = null;
 
 function json(data: Record<string, unknown>, status = 200) {
+  const cors = _currentReq ? getCorsHeaders(_currentReq) : {};
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
@@ -30,6 +29,8 @@ const BILLPAY_API = "https://billpay.paynow.co.zw/api/payment/process";
 const API_TIMEOUT_MS = 60_000;
 
 Deno.serve(async (req) => {
+  _currentReq = req;
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

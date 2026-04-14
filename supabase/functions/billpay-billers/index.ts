@@ -11,16 +11,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Returns cached data if fresher than 1 hour, otherwise refreshes.
  */
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
+
+let _currentReq: Request | null = null;
 
 function json(data: unknown, status = 200) {
+  const cors = _currentReq ? getCorsHeaders(_currentReq) : {};
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
@@ -55,6 +54,8 @@ const SIM_BILLERS = [
 ];
 
 Deno.serve(async (req) => {
+  _currentReq = req;
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

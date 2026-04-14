@@ -17,22 +17,20 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createLogger } from "../_shared/logger.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
+// Per-request closure so jsonResponse can derive CORS from the current req
+let _currentReq: Request | null = null;
 function jsonResponse(body: unknown, status = 200) {
+  const cors = _currentReq ? getCorsHeaders(_currentReq) : {};
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+    headers: { ...cors, "Access-Control-Allow-Methods": "POST, OPTIONS", "Content-Type": "application/json" },
   });
 }
 
@@ -128,7 +126,9 @@ async function failPayment(reference: string, log: ReturnType<typeof createLogge
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
+  _currentReq = req;
+  const cors = getCorsHeaders(req);
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
   const log = createLogger("payment-poll-sync", req);

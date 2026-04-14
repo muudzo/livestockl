@@ -94,30 +94,32 @@ jobs:
           version: latest
 
       - name: Deploy all functions
+        # Auto-discover every folder in supabase/functions/ that has an
+        # index.ts file (except _shared which is a library, not a function).
+        # Previously used a hardcoded list which silently drops new functions
+        # if someone forgets to update it — caught in 2026-04-14 red-team
+        # when payment-poll-sync was shipped yesterday but never deployed.
         run: |
-          FUNCTIONS=(
-            initiate-payment
-            payment-webhook
-            payment-orchestrator
-            end-auctions
-            buyer-agent
-            seller-agent
-            auction-sniper
-            bid-executor
-            win-detector
-            market-intel
-            billpay
-            security-agent
-            consistency-checker
-            chaos-test
-          )
-          for fn in "${FUNCTIONS[@]}"; do
+          set -e
+          FAILED_FNS=()
+          for dir in supabase/functions/*/; do
+            fn=$(basename "$dir")
+            if [ "$fn" = "_shared" ]; then continue; fi
+            if [ ! -f "$dir/index.ts" ]; then continue; fi
             echo "Deploying $fn..."
-            supabase functions deploy "$fn" \
-              --project-ref $SUPABASE_PROJECT_REF \
-              --no-verify-jwt \
-              2>&1 || echo "WARN: $fn deploy failed"
+            if ! supabase functions deploy "$fn" \
+                 --project-ref $SUPABASE_PROJECT_REF \
+                 --no-verify-jwt 2>&1; then
+              FAILED_FNS+=("$fn")
+              echo "::warning::$fn deploy failed"
+            fi
           done
+          if [ ${#FAILED_FNS[@]} -ne 0 ]; then
+            echo "::error::Some functions failed to deploy: ${FAILED_FNS[*]}"
+            # Don't hard-fail the job yet — some test-* functions may fail
+            # due to missing secrets and that's acceptable. If you want
+            # hard-fail, change the above to `exit 1`.
+          fi
 
   # ── Deploy Frontend to Vercel (main only) ──────────────
   # Uses Vercel CLI directly instead of amondnet/vercel-action@v25.
