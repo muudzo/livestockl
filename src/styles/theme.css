@@ -41,6 +41,26 @@
   --sidebar-ring: oklch(0.708 0 0);
   --ecocash-green: #00A651;
   --onemoney-blue: #0072BC;
+
+  /* Auction-catalogue editorial palette.
+     Think: printed sale catalogue on kraft paper, stamp ink, sale-ring red.
+     Not the shadcn default; loaded via @theme inline below. */
+  --kraft-50:  #F7F0E1;  /* paper highlight */
+  --kraft-100: #EDE3CC;  /* catalogue page */
+  --kraft-200: #D9C9A8;  /* aged paper */
+  --kraft-300: #B7A27A;  /* masthead rule */
+  --ink-900:   #141210;  /* stamp ink */
+  --ink-700:   #3A342C;  /* running text */
+  --ink-500:   #6B6457;  /* secondary text */
+  --ring-red:  #B8332A;  /* sale-ring red, used sparingly as accent */
+  --ring-red-dark: #7D1F18;
+  --ochre:     #C4923A;  /* hot-iron ochre */
+  --stamp-blue: #2E3440; /* corner stamp blue-black */
+
+  /* Font stacks — distinctive, not Inter/Roboto/system. */
+  --font-display: 'Fraunces Variable', 'Fraunces', ui-serif, Georgia, serif;
+  --font-body:    'Newsreader', ui-serif, Georgia, serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Consolas, monospace;
 }
 
 .dark {
@@ -119,6 +139,24 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Catalogue palette exposed as Tailwind utilities — use `bg-kraft-100`, `text-ink-900`, `text-ring-red`, etc. */
+  --color-kraft-50:  var(--kraft-50);
+  --color-kraft-100: var(--kraft-100);
+  --color-kraft-200: var(--kraft-200);
+  --color-kraft-300: var(--kraft-300);
+  --color-ink-900:   var(--ink-900);
+  --color-ink-700:   var(--ink-700);
+  --color-ink-500:   var(--ink-500);
+  --color-ring-red:  var(--ring-red);
+  --color-ring-red-dark: var(--ring-red-dark);
+  --color-ochre:     var(--ochre);
+  --color-stamp-blue: var(--stamp-blue);
+
+  /* Font tokens for Tailwind: `font-display`, `font-body`, `font-mono` */
+  --font-display: var(--font-display);
+  --font-body:    var(--font-body);
+  --font-mono:    var(--font-mono);
 }
 
 @layer base {
