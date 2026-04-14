@@ -1,0 +1,103 @@
+name: Nightly Chaos
+
+# Runs an extended chaos + integrity pass against prod once a day at 03:00 UTC.
+# Goal: catch drift that the per-push post-deploy QA may miss because it runs
+# the lighter suite. This one pushes harder — higher concurrency, repeated
+# ledger reconciliation, security re-audit.
+#
+# Also safe to kick off manually via Actions → Nightly Chaos → Run workflow.
+
+on:
+  schedule:
+    # 03:00 UTC daily — avoids overlap with user-facing hours in Africa/Harare (UTC+2)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  SUPABASE_FN_URL: https://hmeieslclzycyjjjflfh.supabase.co/functions/v1
+
+jobs:
+  extended-chaos:
+    name: Extended Chaos + Integrity Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Baseline integrity re-check ─────────────────────
+      - name: Consistency Checker (baseline)
+        run: |
+          RESULT=$(curl -s -X POST "$SUPABASE_FN_URL/consistency-checker" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" -d '{}')
+          echo "$RESULT" | jq .
+          HEALTH=$(echo "$RESULT" | jq -r '.summary.health // "unknown"')
+          if [ "$HEALTH" = "critical" ]; then
+            echo "::error::Nightly consistency check CRITICAL"
+            exit 1
+          fi
+
+      # ── Chaos x5 (harder than per-push) ─────────────────
+      # Fires the full chaos suite 5 times back-to-back. Flaky races
+      # that pass one run often fail across multiple. Any hard failure
+      # or unexpected warning (not matching fixture_mismatch allowlist)
+      # fails the nightly.
+      - name: Chaos Test — 5 iterations
+        run: |
+          TOTAL_FAIL=0
+          TOTAL_BAD_WARN=0
+          for i in 1 2 3 4 5; do
+            echo "── Iteration $i ──"
+            RESULT=$(curl -s -X POST "$SUPABASE_FN_URL/chaos-test" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              -H "Content-Type: application/json" \
+              -d '{"scenario":"all"}')
+            echo "$RESULT" | jq '.summary'
+            FAILED=$(echo "$RESULT" | jq -r '.summary.failed // 0')
+            BAD_WARN=$(echo "$RESULT" | jq -r '
+              .results
+              | map(select(.status == "warn"))
+              | map(select(.message | test("(?i)no listings|fixture") | not))
+              | length
+            ')
+            TOTAL_FAIL=$((TOTAL_FAIL + FAILED))
+            TOTAL_BAD_WARN=$((TOTAL_BAD_WARN + BAD_WARN))
+            sleep 2
+          done
+          echo "Aggregate across 5 runs: failed=$TOTAL_FAIL bad_warn=$TOTAL_BAD_WARN"
+          if [ "$TOTAL_FAIL" != "0" ] || [ "$TOTAL_BAD_WARN" != "0" ]; then
+            echo "::error::Nightly chaos aggregated failures: $TOTAL_FAIL hard, $TOTAL_BAD_WARN unexpected warnings"
+            exit 1
+          fi
+
+      # ── Security re-audit ────────────────────────────────
+      - name: Security Agent (full re-audit)
+        run: |
+          RESULT=$(curl -s -X POST "$SUPABASE_FN_URL/security-agent" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" -d '{}')
+          echo "$RESULT" | jq .
+          GRADE=$(echo "$RESULT" | jq -r '.summary.security_grade // "unknown"')
+          CRITICAL=$(echo "$RESULT" | jq -r '.summary.critical_failures // 0')
+          HIGH_FAILS=$(echo "$RESULT" | jq -r '[.results[]? | select(.status == "fail" and .severity == "high")] | length')
+          if [ "$GRADE" = "F" ] || [ "$CRITICAL" != "0" ] || [ "$HIGH_FAILS" != "0" ]; then
+            echo "::error::Nightly security re-audit failed — grade=$GRADE critical=$CRITICAL high=$HIGH_FAILS"
+            exit 1
+          fi
+
+      # ── Consistency re-check after chaos ────────────────
+      # Confirms chaos didn't leave orphaned data or broken invariants.
+      - name: Consistency Checker (post-chaos)
+        run: |
+          RESULT=$(curl -s -X POST "$SUPABASE_FN_URL/consistency-checker" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            -H "Content-Type: application/json" -d '{}')
+          echo "$RESULT" | jq .
+          HEALTH=$(echo "$RESULT" | jq -r '.summary.health // "unknown"')
+          if [ "$HEALTH" = "critical" ]; then
+            echo "::error::Post-chaos consistency check CRITICAL — chaos left orphan data"
+            exit 1
+          fi
+
+      - name: Nightly Summary
+        run: echo "✅ All nightly checks passed — integrity, extended chaos (x5), security, post-chaos consistency"

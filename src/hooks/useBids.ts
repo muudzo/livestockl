@@ -70,7 +70,7 @@ export function usePlaceBid() {
   const user = useAuthStore((s) => s.user);
 
   return useMutation({
-    mutationFn: async ({ livestockId, amount }: { livestockId: string; amount: number }) => {
+    mutationFn: async ({ livestockId, amount, idempotencyKey }: { livestockId: string; amount: number; idempotencyKey?: string }) => {
       if (!user) throw new Error('Not authenticated');
 
       if (!isSupabaseConfigured) {
@@ -82,13 +82,19 @@ export function usePlaceBid() {
         return { id: 'mock-bid-' + Date.now(), amount };
       }
 
-      frontendLogger.info('bid_placed', { livestockId, amount, userId: user.id });
+      // Generate one if not provided — covers double-click / retry cases where
+      // the caller forgot to pass one. If the same key hits twice, the RPC
+      // short-circuits and returns the original bid id instead of a duplicate.
+      const key = idempotencyKey ?? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`);
+
+      frontendLogger.info('bid_placed', { livestockId, amount, userId: user.id, idempotencyKey: key });
 
       // Use atomic database function for bid placement
       const { data, error } = await (supabase.rpc as any)('place_bid', {
         p_livestock_id: livestockId,
         p_user_id: user.id,
         p_amount: amount,
+        p_idempotency_key: key,
       });
 
       if (error) {

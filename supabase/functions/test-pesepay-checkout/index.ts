@@ -189,8 +189,12 @@ Deno.serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    // Intentionally NOT returning stack to the client — stack traces leak
+    // file paths, function names, and internal structure. Log for ops,
+    // return a generic message to the caller.
+    console.error("test-pesepay-checkout error:", (err as Error).message, (err as Error).stack);
     return new Response(
-      JSON.stringify({ error: (err as Error).message, stack: (err as Error).stack }),
+      JSON.stringify({ error: (err as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

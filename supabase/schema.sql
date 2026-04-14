@@ -66,8 +66,14 @@ create table if not exists public.bids (
   user_id uuid not null references public.profiles(id),
   amount numeric not null check (amount > 0),
   is_winner boolean default false,
+  -- Client-generated idempotency key — lets place_bid() short-circuit
+  -- duplicate submissions from double-clicks or network retries.
+  idempotency_key uuid,
   created_at timestamptz default now()
 );
+create unique index if not exists idx_bids_idempotency
+  on public.bids (user_id, idempotency_key)
+  where idempotency_key is not null;
 
 -- Payments
 create table if not exists public.payments (
@@ -80,9 +86,13 @@ create table if not exists public.payments (
   status text default 'pending' check (status in ('pending', 'paid', 'failed')),
   paynow_reference text,
   phone text,
+  idempotency_key uuid,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+create unique index if not exists idx_payments_idempotency
+  on public.payments (user_id, idempotency_key)
+  where idempotency_key is not null;
 
 -- Notifications
 create table if not exists public.notifications (
@@ -116,21 +126,40 @@ insert into storage.buckets (id, name, public)
 values ('livestock-images', 'livestock-images', true)
 on conflict (id) do nothing;
 
--- Atomic bid placement function (prevents race conditions, validates rules)
+-- Atomic bid placement function (prevents race conditions, validates rules).
+-- Accepts optional p_idempotency_key — if the same (user, key) pair was
+-- already used, returns the original bid id instead of inserting a duplicate.
+-- This is defence against double-clicks, stuck-spinner retries, and offline
+-- queued mutations replayed on reconnect.
 create or replace function public.place_bid(
   p_livestock_id uuid,
   p_user_id uuid,
-  p_amount numeric
+  p_amount numeric,
+  p_idempotency_key uuid default null
 )
 returns uuid as $$
 declare
   v_item record;
   v_bid_id uuid;
   v_prev_bidder record;
+  v_existing_bid_id uuid;
 begin
   -- Verify the caller is the user they claim to be (prevents RLS bypass)
   IF p_user_id != auth.uid() THEN
     RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- Idempotency short-circuit: if this user has already submitted a bid
+  -- with this key, return it instead of inserting a duplicate.
+  IF p_idempotency_key IS NOT NULL THEN
+    SELECT id INTO v_existing_bid_id
+    FROM public.bids
+    WHERE user_id = p_user_id
+      AND idempotency_key = p_idempotency_key
+    LIMIT 1;
+    IF v_existing_bid_id IS NOT NULL THEN
+      RETURN v_existing_bid_id;
+    END IF;
   END IF;
 
   -- Lock the item row to prevent concurrent bid races
@@ -166,8 +195,8 @@ begin
   end if;
 
   -- Insert the bid
-  insert into public.bids (livestock_id, user_id, amount)
-  values (p_livestock_id, p_user_id, p_amount)
+  insert into public.bids (livestock_id, user_id, amount, idempotency_key)
+  values (p_livestock_id, p_user_id, p_amount, p_idempotency_key)
   returning id into v_bid_id;
 
   -- Update livestock item atomically

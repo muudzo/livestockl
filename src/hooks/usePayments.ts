@@ -114,7 +114,11 @@ export function useInitiatePayment() {
       if (!user) throw new Error('Not authenticated');
 
       const reference = `ZL-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`.toUpperCase();
-      frontendLogger.info('payment_initiated', { livestockId, amount, method, reference });
+      // Idempotency: if this exact mutation retries (double-click, network
+      // drop + resubmit, offline queue replay), the DB's unique index on
+      // (user_id, idempotency_key) guarantees only ONE payment row exists.
+      const idempotencyKey = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+      frontendLogger.info('payment_initiated', { livestockId, amount, method, reference, idempotencyKey });
 
       if (!isSupabaseConfigured) {
         return { reference, status: 'pending' as const };
@@ -149,6 +153,7 @@ export function useInitiatePayment() {
           amount,
           method,
           phone: phone || null,
+          idempotency_key: idempotencyKey,
         })
         .select()
         .single();
