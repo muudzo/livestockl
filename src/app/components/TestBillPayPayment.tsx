@@ -11,145 +11,110 @@ type TestCase = {
   billerName: string;
   accountNumber: string;
   amount?: number;
+  productCode?: string;    // vendor product code — required for real billers
+  productPrice?: number;   // per-product price, usually equals amount
   action: "auth" | "auth+pay" | "pay_pending" | "pay_flagged" | "pay_fail" | "auth_timeout" | "auth_fail" | "pay_timeout";
   expectError?: boolean;
 };
 
 /**
- * Harness is split into two batches per v1.33 docs:
+ * Real-biller harness (live staging via billpay-staging.paynow.co.zw).
  *
- * BATCH A — Test biller error paths:
- * - Prefixes AT/AF/PT/PF/PP/PFF ONLY work on biller "Test" (not ZETDC/AIRTIME/etc).
- * - Test biller products AI/AM/AA/RV/FP each exercise a different config:
- *   AI = variable price, part payment allowed (council-style)
- *   AM = variable price, full payment mandated (medical-aid-style)
- *   AA = free price, customer enters amount (airtime/ZESA-style)
- *   RV = returns vouchers (TelOne/EVD-style)
- *   FP = fixed price, requires forex
+ * Product codes verified against this sandbox account's ListBillers response:
+ *   ZETDC       → PREPAID_USD  (USD prepaid meter, returns tokens)
+ *   AIRTIME     → AIRTIME_USD  (USD airtime credit)
+ *   COH         → BILL         (City of Harare bill payment)
+ *   UZ          → TUITION      (University of Zimbabwe tuition)
+ *   NUST        → USD1         (NUST tuition USD)
+ *   GWE         → GWE          (Gweru council bill payment)
  *
- * BATCH B — Real billers (happy path only, using documented test meters):
- * - ZETDC test meters from v1.33 docs ("Test Meter Numbers" section)
- * - AIRTIME with valid mobile number
+ * ZETDC test meters from v1.33 docs:
+ *   37132567431 = single-debt, 37132229735 = double-token
+ *   Any meter + $177.77 amount = token resend
  *
- * Both batches pass in simulation AND are credentials-ready: when live
- * vendor creds activate, Batch A routes to the real Test biller and Batch B
- * routes to real ZETDC/AIRTIME — both work without further code changes.
+ * Test biller is intentionally excluded here — vendor reports
+ * "biller code 'Test' is not enabled on your vendor profile" for this
+ * sandbox account despite ListBillers showing Enabled=true. Awaiting
+ * Paynow activation. Error-path cases (AT/AF/PT/PF/PP/PFF prefixes) run
+ * in simulation mode only until then.
  */
 const TEST_CASES: TestCase[] = [
-  // ─── BATCH A — Test biller error paths (all 6 vendor-spec prefixes) ───
   {
-    name: "A1 — Test biller, happy path (AA, free price)",
-    description: "Test biller + AA product (free-price). Normal member number, $20 amount. Expect success.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "HAPPY-001",
-    amount: 20,
-    action: "auth+pay",
-  },
-  {
-    name: "A2 — AT (auth timeout)",
-    description: "Test + AI product, member prefixed with AT. Vendor takes 120s to respond, we expect timeout.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "AT-TIMEOUT-001",
-    amount: 10,
-    action: "auth_timeout",
-    expectError: true,
-  },
-  {
-    name: "A3 — AF (auth failure)",
-    description: "Test + AM product, member prefixed with AF. Vendor rejects account — unknown member.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "AF-UNKNOWN-001",
-    amount: 50,
-    action: "auth_fail",
-    expectError: true,
-  },
-  {
-    name: "A4 — PT (pay timeout)",
-    description: "Test + AI product, member prefixed with PT. Pay-phase timeout — triggers status polling.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "PT-TIMEOUT-001",
-    amount: 10,
-    action: "pay_timeout",
-    expectError: true,
-  },
-  {
-    name: "A5 — PF (pay failure)",
-    description: "Test + AI product, member prefixed with PF. Pay rejected by biller — permanent failure.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "PF-REJECT-001",
-    amount: 10,
-    action: "pay_fail",
-    expectError: true,
-  },
-  {
-    name: "A6 — PP (pay pending / BeingProcessed)",
-    description: "Test + AI product, member prefixed with PP. Pending response — tests 120s/180s reconcile polling.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "PP-PENDING-001",
-    amount: 10,
-    action: "pay_pending",
-  },
-  {
-    name: "A7 — PFF (pay flagged)",
-    description: "Test + AI product, member prefixed with PFF. Flagged for BillPay support — 600s slow-poll.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "PFF-FLAGGED-001",
-    amount: 10,
-    action: "pay_flagged",
-  },
-  {
-    name: "A8 — RV (returns vouchers)",
-    description: "Test + RV product. Voucher-returning flow — tests vouchers[] array in PAY response.",
-    billerCode: "Test",
-    billerName: "Test Biller",
-    accountNumber: "RV-VOUCHER-001",
-    amount: 10,
-    action: "auth+pay",
-  },
-
-  // ─── BATCH B — Real billers (documented test meters + valid numbers) ───
-  {
-    name: "B1 — ZETDC single-debt meter",
-    description: "Real ZETDC biller + documented test meter 37132567431 (single debt, one token returned).",
+    name: "1 — ZETDC AUTH (single-debt test meter)",
+    description: "ZETDC + documented test meter 37132567431 + PREPAID_USD product. Verifies biller reachability and account-lookup.",
     billerCode: "ZETDC",
     billerName: "ZESA Prepaid",
     accountNumber: "37132567431",
     amount: 20,
+    productCode: "PREPAID_USD",
+    productPrice: 20,
+    action: "auth",
+  },
+  {
+    name: "2 — ZETDC AUTH+PAY (full flow, single-debt meter)",
+    description: "Critical spec test — AUTH then PAY with same reference. One ZESA token should be returned in the PAY response.",
+    billerCode: "ZETDC",
+    billerName: "ZESA Prepaid",
+    accountNumber: "37132567431",
+    amount: 20,
+    productCode: "PREPAID_USD",
+    productPrice: 20,
     action: "auth+pay",
   },
   {
-    name: "B2 — ZETDC double-token meter",
-    description: "Real ZETDC biller + documented test meter 37132229735 (two tokens returned — tests multi-token SMS flow).",
+    name: "3 — ZETDC double-token meter",
+    description: "Test meter 37132229735 returns TWO tokens. Validates multi-voucher handling + SMS fan-out.",
     billerCode: "ZETDC",
     billerName: "ZESA Prepaid",
     accountNumber: "37132229735",
     amount: 50,
+    productCode: "PREPAID_USD",
+    productPrice: 50,
     action: "auth+pay",
   },
   {
-    name: "B3 — ZETDC token resend ($177.77)",
-    description: "Real ZETDC biller + any meter + documented amount $177.77 to trigger token resend.",
+    name: "4 — ZETDC token-resend ($177.77)",
+    description: "Amount $177.77 triggers documented token-resend flow (any meter).",
     billerCode: "ZETDC",
     billerName: "ZESA Prepaid",
     accountNumber: "37132567431",
     amount: 177.77,
+    productCode: "PREPAID_USD",
+    productPrice: 177.77,
     action: "auth+pay",
   },
   {
-    name: "B4 — AIRTIME valid number",
-    description: "Real AIRTIME biller + valid Zim mobile number. Happy-path airtime credit.",
+    name: "5 — AIRTIME USD top-up",
+    description: "Paynow Airtime biller + USD product on a valid Econet number.",
     billerCode: "AIRTIME",
     billerName: "Paynow Airtime",
     accountNumber: "0771234567",
     amount: 5,
+    productCode: "AIRTIME_USD",
+    productPrice: 5,
     action: "auth+pay",
+  },
+  {
+    name: "6 — City of Harare (BILL)",
+    description: "COH biller + BILL product. Auth-returned balance flow (AuthAmountMandated=false).",
+    billerCode: "COH",
+    billerName: "City of Harare",
+    accountNumber: "12345",
+    amount: 50,
+    productCode: "BILL",
+    productPrice: 50,
+    action: "auth",
+  },
+  {
+    name: "7 — UZ Tuition",
+    description: "University of Zimbabwe + TUITION product. Free-price — student-entered amount.",
+    billerCode: "UZ",
+    billerName: "University of Zimbabwe",
+    accountNumber: "R123456K",
+    amount: 100,
+    productCode: "TUITION",
+    productPrice: 100,
+    action: "auth",
   },
 ];
 
@@ -171,6 +136,23 @@ export default function TestBillPayPayment() {
     setResults((prev) => ({ ...prev, [index]: { status: "running" } }));
     const start = performance.now();
 
+    // Real billers require specific product codes per the vendor's
+    // ListBillers config. Build the products array once and reuse for
+    // AUTH + PAY (spec requires AUTH and PAY be IDENTICAL).
+    const testProducts = test.productCode
+      ? [{
+          Code: test.productCode,
+          Name: test.productCode,
+          Price: test.productPrice ?? test.amount ?? null,
+          MinAmount: null,
+          MaxAmount: null,
+          AuthAmountMandated: null,
+          ReturnsVouchers: false,
+          RequiresForex: null,
+          Enabled: true,
+        }]
+      : undefined;
+
     try {
       let data: any;
 
@@ -179,6 +161,7 @@ export default function TestBillPayPayment() {
           billerCode: test.billerCode,
           accountNumber: test.accountNumber,
           amount: test.amount,
+          products: testProducts,
         });
 
         // Happy-path AUTH: verify returns a reference. AT/AF cases expect the
@@ -192,6 +175,7 @@ export default function TestBillPayPayment() {
           billerCode: test.billerCode,
           accountNumber: test.accountNumber,
           amount: test.amount,
+          products: testProducts,
         });
 
         if (!authData.reference) {
@@ -204,6 +188,7 @@ export default function TestBillPayPayment() {
           accountNumber: test.accountNumber,
           amount: test.amount!,
           reference: authData.reference, // SAME reference — critical
+          products: testProducts,
         });
 
         data = {
@@ -224,6 +209,7 @@ export default function TestBillPayPayment() {
           billerCode: test.billerCode,
           accountNumber: test.accountNumber,
           amount: test.amount,
+          products: testProducts,
         });
 
         // PAY with test prefix that triggers specific status
@@ -232,6 +218,7 @@ export default function TestBillPayPayment() {
           accountNumber: test.accountNumber,
           amount: test.amount!,
           reference: authData.reference,
+          products: testProducts,
         });
 
         data = { authResult: authData, payResult: payData };

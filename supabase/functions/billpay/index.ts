@@ -349,7 +349,9 @@ Deno.serve(async (req) => {
         clearTimeout(timeout);
       }
 
-      // Handle 400 validation errors from Paynow
+      // Vendor-validation 400 (e.g. missing required field). Return 200 with
+      // status=error so the supabase-js client surfaces the specific message
+      // instead of swallowing it as a generic "service unavailable".
       if (apiRes.status === 400) {
         const errorBody = await apiRes.json();
         return json({
@@ -357,18 +359,21 @@ Deno.serve(async (req) => {
           action: "auth",
           error: errorBody.Message || "Validation failed",
           validationErrors: errorBody.ModelState,
-        }, 400);
+        });
       }
 
       const apiData = await apiRes.json();
 
       if (apiData.Status !== "Authorized") {
-        // Narration is user-safe, TechnicalNarration is not
+        // Vendor returned 200 with a soft failure (e.g. "biller not enabled
+        // on your vendor profile"). Same reasoning — return 200 with the real
+        // narration preserved so the UI can show the actionable error.
         return json({
           status: "error",
           action: "auth",
           error: apiData.Narration || "Authorization failed",
-        }, 400);
+          technicalNarration: apiData.TechnicalNarration,
+        });
       }
 
       // Store authorized payment in DB
@@ -626,7 +631,8 @@ Deno.serve(async (req) => {
       clearTimeout(timeout);
     }
 
-    // Handle 400 validation errors
+    // Vendor-validation 400 (e.g. missing required field). Return 200 so the
+    // supabase-js client surfaces the specific error instead of masking it.
     if (apiRes.status === 400) {
       const errorBody = await apiRes.json();
       await svc.from("bill_payments").update({
@@ -638,7 +644,8 @@ Deno.serve(async (req) => {
         status: "error",
         action: "pay",
         error: errorBody.Message || "Validation failed",
-      }, 400);
+        validationErrors: errorBody.ModelState,
+      });
     }
 
     const apiData = await apiRes.json();
@@ -765,11 +772,13 @@ Deno.serve(async (req) => {
     // Only expose Narration (user-safe), never TechnicalNarration
     console.error("BillPay PAY failed:", apiData.TechnicalNarration || apiData.Narration);
 
+    // Return 200 so supabase-js surfaces the specific narration (not
+    // masked as a generic "service unavailable" error).
     return json({
       status: "error",
       action: "pay",
       error: apiData.Narration || "Payment failed",
-    }, 400);
+    });
 
   } catch (err) {
     console.error("BillPay error:", err);
