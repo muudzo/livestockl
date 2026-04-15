@@ -21,7 +21,7 @@ Updated from the [tracker](internship-deliverables-tracker.md). Green = done, Ye
 
 | # | Criterion | Target | Status | Where to look |
 |---|---|---|---|---|
-| 1 | Auction-house visits + research doc | 2 visits | 🟡 1 of 2 | [research/auction-field-visit-2026-03-19.md](../research/auction-field-visit-2026-03-19.md) |
+| 1 | Auction-house visits + research doc | 2 visits | 🟢 **Done** — 2 of 2, both with write-ups | [visit 1 (2026-03-19)](../research/auction-field-visit-2026-03-19.md) · [visit 2 (2026-03-25, deep-dive)](../research/auction-field-visit-2026-03-25.md) |
 | 2 | DX benchmark, 3+ platforms, 5 categories | 3 platforms | 🟢 **Exceeded** — 5 platforms, 7 dims | [benchmarks/](../benchmarks/) |
 | 3 | Wireframes + system flow diagrams | Both | 🟢 Done | [wireframes.html](wireframes.html), [architecture-diagram.html](architecture-diagram.html) |
 | 4 | Functional marketplace prototype | list/bid/pay | 🟢 Live in prod | [Prod URL](https://app-nine-sigma-jgoqp90f2p.vercel.app) |
@@ -36,7 +36,7 @@ Updated from the [tracker](internship-deliverables-tracker.md). Green = done, Ye
 | 13 | Deployment — publicly accessible URL | Live URL | 🟢 [app-nine-sigma-jgoqp90f2p.vercel.app](https://app-nine-sigma-jgoqp90f2p.vercel.app) | — |
 | 14 | 5-minute internship presentation | Deck + practice | 🔴 Pending Week 6 | — |
 
-**Headline:** 10 🟢 / 3 🟡 / 2 🔴 as of 14 April. The two reds (demos, presentation) are Week-6 work by design.
+**Headline:** 11 🟢 / 2 🟡 / 2 🔴 as of 14 April. Second auction visit (2026-03-25) now written up, flipping criterion #1 to green. The two reds (stakeholder demos, presentation deck) are Week-6 scope by design.
 
 ---
 
