@@ -41,12 +41,24 @@ const API_TIMEOUT_MS = 60_000; // Spec recommends 60s timeout
 // ─── Simulation data for testing without credentials ───
 
 const SIM_BILLERS: Record<string, { name: string; products: SimProduct[] }> = {
-  // Test biller added at the top so it's the canonical error-path simulator.
-  // Prefix simulation (AT/AF/PT/PF/PP/PFF) only runs when billerCode === 'Test'
-  // to match the real vendor behaviour documented in v1.33.
+  // Test biller — canonical error-path simulator. Prefix simulation
+  // (AT/AF/PT/PF/PP/PFF) only runs when billerCode === 'Test' to match
+  // the real vendor behaviour documented in v1.33. Products mirror the
+  // 5 Test-biller products from the spec: AI / AM / AA / RV / FP.
   Test: {
     name: "Test Biller (simulation only)",
-    products: [...TEST_BILLER.products],
+    products: [
+      { Code: "AI", Name: "Variable price, part payment allowed (council-style)",
+        Price: null, ReturnsVouchers: false, AuthAmountMandated: false, MinAmount: 1, MaxAmount: 10000 },
+      { Code: "AM", Name: "Variable price, full payment mandated (medical-aid-style)",
+        Price: null, ReturnsVouchers: false, AuthAmountMandated: true, MinAmount: 1, MaxAmount: 10000 },
+      { Code: "AA", Name: "Free-price, customer enters amount (airtime/ZESA-style)",
+        Price: null, ReturnsVouchers: false, AuthAmountMandated: null, MinAmount: 0.5, MaxAmount: 5000 },
+      { Code: "RV", Name: "Returns vouchers (TelOne/EVD-style)",
+        Price: 10, ReturnsVouchers: true, AuthAmountMandated: null, MinAmount: 1, MaxAmount: 1000 },
+      { Code: "FP", Name: "Fixed price, requires forex payment",
+        Price: 25, ReturnsVouchers: false, AuthAmountMandated: null, MinAmount: 25, MaxAmount: 25 },
+    ],
   },
   ZETDC: {
     name: "ZESA Prepaid Electricity",
@@ -114,25 +126,6 @@ interface SimProduct {
   MinAmount: number | null;
   MaxAmount: number | null;
 }
-
-// Test biller product taxonomy per v1.33 docs ("Additional Biller Integration Notes").
-// Mirrors the real vendor Test biller so our simulation stays honest when the harness
-// exercises the error-path prefixes (AT/AF/PT/PF/PP/PFF) that ONLY work on `Test`.
-const TEST_BILLER: { name: string; products: SimProduct[] } = {
-  name: "Test Biller",
-  products: [
-    { Code: "AI", Name: "Variable price, part payment allowed (council-style)",
-      Price: null, ReturnsVouchers: false, AuthAmountMandated: false, MinAmount: 1, MaxAmount: 10000 },
-    { Code: "AM", Name: "Variable price, full payment mandated (medical-aid-style)",
-      Price: null, ReturnsVouchers: false, AuthAmountMandated: true, MinAmount: 1, MaxAmount: 10000 },
-    { Code: "AA", Name: "Free-price, customer enters amount (airtime/ZESA-style)",
-      Price: null, ReturnsVouchers: false, AuthAmountMandated: null, MinAmount: 0.5, MaxAmount: 5000 },
-    { Code: "RV", Name: "Returns vouchers (TelOne/EVD-style)",
-      Price: 10, ReturnsVouchers: true, AuthAmountMandated: null, MinAmount: 1, MaxAmount: 1000 },
-    { Code: "FP", Name: "Fixed price, requires forex payment",
-      Price: 25, ReturnsVouchers: false, AuthAmountMandated: null, MinAmount: 25, MaxAmount: 25 },
-  ],
-};
 
 // ZETDC test meter cases per v1.33 docs. Only valid on test environment; our
 // simulation mirrors the documented behaviour so harness results match what
