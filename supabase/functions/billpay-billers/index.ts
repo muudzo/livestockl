@@ -179,6 +179,18 @@ Deno.serve(async (req) => {
     // Upsert into cache
     const now = new Date().toISOString();
     for (const b of billers) {
+      // Vendor v1.33 returns MemberNumberFieldRegex either as a string or
+      // an object {Pattern, Options}. Normalize to string-or-null at cache
+      // write time so every downstream consumer (frontend validation etc.)
+      // gets the same shape.
+      const rawRegex = b.MemberNumberFieldRegex;
+      const normalizedRegex: string | null =
+        typeof rawRegex === "string"
+          ? rawRegex
+          : rawRegex && typeof rawRegex === "object" && "Pattern" in rawRegex
+            ? String((rawRegex as { Pattern: unknown }).Pattern)
+            : null;
+
       await svc.from("billers_cache").upsert({
         biller_code: b.Code,
         biller_name: b.Name,
@@ -188,7 +200,7 @@ Deno.serve(async (req) => {
         enabled: b.Enabled,
         member_number_field_label: b.MemberNumberFieldLabel,
         member_number_field_desc: b.MemberNumberFieldDesc,
-        member_number_field_regex: b.MemberNumberFieldRegex,
+        member_number_field_regex: normalizedRegex,
         allow_multiple_products: b.AllowMultipleProductsPerPayment,
         vendor_must_invoice: b.VendorMustInvoicePayments,
         products: b.Products || [],

@@ -114,10 +114,18 @@ export function BillPayFlow() {
       setAccountError('Required');
       return false;
     }
-    const regex = selectedBiller.member_number_field_regex;
-    if (regex) {
+    // Vendor returns member_number_field_regex as either a string or an
+    // object {Pattern, Options} (v1.33 spec inconsistency). Normalize both.
+    const rawRegex = selectedBiller.member_number_field_regex as unknown;
+    const regexPattern: string | null =
+      typeof rawRegex === "string"
+        ? rawRegex
+        : rawRegex && typeof rawRegex === "object" && "Pattern" in rawRegex
+          ? String((rawRegex as { Pattern: unknown }).Pattern)
+          : null;
+    if (regexPattern) {
       try {
-        if (!new RegExp(regex).test(accountNumber.trim())) {
+        if (!new RegExp(regexPattern).test(accountNumber.trim())) {
           setAccountError(`Invalid format for ${selectedBiller.member_number_field_label || 'account number'}`);
           return false;
         }
