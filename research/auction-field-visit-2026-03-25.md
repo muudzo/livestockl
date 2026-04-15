@@ -272,9 +272,6 @@ Everything else (UI, fees, logistics, verification) is secondary to maintaining:
 
 ## How this updates prior deliverables
 
-This deep-dive sharpens but does not replace:
+This deep-dive sharpens but does not replace [livestock-market-research-summary.md](../deliverables/week-5/livestock-market-research-summary.md) — findings 3.1 through 3.6 (deposit, fees, attendees, clearance, transport, FOMO) are confirmed. The deep-dive adds the **systems-level frame**: those mechanics exist to solve the three-trust-layer problem, not as standalone features.
 
-- [../deliverables/week-5/livestock-market-research-summary.md](../deliverables/week-5/livestock-market-research-summary.md) — findings 3.1 through 3.6 (deposit, fees, attendees, clearance, transport, FOMO) are confirmed. This deep-dive adds the **systems-level frame**: those mechanics exist to solve the three-trust-layer problem, not as standalone features.
-- [../deliverables/week-5/direction-analysis-2026-04-14.md](../deliverables/week-5/direction-analysis-2026-04-14.md) — the Auction OS direction (#3 in the ranking) gains weight: auction operators are not just a data-acquisition path to the registry; they are the **source of the bidder network density** that every other direction depends on.
-
-Most importantly: **the ABL metric (§10) is the single measurable leading indicator of whether ZimLivestock's digital auction economics will hold.** Should be instrumented early; if it falls below ~10 per listing in production, auction-premium collapses and we structurally underperform physical operators on price.
+Most importantly: **the ABL metric (§10) is a measurable leading indicator of whether a digital auction platform can replicate physical-auction price formation.** Should be instrumented early; if it falls below ~10 per listing, auction-premium economics collapse.

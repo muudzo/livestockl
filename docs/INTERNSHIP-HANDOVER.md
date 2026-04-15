@@ -21,8 +21,7 @@ A second set of deliverables landed that extend the benchmark with internal-ecos
 
 | Artifact | Commit | What it adds |
 |---|---|---|
-| [livestock-market-research-summary.md](../deliverables/week-5/livestock-market-research-summary.md) | `caa20d3` | Consolidates two field visits into a single Goal-#1 research deliverable — 3 channels, 7 field findings, strategic implications, traceability to prototype decisions |
-| [direction-analysis-2026-04-14.md](../deliverables/week-5/direction-analysis-2026-04-14.md) | `ee66b88` | VC-style analysis of 5 strategic directions with auction-operator-as-root-of-truth conclusion |
+| [livestock-market-research-summary.md](../deliverables/week-5/livestock-market-research-summary.md) | `caa20d3` | Consolidates two field visits (19 Mar + 25 Mar) into the Goal-#1 research deliverable — 3 channels, 7 field findings, 4 payment-side observations, traceability to prototype decisions |
 | [ecosystem-integration-retrospective.md](../deliverables/week-5/ecosystem-integration-retrospective.md) | `ff6fb4a` | Extends the DX benchmark with a second comparison axis: Paynow Core vs **sibling products inside the Paynow family** (BillPay v1.33, TXT SMS) — see "The benchmark" section below |
 | Sentry error tracking | `7247eba` | DSN-gated wire-up in `frontendLogger` + `ErrorBoundary` + global error handlers. Dormant until `VITE_SENTRY_DSN` is set. Closes the observability gap from the 13 Apr audit |
 | Idempotency verification | prior `5e2e0fb` confirmed end-to-end today | Both `bids` and `payments` generate `crypto.randomUUID()` idempotency keys, enforced by partial unique indexes. Double-click / retry dedup is real |
@@ -206,7 +205,6 @@ No override for integrity/security/chaos — fix the underlying issue or don't s
 | Auction field research — visit 1 | [research/auction-field-visit-2026-03-19.md](../research/auction-field-visit-2026-03-19.md) |
 | Auction field research — visit 2 (deep-dive, systems analysis) | [research/auction-field-visit-2026-03-25.md](../research/auction-field-visit-2026-03-25.md) |
 | **Livestock market research summary (Goal #1)** | [deliverables/week-5/livestock-market-research-summary.md](../deliverables/week-5/livestock-market-research-summary.md) |
-| Direction analysis (VC-style 5-wedge evaluation) | [deliverables/week-5/direction-analysis-2026-04-14.md](../deliverables/week-5/direction-analysis-2026-04-14.md) |
 | Ecosystem DX retrospective (BillPay + TXT vs Paynow Core) | [deliverables/week-5/ecosystem-integration-retrospective.md](../deliverables/week-5/ecosystem-integration-retrospective.md) |
 | Adversarial / red-team test report | [deliverables/week-5/adversarial-test-2026-04-14.md](../deliverables/week-5/adversarial-test-2026-04-14.md) |
 | Payment red-team report | [deliverables/week-5/payment-redteam-2026-04-14.md](../deliverables/week-5/payment-redteam-2026-04-14.md) |

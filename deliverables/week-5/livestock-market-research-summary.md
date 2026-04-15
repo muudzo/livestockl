@@ -4,26 +4,28 @@
 **Date:** 2026-04-14
 **Proposal goal addressed:** Goal #1 — *"Understand Real Livestock Market Workflows"*
 
-This document consolidates the field research and market analysis conducted during the internship to inform the Paynow marketplace prototype and surface strategic findings relevant to Paynow's product positioning.
+This document consolidates the field research conducted during the internship to inform the Paynow marketplace prototype's design.
 
 ---
 
 ## 1. Method
 
-**One primary field visit** to a physical livestock auction in Zimbabwe on **2026-03-19** conducted under observational methodology (no intervention, full session attended end-to-end, notes captured in real time).
+**Two field visits** to a physical livestock auction in Zimbabwe:
+- **2026-03-19** — initial observational visit (surface mechanics: fees, deposits, attendance, clearance, auctioneer cadence). See [research/auction-field-visit-2026-03-19.md](../../research/auction-field-visit-2026-03-19.md).
+- **2026-03-25** — follow-up deep-dive (system dynamics: trust layers, liquidity clustering, price formation, network density, the ABL metric). See [research/auction-field-visit-2026-03-25.md](../../research/auction-field-visit-2026-03-25.md).
 
 **Supporting data**:
-- Structured conversations with sellers, buyers, auctioneer staff, and on-site police officer
+- Structured conversations with sellers, buyers, auctioneer staff, and an on-site police officer
 - Pricing observations across multiple animal lots
-- Analysis of fee structures, deposit barriers, and transaction timing
-- Comparative review of informal channels (WhatsApp groups, Facebook Marketplace, village networks) as adjacent channels
+- Fee structures, deposit barriers, transaction timing
+- Comparative review of informal channels (WhatsApp groups, Facebook Marketplace, village networks)
 
 **Known limits:**
-- Sample size is one auction operator in one session; regional variance across Matabeleland, Manicaland, and Masvingo not yet captured
+- Sample size is one auction operator across two visits; regional variance across Matabeleland, Manicaland, and Masvingo not captured
 - Informal channels observed but not systematically measured (no access to WhatsApp group transaction volume)
-- Study is operator-level, not demand-side; end-buyer preferences inferred from auctioneer commentary rather than direct interview
+- Findings are operator-side; end-buyer preferences are inferred, not directly interviewed
 
-This is proposal-scoped depth (one formal market study within a 6-week internship), not a market-research report. Findings should be read as *directional* not *definitive*.
+Proposal-scoped depth (two formal market studies within a 6-week DX project), not a standalone market-research report. Findings should be read as **directional**, not definitive.
 
 ---
 
@@ -43,7 +45,7 @@ Zimbabwe's livestock trade flows through three largely disconnected channels:
 
 ## 3. Key Findings from the Auction Visit
 
-Recorded in field notes (2026-03-19) and cross-referenced with two follow-up conversations:
+Surface mechanics confirmed on both visits (2026-03-19 and 2026-03-25); deeper system-dynamics analysis of the same observations is in the [second-visit deep-dive](../../research/auction-field-visit-2026-03-25.md).
 
 ### 3.1 Deposit barrier (US$1,000)
 Before bidding, every buyer deposits US$1,000 in cash. Filters serious buyers. Has the unintended effect of **excluding the employed-salaried segment** — people who could afford to buy a single US$600 goat but cannot tie up US$1,000 upfront.
@@ -77,17 +79,17 @@ The live auctioneer talks fast, lot-to-lot cadence is 30–90 seconds, and this 
 
 ---
 
-## 4. Strategic Implications (linking to Paynow)
+## 4. What the field data says about payments in this market
 
-Several findings from the livestock market directly inform Paynow's positioning:
+Four observations about the Zimbabwean livestock market that are directly relevant to Paynow's DX project, stated as findings:
 
-1. **Payment failure rates matter more than feature completeness.** The Zimbabwe livestock economy is built on repeated transactions between reputation-constrained parties. A single failed payment damages a reputation that took years to build. This makes **retry + fallback recovery** (Paynow's agentic commerce value prop, demonstrated in `AGENTIC.md`) more valuable per transaction than most payment markets.
+1. **Payment-failure cost is asymmetric in reputation-constrained markets.** The livestock trade runs on repeat-transaction trust between parties who know each other by name; a single failed payment damages reputation built over years. Retry-and-fallback logic — already demonstrated in the prototype's payment orchestrator — is therefore more valuable per transaction than in markets where buyer-seller relationships are anonymous.
 
-2. **Trust infrastructure has willingness-to-pay.** The 12% physical-auction fee exists because trust compression works. A lower-fee (5–6%) digital equivalent that replicates the trust guarantees (escrow, police clearance, audit log) is a pricing wedge, not a race to zero.
+2. **The 12% physical-auction fee prices trust-compression, not custody.** Buyers pay the premium (vs informal WhatsApp/Facebook channels at 0–3%) because deposit + inspection + police clearance + cash-on-site collectively reduce default risk. A digital equivalent that replicates the trust guarantees at a lower fee has pricing headroom — it's a wedge, not a race to zero.
 
-3. **The agent thesis is strongest where institutional friction is low.** Zimbabwe's payment rails (EcoCash, OneMoney, Paynow) are digital; the livestock trade's friction is physical (transport, vet cert, clearance). Agents multiply transaction volume in the digital layer; they do not reduce physical friction. Paynow should build agent-ready APIs (idempotency, bearer auth, Cloudflare-permeable egress) *now* because the value accrues where the rails are already digital. See `deliverables/week-5/direction-analysis-2026-04-14.md` §7 for the full argument.
+3. **Institutional friction in this market is physical, not digital.** Zimbabwean payment rails (EcoCash, OneMoney, Paynow) are already digital. The real friction is transport, vet certification, and police clearance — all physical. This matters for the DX project because it clarifies what a payment rail can and cannot solve: retry logic and settlement clarity compound; logistics automation does not.
 
-4. **The Paynow Cloudflare issue is the #1 DX finding.** During the integration work, server-to-server calls from Supabase Edge Functions to `www.paynow.co.zw` were blocked by Cloudflare anti-bot rules. This is documented fully in the DX benchmark. It deserves restating here: the single biggest improvement Paynow could ship for African fintech developers is **a dedicated API subdomain (e.g. `api.paynow.co.zw`) without browser-challenge Cloudflare rules**. The marketplace prototype uses a browser-relay workaround that is viable for demos but will not scale.
+4. **The Paynow Cloudflare blocker dominates the DX findings.** During integration work, all server-to-server calls from Supabase Edge Functions to `www.paynow.co.zw` were blocked by Cloudflare anti-bot rules. The full DX benchmark report covers this, but it bears restating here because it shapes which marketplace patterns are available: any live-payment flow using Paynow from a serverless runtime requires a workaround. The prototype's browser-relay pattern is viable for demos but not production scale.
 
 ---
 
@@ -121,14 +123,15 @@ These are not blockers for the DX project (which is about Paynow's developer exp
 ## 7. Sources and Related Deliverables
 
 **Primary sources:**
-- Field notes from 2026-03-19 auction visit (internal memory: `project_auction_field_research.md`)
-- Two follow-up conversations with sector-adjacent informants
+- [research/auction-field-visit-2026-03-19.md](../../research/auction-field-visit-2026-03-19.md) — first visit, surface mechanics
+- [research/auction-field-visit-2026-03-25.md](../../research/auction-field-visit-2026-03-25.md) — second visit, system dynamics
+- Conversations with sector-adjacent informants
 
 **Related deliverables:**
-- [direction-analysis-2026-04-14.md](./direction-analysis-2026-04-14.md) — VC-style analysis of five strategic directions, with auction operator identified as "root of truth" for the state machine
 - [payment-test-results.md](./payment-test-results.md) — Paynow integration test results including Cloudflare blocking evidence
-- [../../docs/auction-pilot-architecture.md](../../docs/auction-pilot-architecture.md) — the pilot state machine built to instrument these findings into a demonstrable system
-- [../../AGENTIC.md](../../AGENTIC.md) — the agentic commerce layer pitched as Paynow's agent-ready infrastructure play
+- [ecosystem-integration-retrospective.md](./ecosystem-integration-retrospective.md) — BillPay + TXT vs Paynow Core DX comparison
+- [../../docs/auction-pilot-architecture.md](../../docs/auction-pilot-architecture.md) — pilot state machine instrumenting these findings
+- [../../AGENTIC.md](../../AGENTIC.md) — agentic commerce prototype demonstrating retry-and-fallback recovery
 
 **Internship brief goal traceability:**
 - *Goal #1: "Understand Real Livestock Market Workflows"* → this document
@@ -139,4 +142,4 @@ These are not blockers for the DX project (which is about Paynow's developer exp
 
 ## 8. One-Sentence Summary
 
-Zimbabwe's livestock trade already has a trust infrastructure (12% fee, police clearance, US$1,000 deposit) that works but excludes most of the buying population; a digital equivalent that replicates the trust guarantees at half the fee opens the excluded segment, and Paynow's settlement layer is the natural rail — provided the Cloudflare DX blocker is resolved.
+Zimbabwe's physical auction infrastructure prices trust-compression (12% fee for deposit + inspection + police clearance) but structurally excludes salaried urban buyers; the prototype demonstrates that a digital equivalent can replicate those trust guarantees at lower fees, with the Cloudflare DX blocker as the primary obstacle to a production-scale Paynow integration.

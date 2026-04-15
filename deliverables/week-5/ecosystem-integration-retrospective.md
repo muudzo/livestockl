@@ -43,7 +43,7 @@ Extension of the DX benchmark with a second comparison: Paynow Core against **tw
 Paynow Core's weaknesses are **already solved inside the Paynow organization**:
 
 1. **Cloudflare unreachability** — BillPay sits on `billpay.paynow.co.zw` with no bot protection. TXT sits on `txt.co.zw`. The pattern that would unblock Paynow Core already exists in two sibling products.
-2. **Auth complexity** — BillPay and TXT both use standard HTTP Basic Auth. Paynow Core's SHA-512 hash-of-concatenated-values is legacy that sibling teams chose not to inherit.
+2. **Auth complexity** — BillPay and TXT both use standard HTTP Basic Auth. Paynow Core's SHA-512 hash-of-concatenated-values is a pattern the sibling products did not replicate.
 3. **Testing** — BillPay's systematic failure-simulation prefixes (`AT` = auth timeout, `PF` = pay fail, `PFF` = flagged, etc.) let a developer test every error path without real money. Paynow Core has nothing comparable.
 4. **Polling spec** — BillPay specifies poll intervals explicitly. Paynow Core requires reverse-engineering from observation.
 5. **Versioning** — BillPay and TXT both publish version + date. Paynow Core docs carry neither.

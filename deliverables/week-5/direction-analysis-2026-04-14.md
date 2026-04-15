@@ -1,8 +1,16 @@
 # ZimLivestock — Direction Analysis
 
+> **⚠️ INTERNAL WORKING DOC — NOT FOR EXTERNAL SHARING**
+>
+> This is personal strategic thinking about what to do with the codebase after the internship ends. It is written in founder/advisor language, not internship-report language, and contains explicit pitch recommendations. It should not be shared with the Paynow supervisor or any external party without significant rewrite. Retained in deliverables/ for the author's own reference only.
+>
+> **For Paynow-facing analysis, see:** [livestock-market-research-summary.md](livestock-market-research-summary.md) · [ecosystem-integration-retrospective.md](ecosystem-integration-retrospective.md) · [payment-provider-benchmark-report](../../benchmarks/payment-provider-benchmark-report.md).
+
+---
+
 **Date:** 14 April 2026
-**Analyst:** Claude (Opus 4.6, 1M context), commissioned by the founder
-**Purpose:** Pick the direction most likely to produce a successful outcome for this codebase, in Zimbabwe, given the founder's position (Paynow internship, solo developer, working prototype).
+**Scope:** Post-internship direction options for this codebase, evaluated VC-style across 5 wedges.
+**Method:** Dario Amodei's institutional-friction lens + standard VC diligence (market / wedge / moat / distribution / unit economics / team / timing / red-team).
 
 ---
 
