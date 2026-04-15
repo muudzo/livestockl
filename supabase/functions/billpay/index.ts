@@ -205,6 +205,31 @@ Deno.serve(async (req) => {
       const ref = generateReference();
 
       if (isSimulation) {
+        // Vendor-spec test prefixes for AUTH-phase failures (paynow-billpay-vendor-api.md).
+        // Applied here before the happy-path so the harness can exercise them without
+        // needing the real "Test" biller (which requires live vendor credentials).
+        const memberPrefix = accountNumber.substring(0, 2).toUpperCase();
+
+        // AT = Auth Timeout — simulates 60s timeout on biller side
+        if (memberPrefix === "AT") {
+          return json({
+            status: "error",
+            action: "auth",
+            simulation: true,
+            error: "Simulated: Auth request timed out at biller (AT prefix).",
+          }, 408);
+        }
+
+        // AF = Auth Failure — simulates biller rejecting the auth (unknown account, etc.)
+        if (memberPrefix === "AF") {
+          return json({
+            status: "error",
+            action: "auth",
+            simulation: true,
+            error: "Simulated: Auth failed at biller — account not found (AF prefix).",
+          }, 400);
+        }
+
         const sim = SIM_BILLERS[billerCode] || {
           name: billerCode,
           products: [{ Code: "USD", Name: `${billerCode} Payment`, Price: null, ReturnsVouchers: false, AuthAmountMandated: null, MinAmount: 1, MaxAmount: 10000 }],
@@ -371,6 +396,23 @@ Deno.serve(async (req) => {
       // Simulate different responses based on member number prefix (matches spec test biller)
       const memberPrefix = accountNumber.substring(0, 2).toUpperCase();
       const memberPrefix3 = accountNumber.substring(0, 3).toUpperCase();
+
+      // PT = Pay Timeout — simulates 60s timeout during payment
+      if (memberPrefix === "PT") {
+        await svc.from("bill_payments").update({
+          status: "failed",
+          amount,
+          total_amount: amount,
+          narration: "Simulated pay timeout (PT prefix)",
+        }).eq("reference", reference);
+
+        return json({
+          status: "error",
+          action: "pay",
+          simulation: true,
+          error: "Simulated: Payment request timed out at biller (PT prefix).",
+        }, 408);
+      }
 
       // PF = Payment Failure
       if (memberPrefix === "PF" && memberPrefix3 !== "PFF") {

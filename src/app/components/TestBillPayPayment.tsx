@@ -11,17 +11,21 @@ type TestCase = {
   billerName: string;
   accountNumber: string;
   amount?: number;
-  action: "auth" | "auth+pay" | "pay_pending" | "pay_flagged" | "pay_fail";
+  action: "auth" | "auth+pay" | "pay_pending" | "pay_flagged" | "pay_fail" | "auth_timeout" | "auth_fail" | "pay_timeout";
   expectError?: boolean;
 };
 
 /**
- * Test cases use the v1.33 test biller member prefixes:
+ * Test cases use the v1.33 test biller member prefixes (paynow-billpay-vendor-api.md):
  * - (none)  = success
- * - AF      = auth failure
- * - PP      = payment pending (BeingProcessed)
- * - PF      = payment failure
- * - PFF     = payment flagged
+ * - AT      = auth timeout  (60s timeout during auth)
+ * - AF      = auth failure  (biller rejects account)
+ * - PT      = pay timeout   (60s timeout during pay)
+ * - PF      = pay failure   (biller rejects payment)
+ * - PP      = pay pending   (BeingProcessed — tests status polling)
+ * - PFF     = pay flagged   (tests 600s slow-poll for support review)
+ *
+ * All 6 documented vendor-spec prefixes are covered.
  */
 const TEST_CASES: TestCase[] = [
   {
@@ -68,6 +72,36 @@ const TEST_CASES: TestCase[] = [
     accountNumber: "0771234567",
     amount: 5,
     action: "auth+pay",
+  },
+  {
+    name: "AUTH — Timeout (AT prefix)",
+    description: "Simulate auth-phase timeout using AT member prefix. Tests retry-on-408 logic.",
+    billerCode: "ZETDC",
+    billerName: "ZESA Prepaid",
+    accountNumber: "AT37132567431",
+    amount: 20,
+    action: "auth_timeout",
+    expectError: true,
+  },
+  {
+    name: "AUTH — Failure (AF prefix)",
+    description: "Simulate biller rejecting auth (e.g. unknown account) using AF prefix.",
+    billerCode: "ZETDC",
+    billerName: "ZESA Prepaid",
+    accountNumber: "AF37132567431",
+    amount: 20,
+    action: "auth_fail",
+    expectError: true,
+  },
+  {
+    name: "PAY — Timeout (PT prefix)",
+    description: "Simulate pay-phase timeout using PT member prefix. Tests 408 handling.",
+    billerCode: "ZETDC",
+    billerName: "ZESA Prepaid",
+    accountNumber: "PT37132567431",
+    amount: 10,
+    action: "pay_timeout",
+    expectError: true,
   },
   {
     name: "PAY — BeingProcessed (PP prefix)",
@@ -120,15 +154,16 @@ export default function TestBillPayPayment() {
     try {
       let data: any;
 
-      if (test.action === "auth") {
+      if (test.action === "auth" || test.action === "auth_timeout" || test.action === "auth_fail") {
         data = await billPayAuth.mutateAsync({
           billerCode: test.billerCode,
           accountNumber: test.accountNumber,
           amount: test.amount,
         });
 
-        // Verify AUTH returns a reference
-        if (!data.reference) {
+        // Happy-path AUTH: verify returns a reference. AT/AF cases expect the
+        // hook to throw (via expectError), so execution shouldn't reach here.
+        if (!test.expectError && !data.reference) {
           throw new Error("AUTH did not return a reference — critical spec failure");
         }
       } else if (test.action === "auth+pay") {
@@ -163,7 +198,7 @@ export default function TestBillPayPayment() {
         if (authData.reference !== payData.reference) {
           throw new Error(`Reference mismatch! AUTH=${authData.reference} PAY=${payData.reference}`);
         }
-      } else if (test.action === "pay_pending" || test.action === "pay_fail" || test.action === "pay_flagged") {
+      } else if (test.action === "pay_pending" || test.action === "pay_fail" || test.action === "pay_flagged" || test.action === "pay_timeout") {
         // AUTH first (needed to get a reference)
         const authData = await billPayAuth.mutateAsync({
           billerCode: test.billerCode,
