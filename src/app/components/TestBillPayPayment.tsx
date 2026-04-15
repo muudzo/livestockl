@@ -11,8 +11,9 @@ type TestCase = {
   billerName: string;
   accountNumber: string;
   amount?: number;
-  productCode?: string;    // vendor product code — required for real billers
-  productPrice?: number;   // per-product price, usually equals amount
+  productCode?: string;     // vendor product code — required for real billers
+  productPrice?: number;    // per-product price, usually equals amount
+  requiresForex?: boolean;  // RequiresForexPayment flag — TRUE for USD products on ZWG accounts per v1.33 Dual Currency spec
   action: "auth" | "auth+pay" | "pay_pending" | "pay_flagged" | "pay_fail" | "auth_timeout" | "auth_fail" | "pay_timeout";
   expectError?: boolean;
 };
@@ -48,6 +49,7 @@ const TEST_CASES: TestCase[] = [
     amount: 20,
     productCode: "PREPAID_USD",
     productPrice: 20,
+    requiresForex: true,
     action: "auth",
   },
   {
@@ -59,6 +61,7 @@ const TEST_CASES: TestCase[] = [
     amount: 20,
     productCode: "PREPAID_USD",
     productPrice: 20,
+    requiresForex: true,
     action: "auth+pay",
   },
   {
@@ -70,6 +73,7 @@ const TEST_CASES: TestCase[] = [
     amount: 50,
     productCode: "PREPAID_USD",
     productPrice: 50,
+    requiresForex: true,
     action: "auth+pay",
   },
   {
@@ -81,6 +85,7 @@ const TEST_CASES: TestCase[] = [
     amount: 177.77,
     productCode: "PREPAID_USD",
     productPrice: 177.77,
+    requiresForex: true,
     action: "auth+pay",
   },
   {
@@ -92,29 +97,21 @@ const TEST_CASES: TestCase[] = [
     amount: 5,
     productCode: "AIRTIME_USD",
     productPrice: 5,
+    requiresForex: true,
     action: "auth+pay",
   },
   {
-    name: "6 — City of Harare (BILL)",
-    description: "COH biller + BILL product. Auth-returned balance flow (AuthAmountMandated=false).",
-    billerCode: "COH",
-    billerName: "City of Harare",
-    accountNumber: "12345",
-    amount: 50,
-    productCode: "BILL",
-    productPrice: 50,
-    action: "auth",
-  },
-  {
-    name: "7 — UZ Tuition",
-    description: "University of Zimbabwe + TUITION product. Free-price — student-entered amount.",
+    name: "6 — UZ Tuition (USD)",
+    description: "University of Zimbabwe + TUITION product. USD fee, requires forex ack. Expected error if member not found.",
     billerCode: "UZ",
     billerName: "University of Zimbabwe",
     accountNumber: "R123456K",
     amount: 100,
     productCode: "TUITION",
     productPrice: 100,
+    requiresForex: true,
     action: "auth",
+    expectError: true,
   },
 ];
 
@@ -136,9 +133,10 @@ export default function TestBillPayPayment() {
     setResults((prev) => ({ ...prev, [index]: { status: "running" } }));
     const start = performance.now();
 
-    // Real billers require specific product codes per the vendor's
-    // ListBillers config. Build the products array once and reuse for
-    // AUTH + PAY (spec requires AUTH and PAY be IDENTICAL).
+    // Payment products for AUTH + PAY requests. Matches v1.33 "Payment Product"
+    // shape (RequiresForexPayment — NOT RequiresForex from the ListBillers
+    // read-only schema). USD-denominated products on a ZWG-denominated vendor
+    // wallet need this flag set to acknowledge foreign-currency debit.
     const testProducts = test.productCode
       ? [{
           Code: test.productCode,
@@ -148,7 +146,8 @@ export default function TestBillPayPayment() {
           MaxAmount: null,
           AuthAmountMandated: null,
           ReturnsVouchers: false,
-          RequiresForex: null,
+          RequiresForex: null,                            // ListBillers schema field (read-only, unused in request)
+          RequiresForexPayment: test.requiresForex ?? false, // v1.33 Payment Product field — MUST be true for USD products
           Enabled: true,
         }]
       : undefined;
