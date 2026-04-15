@@ -23,7 +23,8 @@ function json(data: unknown, status = 200) {
   });
 }
 
-const LIST_BILLERS_URL = "https://billpay.paynow.co.zw/api/payment/ListBillers";
+const BILLPAY_API_BASE = (Deno.env.get("BILLPAY_API_BASE_URL") ?? "https://billpay.paynow.co.zw").replace(/\/$/, "");
+const LIST_BILLERS_URL = `${BILLPAY_API_BASE}/api/payment/ListBillers`;
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const API_TIMEOUT_MS = 30_000;
 

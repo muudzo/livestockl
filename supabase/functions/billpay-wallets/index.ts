@@ -20,7 +20,8 @@ function json(data: unknown, status = 200) {
   });
 }
 
-const WALLETS_URL = "https://billpay.paynow.co.zw/api/wallets";
+const BILLPAY_API_BASE = (Deno.env.get("BILLPAY_API_BASE_URL") ?? "https://billpay.paynow.co.zw").replace(/\/$/, "");
+const WALLETS_URL = `${BILLPAY_API_BASE}/api/wallets`;
 const API_TIMEOUT_MS = 15_000;
 
 Deno.serve(async (req) => {

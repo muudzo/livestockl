@@ -15,7 +15,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * Uses pg_try_advisory_xact_lock(43) to prevent concurrent execution.
  */
 
-const BILLPAY_API = "https://billpay.paynow.co.zw/api/payment/process";
+const BILLPAY_API_BASE = (Deno.env.get("BILLPAY_API_BASE_URL") ?? "https://billpay.paynow.co.zw").replace(/\/$/, "");
+const BILLPAY_API = `${BILLPAY_API_BASE}/api/payment/process`;
 const API_TIMEOUT_MS = 60_000;
 const MAX_PER_RUN = 20; // Limit payments per cron run to stay within Edge Function timeout
 

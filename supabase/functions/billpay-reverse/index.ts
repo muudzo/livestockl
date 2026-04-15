@@ -23,7 +23,8 @@ function json(data: Record<string, unknown>, status = 200) {
   });
 }
 
-const REVERSE_URL = "https://billpay.paynow.co.zw/api/payment/reverse";
+const BILLPAY_API_BASE = (Deno.env.get("BILLPAY_API_BASE_URL") ?? "https://billpay.paynow.co.zw").replace(/\/$/, "");
+const REVERSE_URL = `${BILLPAY_API_BASE}/api/payment/reverse`;
 const API_TIMEOUT_MS = 60_000;
 
 const REVERSAL_ERRORS: Record<number, string> = {

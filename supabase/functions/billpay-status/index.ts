@@ -25,7 +25,8 @@ function json(data: Record<string, unknown>, status = 200) {
   });
 }
 
-const BILLPAY_API = "https://billpay.paynow.co.zw/api/payment/process";
+const BILLPAY_API_BASE = (Deno.env.get("BILLPAY_API_BASE_URL") ?? "https://billpay.paynow.co.zw").replace(/\/$/, "");
+const BILLPAY_API = `${BILLPAY_API_BASE}/api/payment/process`;
 const API_TIMEOUT_MS = 60_000;
 
 Deno.serve(async (req) => {

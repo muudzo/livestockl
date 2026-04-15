@@ -30,7 +30,12 @@ function generateReference(): string {
   return `ZL-BP-${ts}-${rand}`;
 }
 
-const BILLPAY_API = "https://billpay.paynow.co.zw/api/payment/process";
+// Host configurable via BILLPAY_API_BASE_URL — lets us point at
+// billpay-staging.paynow.co.zw for sandbox credentials without code changes.
+// Defaults to production so an unset env var can't accidentally route test
+// traffic to the live vendor.
+const BILLPAY_API_BASE = (Deno.env.get("BILLPAY_API_BASE_URL") ?? "https://billpay.paynow.co.zw").replace(/\/$/, "");
+const BILLPAY_API = `${BILLPAY_API_BASE}/api/payment/process`;
 const API_TIMEOUT_MS = 60_000; // Spec recommends 60s timeout
 
 // ─── Simulation data for testing without credentials ───

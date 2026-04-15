@@ -12,7 +12,7 @@
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "https://billpay.paynow.co.zw/api", "type": "string" },
+    { "key": "baseUrl", "value": "https://billpay-staging.paynow.co.zw/api", "type": "string", "description": "Staging for sandbox creds. Production = https://billpay.paynow.co.zw/api" },
     { "key": "username", "value": "trevor+testing@paynow.co.zw", "type": "string" },
     { "key": "password", "value": "REPLACE_ME", "type": "string" },
     { "key": "reference", "value": "", "type": "string", "description": "Auto-populated by the AUTH request's Test script; reused by PAY/STATUS" }
