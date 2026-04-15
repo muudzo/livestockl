@@ -109,9 +109,9 @@ Installable PWA · offline fallback · RLS on every table
 ## Measured
 
 - **835 LOC** to integrate Paynow
-- **11/11** security tests pass · Grade A
-- **3 SEV-1s** caught + fixed same day
-- **50% → 100%** payment recovery
+- **11/11** automated security checks · Grade A <span class="opacity-60 text-sm">(not pen-test)</span>
+- **3 SEV-1s** caught + fixed same day (13 Apr enterprise audit)
+- **50% → 100%** payment recovery <span class="opacity-60 text-sm">(chaos simulation, not prod)</span>
 
 </div>
 
@@ -120,13 +120,14 @@ Installable PWA · offline fallback · RLS on every table
 ## Retry chain
 
 EcoCash<br/>↓ *fail*<br/>OneMoney<br/>↓ *fail*<br/>Card<br/>↓<br/>**100% eventual success**
+<span class="opacity-60 text-xs">(simulated — prod blocked by Cloudflare)</span>
 
 </div>
 
 </div>
 
 <!--
-The prototype is live and real — PWA with RLS on every table, atomic bid RPC, full retry chain. Stress-tested — 11 of 11 security checks pass, Grade A on post-deploy QA, and on April 13 an enterprise audit caught three SEV-1 vulnerabilities that I fixed the same day. The payment orchestrator takes first-attempt success from 50% to 100% using retry plus fallback. That's real money recovered at scale.
+The prototype is live PWA — RLS on every table, atomic bid RPC, full retry chain. Stress-tested: 11 of 11 automated security checks pass (not a pen-test), Grade A on post-deploy QA, and on April 13 an enterprise audit caught three SEV-1 vulnerabilities that I fixed the same day. The payment orchestrator takes first-attempt success from 50% to 100% in chaos simulation — not production traffic, since Paynow is unreachable from our infra. Production verification is blocked on Finding #1 which I'll get to.
 -->
 
 ---
@@ -319,44 +320,7 @@ This is the second visceral example. When Paynow sends a webhook, we need to ver
 layout: default
 ---
 
-# Finding #1 — Paynow Core is unreachable from modern cloud infra
-
-<span class="opacity-70">Root cause:</span> `www.paynow.co.zw` sits behind **Cloudflare bot protection**.
-
-<div class="mt-6">
-
-| Client | Result |
-|---|---|
-| Supabase Edge Functions (Deno Deploy) | ❌ Connection reset |
-| Local Node.js + axios, Zimbabwean network | ❌ ETIMEDOUT |
-| curl, any network | ❌ Cannot solve CF challenge |
-| Browser | ✅ passes (via `cf_clearance` cookie) |
-
-</div>
-
-<div v-click class="mt-6 pt-4 border-t border-gray-400 border-opacity-30">
-
-**Competitors:** `api.stripe.com` · `api.paystack.co` · `api.flutterwave.com` · `api.pesepay.com`
-
-Every one has a dedicated API subdomain without bot protection.
-
-</div>
-
-<div v-click class="mt-4 text-red-400">
-
-**Impact:** Paynow is structurally incompatible with serverless. Confirmed on Paynow's own dev forums: *"Paynow failing on supabase"*, 2026-02-03.
-
-</div>
-
-<!--
-This is the single most important finding in the report. Paynow's API lives on www-dot-paynow-dot-co-zw — the same domain as the marketing site. That site runs Cloudflare bot protection. Every programmatic client failed — Supabase Edge Functions, Node, curl, even from a Zimbabwean network. Every competitor has a dedicated api-dot-provider-dot-com without bot protection. This isn't a subtle DX issue — it means no cloud-native team can use Paynow at all. It's already a recurring thread on your own developer forums.
--->
-
----
-layout: default
----
-
-# Finding #2 — Paynow's own siblings already have the fix
+# Finding #1 — Paynow's own siblings already have the fix
 
 ## I also integrated **BillPay** and **TXT**. Both are Paynow-family. Both scored higher than Core.
 
@@ -381,7 +345,7 @@ The fix isn't research. *It's internal pattern adoption.*
 </div>
 
 <!--
-The finding that matters most for you. I also integrated Paynow BillPay and Paynow TXT — both in the Paynow family. Both scored better on every axis than Paynow Core. BillPay has a dedicated subdomain, no Cloudflare block. BillPay uses HTTP Basic Auth, no SHA-512 hash gymnastics. BillPay documents its test prefixes. BillPay versions its docs. All of this already ships at Paynow. Core just hasn't adopted it. The fix for the number-one DX finding is not research — it's copy-paste from your own sibling team.
+This is the finding that matters most — leading with it because it's the most non-obvious. I integrated Paynow BillPay and Paynow TXT as well. Both are in the Paynow family. Both scored better on every axis than Paynow Core. BillPay has a dedicated subdomain, no Cloudflare block. BillPay uses HTTP Basic Auth, no SHA-512 hash gymnastics. BillPay documents its test prefixes. BillPay versions its docs. All of this already ships at Paynow. Core just hasn't adopted it. So the fix for the benchmark's most damaging finding isn't research — it's copy-paste from your own sibling team.
 -->
 
 ---
@@ -445,7 +409,50 @@ Same security goals. One team solved it; the other hasn't adopted the solution y
 </div>
 
 <!--
-This is the punchline slide. Left is what every Paynow Core integrator writes — a SHA-512 hash gymnastics routine that has to be invoked on every single API call, plus the webhook field-ordering uncertainty that forced three fallback strategies in production. Right is Paynow BillPay — same organization, different team — using HTTP Basic Auth. One header. Zero hash computation. Both teams hit the same security bar. One team already shipped the better pattern. The fix for Core isn't research; it's adopting what BillPay already proved works.
+This is the punchline slide. Left is what every Paynow Core integrator writes — a SHA-512 hash gymnastics routine invoked on every single API call, plus webhook field-ordering uncertainty that forced three fallback strategies in production. Right is Paynow BillPay — same organization, different team — using HTTP Basic Auth. One header. Zero hash computation. Both teams hit the same security bar. One team already shipped the better pattern. The fix for Core isn't research; it's adopting what BillPay already proved works.
+-->
+
+---
+layout: default
+---
+
+# Finding #2 — Paynow Core is unreachable from modern cloud infra
+
+<span class="opacity-70">Root cause:</span> `www.paynow.co.zw` sits behind **Cloudflare bot protection**.
+
+<div class="mt-6">
+
+| Client | Result |
+|---|---|
+| Supabase Edge Functions (Deno Deploy) | ❌ Connection reset |
+| Local Node.js + axios, Zimbabwean network | ❌ ETIMEDOUT |
+| curl, any network | ❌ Cannot solve CF challenge |
+| Browser | ✅ passes (via `cf_clearance` cookie) |
+
+</div>
+
+<div v-click class="mt-6 pt-4 border-t border-gray-400 border-opacity-30">
+
+**Competitors:** `api.stripe.com` · `api.paystack.co` · `api.flutterwave.com` · `api.pesepay.com`
+
+Every one has a dedicated API subdomain without bot protection.
+
+</div>
+
+<div v-click class="mt-4 text-red-400">
+
+**Impact:** Paynow is structurally incompatible with serverless. Confirmed on Paynow's own dev forums: *"Paynow failing on supabase"*, 2026-02-03.
+
+</div>
+
+<div v-click class="mt-4 text-sm opacity-80 italic">
+
+I recognize there may be security reasons for the current setup. If so, even a 30-minute walkthrough from the platform team would be valuable DX input.
+
+</div>
+
+<!--
+Finding two is the operational blocker. Paynow's API lives on www-dot-paynow-dot-co-zw — same domain as the marketing site, which runs Cloudflare bot protection. Every programmatic client failed: Supabase Edge Functions, Node, curl, even from a Zimbabwean network. Every competitor has a dedicated api-dot-provider-dot-com without bot protection. It's already a recurring thread on your own developer forums. I want to acknowledge — there may be security reasons this architecture exists. If that's the case, a short walkthrough from your platform team would still be valuable, because even understanding the tradeoff sharpens the DX report.
 -->
 
 ---
@@ -478,39 +485,6 @@ All 7 together — Paynow Core goes from **4.2/10 → ~7-8/10**. Paystack-compet
 Seven concrete recommendations. Six of them are patterns Paynow already ships somewhere else. Effort total — under a month of focused work. The first one alone, moving the API to a separate subdomain, unblocks every cloud-infrastructure developer and probably doubles Paynow's addressable integrator base. This isn't a rewrite. It's adoption of internal patterns.
 -->
 
----
-layout: default
----
-
-# Strategic conclusion
-
-## What I actually built, stripped of features:
-
-<div class="mt-6 px-8 py-6 border-l-4 border-amber-500 italic text-xl">
-
-A distributed state machine for ownership transfer of **physical assets under trust constraints** — with Paynow as the settlement rail.
-
-</div>
-
-<div class="mt-8">
-
-**What that means for Paynow:**
-
-- Livestock is not the product. Asset-ownership state is.
-- The same state machine works for **crops → SME trade → collateralized lending**.
-- Paynow could be the settlement layer for Africa's informal-asset economy — *if* the DX catches up to BillPay's level.
-
-</div>
-
-<div v-click class="mt-6 text-sm opacity-70">
-
-**The agent thesis:** autonomous payment retry recovered 50% of failed transactions in simulation. Agents multiply per-user volume. Paynow should ship agent-ready APIs now.
-
-</div>
-
-<!--
-What I built isn't really a livestock app. It's a state machine for ownership transfer of physical assets. That same machine works for crops, SME trade, collateralized lending — any informal-asset economy. Paynow is well-positioned to be the settlement layer for all of it, but only if the developer experience catches up to what BillPay already ships. The agent retry logic recovered 50% of failed payments. That's the future Paynow should be building rails for.
--->
 
 ---
 layout: default
@@ -523,11 +497,9 @@ class: text-center
 
 <v-clicks>
 
-1. **A decision on the Cloudflare subdomain move.** If this ships, every other DX rec gets easier.
+1. **A 30-minute conversation with the Paynow API team.** I'd like to walk the findings through with the engineers who own the rails.
 
-2. **A design-partner agreement** on agent-ready API changes — I'd like to continue as the reference integrator.
-
-3. **Publish the ecosystem retrospective internally** as a cross-team DX learning (BillPay → Core).
+2. **Publish the ecosystem retrospective internally** as a cross-team DX learning (BillPay → Core). The fix already exists inside Paynow — it just needs to travel.
 
 </v-clicks>
 
@@ -547,5 +519,5 @@ Live: app-nine-sigma-jgoqp90f2p.vercel.app
 </div>
 
 <!--
-Three asks. One — get a decision on the Cloudflare subdomain move. That's the unlock. Two — a design-partner agreement on agent-ready changes, with me as the reference integrator. Three — publish the BillPay-to-Core cross-team learning internally. The fix already exists in your org, it just needs to travel. Thank you. Happy to take questions.
+Two asks. One — I'd like a 30-minute conversation with the Paynow API team. Whoever owns the rails today. I want to walk them through the findings in person because some of these are easier to action if the engineering team hears the evidence directly. Two — publish the ecosystem retrospective internally as a cross-team DX learning. The fix already exists in your own org at BillPay; it just needs to travel. Thank you. Happy to take questions.
 -->
