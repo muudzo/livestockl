@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { frontendLogger } from '../../lib/logger';
+import { reportException } from '../../lib/sentry';
 
 interface Props {
   children: ReactNode;
@@ -25,6 +26,10 @@ export class ErrorBoundary extends Component<Props, State> {
     frontendLogger.error('react_error_boundary', {
       error: error.message,
       stack: error.stack?.slice(0, 500),
+      componentStack: info.componentStack?.slice(0, 500),
+    });
+    reportException(error, {
+      source: 'react_error_boundary',
       componentStack: info.componentStack?.slice(0, 500),
     });
   }

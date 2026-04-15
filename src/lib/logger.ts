@@ -1,5 +1,8 @@
 // Frontend structured logger
-// Logs to console in dev, stores in localStorage ring buffer for debugging
+// Logs to console in dev, stores in localStorage ring buffer for debugging,
+// forwards warn/error to Sentry when VITE_SENTRY_DSN is configured.
+
+import { reportToSentry } from './sentry';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -53,6 +56,10 @@ class FrontendLogger {
 
     if (level === 'error' || level === 'warn' || import.meta.env.DEV) {
       this.persist(entry);
+    }
+
+    if (level === 'error' || level === 'warn') {
+      reportToSentry(level === 'warn' ? 'warning' : 'error', event, data);
     }
   }
 
