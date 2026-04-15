@@ -120,7 +120,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "test-billpay",
-        element: <LazyLoad><TestBillPayPayment /></LazyLoad>,
+        element: <ProtectedRoute><LazyLoad><TestBillPayPayment /></LazyLoad></ProtectedRoute>,
       },
       {
         path: "*",
