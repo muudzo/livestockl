@@ -2,7 +2,7 @@
 
 **Intern:** Tatenda Nyemudzo
 **Period:** 12 March – 23 April 2026
-**As of:** 14 April 2026 (Week 5, mid-week)
+**As of:** 14 April 2026, late-day snapshot at commit `80e88e1`
 **Prod URL:** https://app-nine-sigma-jgoqp90f2p.vercel.app
 
 This is the single entry-point document for supervisor review. It rolls up every deliverable, its current state, and a direct link to the evidence. The full brief lives at [internship-brief.md](internship-brief.md).
@@ -12,6 +12,21 @@ This is the single entry-point document for supervisor review. It rolls up every
 ## One-paragraph summary
 
 A working livestock auction PWA went live on Vercel in Week 5. It's backed by a Supabase stack with RLS on every table, an atomic `place_bid` RPC, and a Paynow-first payment orchestrator with retry chain (EcoCash → OneMoney → Card). Paynow's live API remains unreachable from any server-side code because of Cloudflare bot protection on `www.paynow.co.zw` — a blocker that is itself the highest-value finding of the benchmark. A 5-provider DX comparison (Stripe, Paystack, Flutterwave, Paynow, Pesepay) produced a ranked report with 7 actionable recommendations. CI runs a post-deploy QA suite (consistency + security + chaos) against production on every merge to main; on 13 April it caught 3 SEV-1 issues (direct-INSERT bids bypass, CORS wildcard fallback, broken paginated search) which were fixed the same day.
+
+---
+
+## New this week (14 April)
+
+A second set of deliverables landed that extend the benchmark with internal-ecosystem comparisons and deepen the market research. All on `main`:
+
+| Artifact | Commit | What it adds |
+|---|---|---|
+| [livestock-market-research-summary.md](../deliverables/week-5/livestock-market-research-summary.md) | `caa20d3` | Consolidates two field visits into a single Goal-#1 research deliverable — 3 channels, 7 field findings, strategic implications, traceability to prototype decisions |
+| [direction-analysis-2026-04-14.md](../deliverables/week-5/direction-analysis-2026-04-14.md) | `ee66b88` | VC-style analysis of 5 strategic directions with auction-operator-as-root-of-truth conclusion |
+| [ecosystem-integration-retrospective.md](../deliverables/week-5/ecosystem-integration-retrospective.md) | `ff6fb4a` | Extends the DX benchmark with a second comparison axis: Paynow Core vs **sibling products inside the Paynow family** (BillPay v1.33, TXT SMS) — see "The benchmark" section below |
+| Sentry error tracking | `7247eba` | DSN-gated wire-up in `frontendLogger` + `ErrorBoundary` + global error handlers. Dormant until `VITE_SENTRY_DSN` is set. Closes the observability gap from the 13 Apr audit |
+| Idempotency verification | prior `5e2e0fb` confirmed end-to-end today | Both `bids` and `payments` generate `crypto.randomUUID()` idempotency keys, enforced by partial unique indexes. Double-click / retry dedup is real |
+| Second auction visit write-up | `80e88e1` | Deep-dive systems analysis from the 25 March follow-up visit. Introduces the **Active Bidders per Listing (ABL)** metric as the leading indicator of auction-economic viability |
 
 ---
 
@@ -27,7 +42,7 @@ Updated from the [tracker](internship-deliverables-tracker.md). Green = done, Ye
 | 4 | Functional marketplace prototype | list/bid/pay | 🟢 Live in prod | [Prod URL](https://app-nine-sigma-jgoqp90f2p.vercel.app) |
 | 5 | Paynow payment integration (web + mobile) | Working flows | 🟡 Code complete, **blocked by Cloudflare** | [deliverables/week-5/payment-test-results.md](../deliverables/week-5/payment-test-results.md) |
 | 6 | Product iteration from field research | 2 improvements | 🟢 **Exceeded** — 4 shipped | See "Field research → product" below |
-| 7 | User feedback sessions | 3 sessions | 🟡 Structured form ready, sessions to run Week 5 | [stakeholder-feedback-form.md](../deliverables/week-5/stakeholder-feedback-form.md) |
+| 7 | User feedback sessions | 3 sessions | 🟡 Form ready, ~30% collected — 1 session started, 2 more scheduled this week | [stakeholder-feedback-form.md](../deliverables/week-5/stakeholder-feedback-form.md) |
 | 8 | First-draft DX report | 1 draft | 🟢 Done | [payment-provider-benchmark-report.md](../benchmarks/payment-provider-benchmark-report.md) |
 | 9 | End-to-end payment testing | Success + fail + timeout + mobile | 🟢 Sim complete; live Paynow sandbox pending | [payment-test-results.md](../deliverables/week-5/payment-test-results.md) |
 | 10 | Stakeholder demos + structured feedback | 2+ demos | 🔴 Scheduled, not yet run | — |
@@ -64,6 +79,14 @@ Five providers integrated end-to-end into the same ZimLivestock codebase — not
 7. Build developer onboarding content (the Paystack playbook).
 
 Full pitfall catalogue: [paynow-integration-pitfalls.md](paynow-integration-pitfalls.md) — 21 documented.
+
+### Additional finding: Paynow's own sibling products have better DX than Paynow Core
+
+A second DX comparison — added 14 April — examined two sibling products in the Paynow family: **BillPay Vendor API v1.33** and **TXT SMS API**. Both were integrated into the same codebase ([billpay](../supabase/functions/billpay/) 6 edge functions shipped; TXT on `feature/sms-notifications`).
+
+**Headline:** BillPay and TXT both **already ship the patterns Paynow Core needs** — separate API subdomain without Cloudflare, HTTP Basic Auth, documented test prefixes, versioned docs, clear state machines. The fix for Paynow Core isn't research; it's internal pattern adoption.
+
+Full analysis: [ecosystem-integration-retrospective.md](../deliverables/week-5/ecosystem-integration-retrospective.md). This extends the 7 recommendations above with 7 more that are *already implemented elsewhere in Paynow*, making them low-risk wins for the Core team.
 
 ---
 
@@ -140,18 +163,23 @@ No override for integrity/security/chaos — fix the underlying issue or don't s
 
 ### Week 5 (by 15 Apr)
 
-- Run 2+ stakeholder demos using [stakeholder-feedback-form.md](../deliverables/week-5/stakeholder-feedback-form.md); collect structured feedback
-- Complete 2nd auction-house or farmer visit (paired with 1st user feedback session)
-- **Fix Paynow insufficient-funds fall-through** — detect `params.error` in `initiate-payment/index.ts:205-212`, return 402 with clear toast
-- **Wire `VERCEL_TOKEN` + `CRON_SECRET`** in GitHub Actions secrets (CI deploy-frontend job has been silently failing for 3 pushes)
-- Kill `test-pesepay-checkout` stack-in-response (one-line fix before launch)
+- Run 2 remaining stakeholder demos using [stakeholder-feedback-form.md](../deliverables/week-5/stakeholder-feedback-form.md); 1 session started, ~30% collected
+- **Fix Paynow insufficient-funds fall-through** — detect `params.error` in `initiate-payment/index.ts:205-212`, return 402 with clear toast (remaining one-liner)
+- Configure GitHub branch protection on `main` (manual UI step — `gh api` attempt errored on the null-payload syntax; retry via dashboard)
 
 ### Week 6 (by 23 Apr)
 
-- Final DX report polish (benchmark report is already a functional draft)
+- Final DX report polish — benchmark report is a functional draft; add the ecosystem-retrospective findings as a new section
 - 5-minute presentation deck + dry-run
-- Sentry integration (#1 observability gap — 2-3 h)
-- Idempotency keys on bids + payments (1-2 h)
+
+### Closed this week (no longer outstanding)
+
+- ✅ 2nd auction-house visit — written up at [research/auction-field-visit-2026-03-25.md](../research/auction-field-visit-2026-03-25.md)
+- ✅ Sentry integration — DSN-gated wire-up shipped (`7247eba`); paste DSN into `.env.local` + Vercel production env to activate
+- ✅ Idempotency on bids + payments — verified end-to-end this week; both generate `crypto.randomUUID()`, partial unique indexes enforce dedup
+- ✅ `test-pesepay-checkout` stack leak — killed in `5e2e0fb`
+- ✅ Nightly extended chaos workflow — wired in `5e2e0fb` (`.github/workflows/nightly-chaos.yml`, 03:00 UTC)
+- ✅ `VERCEL_TOKEN` + `CRON_SECRET` GitHub Actions secrets — set earlier this week
 
 ### Not shipping this internship (logged for record)
 
@@ -175,7 +203,15 @@ No override for integrity/security/chaos — fix the underlying issue or don't s
 | Paynow integration plan | [research/paynow-full-integration-plan.md](../research/paynow-full-integration-plan.md) |
 | BillPay plan | [docs/billpay-integration-plan.md](billpay-integration-plan.md) |
 | Tawk.to plan | [docs/tawkto-integration-plan.md](tawkto-integration-plan.md) |
-| Auction field research | [research/auction-field-visit-2026-03-19.md](../research/auction-field-visit-2026-03-19.md) |
+| Auction field research — visit 1 | [research/auction-field-visit-2026-03-19.md](../research/auction-field-visit-2026-03-19.md) |
+| Auction field research — visit 2 (deep-dive, systems analysis) | [research/auction-field-visit-2026-03-25.md](../research/auction-field-visit-2026-03-25.md) |
+| **Livestock market research summary (Goal #1)** | [deliverables/week-5/livestock-market-research-summary.md](../deliverables/week-5/livestock-market-research-summary.md) |
+| Direction analysis (VC-style 5-wedge evaluation) | [deliverables/week-5/direction-analysis-2026-04-14.md](../deliverables/week-5/direction-analysis-2026-04-14.md) |
+| Ecosystem DX retrospective (BillPay + TXT vs Paynow Core) | [deliverables/week-5/ecosystem-integration-retrospective.md](../deliverables/week-5/ecosystem-integration-retrospective.md) |
+| Adversarial / red-team test report | [deliverables/week-5/adversarial-test-2026-04-14.md](../deliverables/week-5/adversarial-test-2026-04-14.md) |
+| Payment red-team report | [deliverables/week-5/payment-redteam-2026-04-14.md](../deliverables/week-5/payment-redteam-2026-04-14.md) |
+| Prototype improvements log | [deliverables/week-5/prototype-improvements.md](../deliverables/week-5/prototype-improvements.md) |
+| Feature branch review | [deliverables/week-5/feature-branch-review.md](../deliverables/week-5/feature-branch-review.md) |
 | Wireframes (interactive) | [docs/wireframes.html](wireframes.html) |
 | Architecture diagram | [docs/architecture-diagram.html](architecture-diagram.html) |
 | Stanford SEED brief | [docs/stanford-seed-meeting.md](stanford-seed-meeting.md) |
