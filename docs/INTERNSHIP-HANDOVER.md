@@ -49,9 +49,9 @@ Updated from the [tracker](internship-deliverables-tracker.md). Green = done, Ye
 | 11 | UX / reliability improvements from testing | From feedback | 🟢 Phase 1+2 hardening shipped | [session-logs/2026-04-13.md](../session-logs/2026-04-13.md) |
 | 12 | Final DX report with exec summary + 5+ recs | 5 recs | 🟢 **Exceeded** — 7 recs, exec summary live | [benchmarks/payment-provider-benchmark-report.md](../benchmarks/payment-provider-benchmark-report.md) |
 | 13 | Deployment — publicly accessible URL | Live URL | 🟢 [app-nine-sigma-jgoqp90f2p.vercel.app](https://app-nine-sigma-jgoqp90f2p.vercel.app) | — |
-| 14 | 5-minute internship presentation | Deck + practice | 🟡 Deck drafted (13 slides, Slidev-ready, 3 code comparisons); dry-run pending | [slides.md](../deliverables/week-6/slides.md) · [presentation-deck.md](../deliverables/week-6/presentation-deck.md) |
+| 14 | 5-minute internship presentation | Deck + practice | 🟢 **Done** — 13-slide Slidev deck with 3 code comparisons + dry-run | [slides.md](../deliverables/week-6/slides.md) · [presentation-deck.md](../deliverables/week-6/presentation-deck.md) |
 
-**Headline:** 11 🟢 / 3 🟡 / 1 🔴 as of 14 April. Second auction visit flipped #1 to green; deck drafted in Slidev flipped #14 from red to yellow (dry-run outstanding). The one remaining red is stakeholder demos — 1 session run, 2 more scheduled for this week.
+**Headline:** 12 🟢 / 2 🟡 / 1 🔴 as of 14 April. Deck dry-run completed flipping #14 to green. The one remaining red is stakeholder demos — 1 session run, 2 more scheduled for this week.
 
 ---
 
