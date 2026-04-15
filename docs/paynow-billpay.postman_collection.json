@@ -1,0 +1,348 @@
+{
+  "info": {
+    "name": "Paynow BillPay Vendor API v1.33",
+    "description": "Docs-faithful collection for the Paynow BillPay Vendor API.\n\n**Setup:**\n1. Import this file into Postman (File → Import)\n2. Create a new Environment (or use Collection Variables): set `username` and `password` to your BillPay API credentials\n3. Requests use collection-level Basic Auth that reads `{{username}}` and `{{password}}` automatically\n4. Run `AUTH — Test biller happy path` first — its Test script stores `{{reference}}` for reuse by PAY and STATUS\n\n**Base URL:** https://billpay.paynow.co.zw/api\n\n**Key references:**\n- docs/paynow-billpay-vendor-api.md in this repo\n- Auth is HTTP Basic (same creds across every endpoint)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{username}}", "type": "string" },
+      { "key": "password", "value": "{{password}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://billpay.paynow.co.zw/api", "type": "string" },
+    { "key": "username", "value": "trevor+testing@paynow.co.zw", "type": "string" },
+    { "key": "password", "value": "REPLACE_ME", "type": "string" },
+    { "key": "reference", "value": "", "type": "string", "description": "Auto-populated by the AUTH request's Test script; reused by PAY/STATUS" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Generate a fresh reference for AUTH requests only.",
+          "// PAY and STATUS reuse whatever AUTH stored.",
+          "const name = (pm.info && pm.info.requestName) || '';",
+          "if (name.toLowerCase().includes('auth') && !name.toLowerCase().includes('pay')) {",
+          "  const ref = 'ZL-PM-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();",
+          "  pm.collectionVariables.set('reference', ref);",
+          "  console.log('Generated reference:', ref);",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "1 — Discovery",
+      "item": [
+        {
+          "name": "GET ListBillers (no filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/payment/ListBillers", "host": ["{{baseUrl}}"], "path": ["payment", "ListBillers"] },
+            "description": "Full list of billers + their products. Store in your app's DB; don't call frequently."
+          }
+        },
+        {
+          "name": "GET ListBillers (filtered)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/payment/ListBillers?billerCodes=Test,ZETDC,AIRTIME",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "ListBillers"],
+              "query": [{ "key": "billerCodes", "value": "Test,ZETDC,AIRTIME" }]
+            },
+            "description": "Narrow the payload after a webhook update — recommended for repeat calls."
+          }
+        },
+        {
+          "name": "GET Wallets",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/wallets", "host": ["{{baseUrl}}"], "path": ["wallets"] },
+            "description": "Your vendor wallet balances per currency. If wallet not prefunded, payments may fail."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 — Test biller (error-path simulation)",
+      "description": "The Test biller accepts member-number prefixes to trigger each failure mode. Only works on billerCode=Test.",
+      "item": [
+        {
+          "name": "AUTH — Test biller happy path (AA product)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const j = pm.response.json();",
+                  "pm.test('Status = Authorized', () => pm.expect(j.Status).to.eql('Authorized'));",
+                  "pm.test('Reference present', () => pm.expect(j.Reference).to.be.a('string'));",
+                  "pm.collectionVariables.set('reference', j.Reference);",
+                  "console.log('AUTH reference stored:', j.Reference);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"AUTH\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"HAPPY-001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"AA\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — same reference as AUTH",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"HAPPY-001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"AA\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] },
+            "description": "IDENTICAL to AUTH except Action=PAY. Spec requires same Reference."
+          }
+        },
+        {
+          "name": "STATUS — poll a previous reference",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"STATUS\",\n  \"Reference\": \"{{reference}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] },
+            "description": "For pending payments. Docs: first inquiry ≥120s, subsequent ≥180s."
+          }
+        },
+        {
+          "name": "AUTH — AT prefix (auth timeout, 120s wait)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"AUTH\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"ATTIMEOUT001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"AI\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "AUTH — AF prefix (auth failure)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"AUTH\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"AFUNKNOWN001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 50,\n  \"Products\": [\n    { \"Code\": \"AM\", \"Quantity\": 1, \"Price\": 50, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — PT prefix (pay timeout)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"PTTIMEOUT001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"AI\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — PF prefix (pay failure)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"PFREJECT001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"AI\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — PP prefix (pending, tests STATUS polling)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"PPPENDING001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"AI\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — PFF prefix (flagged, 600s slow-poll)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"PFFFLAGGED001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"AI\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — RV product (returns vouchers)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"Test\",\n  \"MemberNumber\": \"VOUCHER-001\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 10,\n  \"Products\": [\n    { \"Code\": \"RV\", \"Quantity\": 1, \"Price\": 10, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 — Real billers (documented test meters)",
+      "description": "Live billers with documented test member numbers.",
+      "item": [
+        {
+          "name": "AUTH — ZETDC single-debt meter",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"AUTH\",\n  \"BillerCode\": \"ZETDC\",\n  \"MemberNumber\": \"37132567431\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 20,\n  \"Products\": [\n    { \"Code\": \"USD\", \"Quantity\": 1, \"Price\": 20, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — ZETDC (same reference)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"ZETDC\",\n  \"MemberNumber\": \"37132567431\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 20,\n  \"Products\": [\n    { \"Code\": \"USD\", \"Quantity\": 1, \"Price\": 20, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "PAY — ZETDC token resend ($177.77)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"PAY\",\n  \"BillerCode\": \"ZETDC\",\n  \"MemberNumber\": \"37132567431\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 177.77,\n  \"Products\": [\n    { \"Code\": \"USD\", \"Quantity\": 1, \"Price\": 177.77, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "AUTH — AIRTIME (valid mobile)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"Action\": \"AUTH\",\n  \"BillerCode\": \"AIRTIME\",\n  \"MemberNumber\": \"0771234567\",\n  \"Reference\": \"{{reference}}\",\n  \"TotalAmount\": 5,\n  \"Products\": [\n    { \"Code\": \"AIRTIME\", \"Quantity\": 1, \"Price\": 5, \"RequiresForexPayment\": false }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/process", "host": ["{{baseUrl}}"], "path": ["payment", "process"] }
+          }
+        },
+        {
+          "name": "GET Member info (ZETDC)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/payment/member?billerCode=ZETDC&memberNumber=37132567431",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "member"],
+              "query": [
+                { "key": "billerCode", "value": "ZETDC" },
+                { "key": "memberNumber", "value": "37132567431" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 — Reversal + Reporting",
+      "item": [
+        {
+          "name": "POST Reverse (refund a prior payment)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"OriginalReference\": \"{{reference}}\",\n  \"Reference\": \"REV-{{reference}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/payment/reverse", "host": ["{{baseUrl}}"], "path": ["payment", "reverse"] },
+            "description": "ErrorCode 0 = success. 1=original not found · 2=duplicate rev ref · 3=biller failed · 4=not supported · 5=already refunded · 99=general error."
+          }
+        },
+        {
+          "name": "GET List payments (last 90d)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/payment/list?PerPage=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "list"],
+              "query": [{ "key": "PerPage", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "GET TargetStats (e.g. charity biller)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/payment/TargetStats?billercode=KIDZ",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "TargetStats"],
+              "query": [{ "key": "billercode", "value": "KIDZ" }]
+            }
+          }
+        },
+        {
+          "name": "GET Feed (recent payments for a biller)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{baseUrl}}/payment/feed?billercode=KIDZ",
+              "host": ["{{baseUrl}}"],
+              "path": ["payment", "feed"],
+              "query": [{ "key": "billercode", "value": "KIDZ" }]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
