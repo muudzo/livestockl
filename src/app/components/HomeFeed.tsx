@@ -220,13 +220,31 @@ export function HomeFeed() {
         </div>
       </div>
 
-      {/* Services — BillPay quick access */}
+      {/* Services — BillPay quick access. Airtime is the primary CTA
+          because it's the single biller validated end-to-end against
+          live staging; rest of the row is secondary for the demo. */}
       <div className="px-4 pt-4">
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Services</h2>
+
+        {/* Hero: Airtime — primary CTA, full-width card */}
+        <button
+          onClick={() => navigate('/pay-bill?service=airtime')}
+          className="w-full flex items-center gap-3 p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-xl shadow-sm hover:shadow-md active:scale-[0.98] transition-all mb-3"
+        >
+          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+            <Phone className="w-6 h-6" />
+          </div>
+          <div className="flex-1 text-left">
+            <div className="font-semibold text-base leading-tight">Top up airtime</div>
+            <div className="text-xs opacity-90 mt-0.5">Instant · Econet, NetOne, Telecel</div>
+          </div>
+          <div className="text-xs font-medium bg-white/20 rounded-full px-2 py-1 shrink-0">Instant</div>
+        </button>
+
+        {/* Secondary services */}
         <div className="flex gap-3 overflow-x-auto pb-2">
           {[
             { label: 'ZESA',        code: 'zesa',    icon: <Zap className="w-5 h-5" />,             color: 'bg-amber-100 text-amber-600' },
-            { label: 'Airtime',     code: 'airtime', icon: <Phone className="w-5 h-5" />,           color: 'bg-blue-100 text-blue-600' },
             { label: 'School Fees', code: 'fees',    icon: <GraduationCap className="w-5 h-5" />,   color: 'bg-purple-100 text-purple-600' },
             { label: 'Water',       code: 'water',   icon: <Droplet className="w-5 h-5" />,         color: 'bg-cyan-100 text-cyan-600' },
           ].map((svc) => (
