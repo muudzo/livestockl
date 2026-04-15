@@ -36,6 +36,13 @@ const API_TIMEOUT_MS = 60_000; // Spec recommends 60s timeout
 // ─── Simulation data for testing without credentials ───
 
 const SIM_BILLERS: Record<string, { name: string; products: SimProduct[] }> = {
+  // Test biller added at the top so it's the canonical error-path simulator.
+  // Prefix simulation (AT/AF/PT/PF/PP/PFF) only runs when billerCode === 'Test'
+  // to match the real vendor behaviour documented in v1.33.
+  Test: {
+    name: "Test Biller (simulation only)",
+    products: [...TEST_BILLER.products],
+  },
   ZETDC: {
     name: "ZESA Prepaid Electricity",
     products: [
@@ -102,6 +109,35 @@ interface SimProduct {
   MinAmount: number | null;
   MaxAmount: number | null;
 }
+
+// Test biller product taxonomy per v1.33 docs ("Additional Biller Integration Notes").
+// Mirrors the real vendor Test biller so our simulation stays honest when the harness
+// exercises the error-path prefixes (AT/AF/PT/PF/PP/PFF) that ONLY work on `Test`.
+const TEST_BILLER: { name: string; products: SimProduct[] } = {
+  name: "Test Biller",
+  products: [
+    { Code: "AI", Name: "Variable price, part payment allowed (council-style)",
+      Price: null, ReturnsVouchers: false, AuthAmountMandated: false, MinAmount: 1, MaxAmount: 10000 },
+    { Code: "AM", Name: "Variable price, full payment mandated (medical-aid-style)",
+      Price: null, ReturnsVouchers: false, AuthAmountMandated: true, MinAmount: 1, MaxAmount: 10000 },
+    { Code: "AA", Name: "Free-price, customer enters amount (airtime/ZESA-style)",
+      Price: null, ReturnsVouchers: false, AuthAmountMandated: null, MinAmount: 0.5, MaxAmount: 5000 },
+    { Code: "RV", Name: "Returns vouchers (TelOne/EVD-style)",
+      Price: 10, ReturnsVouchers: true, AuthAmountMandated: null, MinAmount: 1, MaxAmount: 1000 },
+    { Code: "FP", Name: "Fixed price, requires forex payment",
+      Price: 25, ReturnsVouchers: false, AuthAmountMandated: null, MinAmount: 25, MaxAmount: 25 },
+  ],
+};
+
+// ZETDC test meter cases per v1.33 docs. Only valid on test environment; our
+// simulation mirrors the documented behaviour so harness results match what
+// the real vendor would return when credentials route live.
+const ZETDC_TEST_METERS: Record<string, { label: string; returnsVouchers: number }> = {
+  "37132567431": { label: "Single debt — one token returned", returnsVouchers: 1 },
+  "37125980740": { label: "Double debt — one token returned", returnsVouchers: 1 },
+  "37132229735": { label: "Double token — two tokens returned", returnsVouchers: 2 },
+};
+const ZETDC_TOKEN_RESEND_AMOUNT = 177.77;
 
 // ─── SMS delivery (fire-and-forget) ───
 
@@ -205,10 +241,12 @@ Deno.serve(async (req) => {
       const ref = generateReference();
 
       if (isSimulation) {
-        // Vendor-spec test prefixes for AUTH-phase failures (paynow-billpay-vendor-api.md).
-        // Applied here before the happy-path so the harness can exercise them without
-        // needing the real "Test" biller (which requires live vendor credentials).
-        const memberPrefix = accountNumber.substring(0, 2).toUpperCase();
+        // Vendor-spec test prefixes per v1.33 docs apply ONLY when the biller
+        // is "Test". Gating here prevents our local simulation from diverging
+        // from real vendor behaviour — in production the prefixes against real
+        // billers (ZETDC, AIRTIME, etc.) would just be invalid member numbers.
+        const isTestBiller = billerCode.toLowerCase() === "test";
+        const memberPrefix = isTestBiller ? accountNumber.substring(0, 2).toUpperCase() : "";
 
         // AT = Auth Timeout — simulates 60s timeout on biller side
         if (memberPrefix === "AT") {
@@ -393,9 +431,12 @@ Deno.serve(async (req) => {
       const sim = SIM_BILLERS[billerCode];
       const returnsVouchers = sim?.products?.[0]?.ReturnsVouchers || false;
 
-      // Simulate different responses based on member number prefix (matches spec test biller)
-      const memberPrefix = accountNumber.substring(0, 2).toUpperCase();
-      const memberPrefix3 = accountNumber.substring(0, 3).toUpperCase();
+      // Prefix-based simulation only runs for the Test biller per v1.33 docs.
+      // Real billers (ZETDC, AIRTIME, etc.) ignore prefixes — against live
+      // vendor those would be treated as literal invalid member numbers.
+      const isTestBiller = billerCode.toLowerCase() === "test";
+      const memberPrefix = isTestBiller ? accountNumber.substring(0, 2).toUpperCase() : "";
+      const memberPrefix3 = isTestBiller ? accountNumber.substring(0, 3).toUpperCase() : "";
 
       // PT = Pay Timeout — simulates 60s timeout during payment
       if (memberPrefix === "PT") {
@@ -464,23 +505,35 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ZETDC real-meter special cases per v1.33 docs. Single-debt meters
+      // return one token; double-token meters return two. Token-resend is
+      // triggered by an amount of exactly $177.77 regardless of meter.
+      const isZetdc = billerCode.toUpperCase() === "ZETDC";
+      const zetdcCase = isZetdc ? ZETDC_TEST_METERS[accountNumber] : undefined;
+      const isTokenResend = isZetdc && Math.abs(amount - ZETDC_TOKEN_RESEND_AMOUNT) < 0.01;
+      const tokensToIssue = zetdcCase?.returnsVouchers ?? (isTokenResend ? 1 : (returnsVouchers ? 2 : 0));
+
       // Default: successful payment
+      const allVouchers = [
+        { SerialNumber: "SIM001", Pin: "1234", Batch: "SIM-BATCH", VoucherCode: "1234-5678-9012-3456", ValidDays: 365, ExpiryDate: null },
+        { SerialNumber: "SIM002", Pin: "5678", Batch: "SIM-BATCH", VoucherCode: "9876-5432-1098-7654", ValidDays: 365, ExpiryDate: null },
+      ];
       const simVouchers = returnsVouchers
-        ? [
-            { SerialNumber: "SIM001", Pin: "1234", Batch: "SIM-BATCH", VoucherCode: "1234-5678-9012-3456", ValidDays: 365, ExpiryDate: null },
-            { SerialNumber: "SIM002", Pin: "5678", Batch: "SIM-BATCH", VoucherCode: "9876-5432-1098-7654", ValidDays: 365, ExpiryDate: null },
-          ]
+        ? allVouchers.slice(0, Math.max(1, tokensToIssue))
         : [];
 
-      const simReceiptSmses = returnsVouchers
-        ? [
-            `ZESA Token: 1234-5678-9012-3456 for meter ${accountNumber}. Amount: US$${amount}. Ref: ${reference}`,
-            `ZESA Token: 9876-5432-1098-7654 for meter ${accountNumber}. Amount: US$${amount}. Ref: ${reference}`,
-          ]
-        : [];
+      const simReceiptSmses = simVouchers.map(v =>
+        `ZESA Token: ${v.VoucherCode} for meter ${accountNumber}. Amount: US$${amount}. Ref: ${reference}`,
+      );
 
-      const simDisplayData = returnsVouchers
-        ? { "Token 1": "1234-5678-9012-3456", "Token 2": "9876-5432-1098-7654", Meter: accountNumber, Amount: `US$${amount}` }
+      const simDisplayData: Record<string, string> = simVouchers.length > 0
+        ? Object.fromEntries([
+            ...simVouchers.map((v, i) => [`Token ${i + 1}`, v.VoucherCode]),
+            ["Meter", accountNumber],
+            ["Amount", `US$${amount}`],
+            ...(zetdcCase ? [["Test Case", zetdcCase.label]] : []),
+            ...(isTokenResend ? [["Test Case", "Token resend ($177.77)"]] : []),
+          ] as [string, string][])
         : { Account: accountNumber, Amount: `US$${amount}`, Status: "Paid" };
 
       await svc.from("bill_payments").update({

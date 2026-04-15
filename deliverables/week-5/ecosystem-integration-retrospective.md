@@ -32,7 +32,7 @@ Extension of the DX benchmark with a second comparison: Paynow Core against **tw
 | **Versioned docs** | ❌ | ✅ v1.33 (23 Jan 2024) | ✅ v1.12 (4 Mar 2024) |
 | **Documented test identifiers** | ❌ No test phone numbers | ✅ 6 member prefixes (AT, AF, PT, PF, PP, PFF) + 5 product types | ✅ Test mode redirects SMS |
 | **Postman collection** | ❌ | ❌ | ✅ `postman.com/paynow/paynow-txt` |
-| **Structured errors** | ❌ URL-encoded strings | ✅ JSON + error codes 0-5,99 | ❌ Description only |
+| **Structured errors** | ❌ URL-encoded strings | 🟡 JSON with `Narration` + `TechnicalNarration` fields; numeric codes (0-5, 99) only on reversal endpoint | ❌ Description only |
 | **State machine documented** | ❌ (mixed statuses, hash order unclear) | ✅ 6 states, explicit poll intervals (120s/180s/600s) | N/A (one-shot) |
 | **Time to first successful call** | ~3.5h, then blocked entirely | ~1.5h | ~30 min |
 
@@ -62,7 +62,7 @@ Paynow Core's weaknesses are **already solved inside the Paynow organization**:
 | 4 | Publish a Postman collection | ~1 day | TXT |
 | 5 | Version docs + add publish date | ~1 hour | BillPay / TXT |
 | 6 | Document webhook hash field ordering explicitly | ~1 hour | — |
-| 7 | Add structured error responses with codes | ~1 week | BillPay error codes 0-5,99 |
+| 7 | Add structured error responses with codes | ~1 week | BillPay reversal error codes (0-5, 99) as the one existing pattern inside Paynow |
 
 All seven together would likely move Paynow Core from **4.2/10 → ~7-8/10**, competitive with Paystack. None require new invention.
 

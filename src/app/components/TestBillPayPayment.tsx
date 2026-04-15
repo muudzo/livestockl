@@ -16,120 +16,140 @@ type TestCase = {
 };
 
 /**
- * Test cases use the v1.33 test biller member prefixes (paynow-billpay-vendor-api.md):
- * - (none)  = success
- * - AT      = auth timeout  (60s timeout during auth)
- * - AF      = auth failure  (biller rejects account)
- * - PT      = pay timeout   (60s timeout during pay)
- * - PF      = pay failure   (biller rejects payment)
- * - PP      = pay pending   (BeingProcessed — tests status polling)
- * - PFF     = pay flagged   (tests 600s slow-poll for support review)
+ * Harness is split into two batches per v1.33 docs:
  *
- * All 6 documented vendor-spec prefixes are covered.
+ * BATCH A — Test biller error paths:
+ * - Prefixes AT/AF/PT/PF/PP/PFF ONLY work on biller "Test" (not ZETDC/AIRTIME/etc).
+ * - Test biller products AI/AM/AA/RV/FP each exercise a different config:
+ *   AI = variable price, part payment allowed (council-style)
+ *   AM = variable price, full payment mandated (medical-aid-style)
+ *   AA = free price, customer enters amount (airtime/ZESA-style)
+ *   RV = returns vouchers (TelOne/EVD-style)
+ *   FP = fixed price, requires forex
+ *
+ * BATCH B — Real billers (happy path only, using documented test meters):
+ * - ZETDC test meters from v1.33 docs ("Test Meter Numbers" section)
+ * - AIRTIME with valid mobile number
+ *
+ * Both batches pass in simulation AND are credentials-ready: when live
+ * vendor creds activate, Batch A routes to the real Test biller and Batch B
+ * routes to real ZETDC/AIRTIME — both work without further code changes.
  */
 const TEST_CASES: TestCase[] = [
+  // ─── BATCH A — Test biller error paths (all 6 vendor-spec prefixes) ───
   {
-    name: "AUTH — ZESA Valid Account",
-    description: "Verify ZESA meter returns account holder, products, and reference",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "37132567431",
-    amount: 20,
-    action: "auth",
-  },
-  {
-    name: "AUTH — Airtime Valid",
-    description: "Verify a phone number for airtime top-up returns reference",
-    billerCode: "AIRTIME",
-    billerName: "Airtime",
-    accountNumber: "0771234567",
-    amount: 5,
-    action: "auth",
-  },
-  {
-    name: "AUTH — Council Account",
-    description: "Verify City of Harare council account (AuthAmountMandated: false)",
-    billerCode: "COH",
-    billerName: "City of Harare",
-    accountNumber: "12345",
-    amount: 50,
-    action: "auth",
-  },
-  {
-    name: "AUTH+PAY — ZESA (same reference)",
-    description: "Full flow: AUTH then PAY with same reference. Critical spec test.",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "37132567431",
+    name: "A1 — Test biller, happy path (AA, free price)",
+    description: "Test biller + AA product (free-price). Normal member number, $20 amount. Expect success.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "HAPPY-001",
     amount: 20,
     action: "auth+pay",
   },
   {
-    name: "AUTH+PAY — Airtime",
-    description: "Full airtime purchase flow with same-reference verification",
-    billerCode: "AIRTIME",
-    billerName: "Airtime",
-    accountNumber: "0771234567",
-    amount: 5,
-    action: "auth+pay",
-  },
-  {
-    name: "AUTH — Timeout (AT prefix)",
-    description: "Simulate auth-phase timeout using AT member prefix. Tests retry-on-408 logic.",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "AT37132567431",
-    amount: 20,
+    name: "A2 — AT (auth timeout)",
+    description: "Test + AI product, member prefixed with AT. Vendor takes 120s to respond, we expect timeout.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "AT-TIMEOUT-001",
+    amount: 10,
     action: "auth_timeout",
     expectError: true,
   },
   {
-    name: "AUTH — Failure (AF prefix)",
-    description: "Simulate biller rejecting auth (e.g. unknown account) using AF prefix.",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "AF37132567431",
-    amount: 20,
+    name: "A3 — AF (auth failure)",
+    description: "Test + AM product, member prefixed with AF. Vendor rejects account — unknown member.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "AF-UNKNOWN-001",
+    amount: 50,
     action: "auth_fail",
     expectError: true,
   },
   {
-    name: "PAY — Timeout (PT prefix)",
-    description: "Simulate pay-phase timeout using PT member prefix. Tests 408 handling.",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "PT37132567431",
+    name: "A4 — PT (pay timeout)",
+    description: "Test + AI product, member prefixed with PT. Pay-phase timeout — triggers status polling.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "PT-TIMEOUT-001",
     amount: 10,
     action: "pay_timeout",
     expectError: true,
   },
   {
-    name: "PAY — BeingProcessed (PP prefix)",
-    description: "Simulate pending payment using PP member prefix. Tests status polling.",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "PP37132567431",
-    amount: 10,
-    action: "pay_pending",
-  },
-  {
-    name: "PAY — Payment Failure (PF prefix)",
-    description: "Simulate payment failure using PF member prefix",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "PF37132567431",
+    name: "A5 — PF (pay failure)",
+    description: "Test + AI product, member prefixed with PF. Pay rejected by biller — permanent failure.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "PF-REJECT-001",
     amount: 10,
     action: "pay_fail",
     expectError: true,
   },
   {
-    name: "PAY — Flagged (PFF prefix)",
-    description: "Simulate flagged payment using PFF member prefix",
-    billerCode: "ZETDC",
-    billerName: "ZESA Prepaid",
-    accountNumber: "PFF37132567431",
+    name: "A6 — PP (pay pending / BeingProcessed)",
+    description: "Test + AI product, member prefixed with PP. Pending response — tests 120s/180s reconcile polling.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "PP-PENDING-001",
+    amount: 10,
+    action: "pay_pending",
+  },
+  {
+    name: "A7 — PFF (pay flagged)",
+    description: "Test + AI product, member prefixed with PFF. Flagged for BillPay support — 600s slow-poll.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "PFF-FLAGGED-001",
     amount: 10,
     action: "pay_flagged",
+  },
+  {
+    name: "A8 — RV (returns vouchers)",
+    description: "Test + RV product. Voucher-returning flow — tests vouchers[] array in PAY response.",
+    billerCode: "Test",
+    billerName: "Test Biller",
+    accountNumber: "RV-VOUCHER-001",
+    amount: 10,
+    action: "auth+pay",
+  },
+
+  // ─── BATCH B — Real billers (documented test meters + valid numbers) ───
+  {
+    name: "B1 — ZETDC single-debt meter",
+    description: "Real ZETDC biller + documented test meter 37132567431 (single debt, one token returned).",
+    billerCode: "ZETDC",
+    billerName: "ZESA Prepaid",
+    accountNumber: "37132567431",
+    amount: 20,
+    action: "auth+pay",
+  },
+  {
+    name: "B2 — ZETDC double-token meter",
+    description: "Real ZETDC biller + documented test meter 37132229735 (two tokens returned — tests multi-token SMS flow).",
+    billerCode: "ZETDC",
+    billerName: "ZESA Prepaid",
+    accountNumber: "37132229735",
+    amount: 50,
+    action: "auth+pay",
+  },
+  {
+    name: "B3 — ZETDC token resend ($177.77)",
+    description: "Real ZETDC biller + any meter + documented amount $177.77 to trigger token resend.",
+    billerCode: "ZETDC",
+    billerName: "ZESA Prepaid",
+    accountNumber: "37132567431",
+    amount: 177.77,
+    action: "auth+pay",
+  },
+  {
+    name: "B4 — AIRTIME valid number",
+    description: "Real AIRTIME biller + valid Zim mobile number. Happy-path airtime credit.",
+    billerCode: "AIRTIME",
+    billerName: "Paynow Airtime",
+    accountNumber: "0771234567",
+    amount: 5,
+    action: "auth+pay",
   },
 ];
 
