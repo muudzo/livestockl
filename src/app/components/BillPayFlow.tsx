@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft, Zap, Phone, GraduationCap, Building2, Heart, Shield, Tv,
   Loader2, CheckCircle, Clock, XCircle, AlertTriangle, Copy,
@@ -34,8 +34,24 @@ function getBillerIcon(code: string) {
 
 type Step = 'select' | 'details' | 'confirm' | 'result';
 
+/**
+ * HomeFeed Services row deep-links into this flow via ?service=<code>.
+ * Single-biller services (zesa, airtime) pre-select the biller and skip the
+ * picker. Category services (fees, water) filter the picker to just the
+ * relevant subset instead of showing all 15 curated billers.
+ */
+const SERVICE_MAP: Record<string, { biller?: string; category?: string[]; label?: string }> = {
+  zesa:    { biller: 'ZETDC' },
+  airtime: { biller: 'AIRTIME' },
+  fees:    { category: ['UZ', 'NUST', 'MSU', 'GZU'], label: 'School Fees' },
+  water:   { category: ['COH', 'BCC', 'MAS', 'GWE'], label: 'Council / Water' },
+};
+
 export function BillPayFlow() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const serviceParam = (searchParams.get('service') || '').toLowerCase();
+  const serviceCfg = SERVICE_MAP[serviceParam];
 
   // State
   const [step, setStep] = useState<Step>('select');
@@ -71,6 +87,27 @@ export function BillPayFlow() {
     setAmountError('');
     setStep('details');
   };
+
+  // Filter the biller list for category services (fees/water). For single-
+  // biller services (zesa/airtime) we auto-advance past 'select', so this
+  // only matters when serviceCfg.category is set.
+  const visibleBillers = useMemo(() => {
+    if (serviceCfg?.category) {
+      return billers.filter(b => serviceCfg.category!.includes(b.biller_code));
+    }
+    return billers;
+  }, [billers, serviceCfg]);
+
+  // Auto-preselect single-biller services once billers load. Runs exactly
+  // once per session — guarded by step === 'select' so the user can still
+  // navigate back without being re-routed.
+  useEffect(() => {
+    if (!serviceCfg?.biller) return;
+    if (step !== 'select') return;
+    if (billers.length === 0) return;
+    const match = billers.find(b => b.biller_code === serviceCfg.biller);
+    if (match) handleSelectBiller(match);
+  }, [billers, serviceCfg, step]);
 
   const validateAccount = useCallback(() => {
     if (!selectedBiller || !accountNumber.trim()) {
@@ -224,12 +261,16 @@ export function BillPayFlow() {
         {/* ── STEP 1: Select Biller ── */}
         {step === 'select' && (
           <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Pay bills directly from your Mimoo account</p>
+            <p className="text-sm text-muted-foreground">
+              {serviceCfg?.label
+                ? `Choose a ${serviceCfg.label.toLowerCase()} biller`
+                : 'Pay bills directly from your Mimoo account'}
+            </p>
             {billersLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
               </div>
-            ) : !billers || billers.length === 0 ? (
+            ) : !visibleBillers || visibleBillers.length === 0 ? (
               <div className="text-center py-12" role="alert">
                 <p className="font-semibold text-slate-700">No billers available</p>
                 <p className="text-sm text-slate-500 mt-1">Unable to load billers right now. Check your connection.</p>
@@ -242,7 +283,7 @@ export function BillPayFlow() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
-                {billers.map((biller) => (
+                {visibleBillers.map((biller) => (
                   <button
                     key={biller.biller_code}
                     onClick={() => handleSelectBiller(biller)}

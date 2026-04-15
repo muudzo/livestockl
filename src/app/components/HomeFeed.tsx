@@ -225,14 +225,14 @@ export function HomeFeed() {
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Services</h2>
         <div className="flex gap-3 overflow-x-auto pb-2">
           {[
-            { label: 'ZESA', icon: <Zap className="w-5 h-5" />, color: 'bg-amber-100 text-amber-600' },
-            { label: 'Airtime', icon: <Phone className="w-5 h-5" />, color: 'bg-blue-100 text-blue-600' },
-            { label: 'School Fees', icon: <GraduationCap className="w-5 h-5" />, color: 'bg-purple-100 text-purple-600' },
-            { label: 'Water', icon: <Droplet className="w-5 h-5" />, color: 'bg-cyan-100 text-cyan-600' },
+            { label: 'ZESA',        code: 'zesa',    icon: <Zap className="w-5 h-5" />,             color: 'bg-amber-100 text-amber-600' },
+            { label: 'Airtime',     code: 'airtime', icon: <Phone className="w-5 h-5" />,           color: 'bg-blue-100 text-blue-600' },
+            { label: 'School Fees', code: 'fees',    icon: <GraduationCap className="w-5 h-5" />,   color: 'bg-purple-100 text-purple-600' },
+            { label: 'Water',       code: 'water',   icon: <Droplet className="w-5 h-5" />,         color: 'bg-cyan-100 text-cyan-600' },
           ].map((svc) => (
             <button
               key={svc.label}
-              onClick={() => navigate('/pay-bill')}
+              onClick={() => navigate(`/pay-bill?service=${svc.code}`)}
               className="flex flex-col items-center gap-1.5 min-w-[72px] py-2 rounded-xl hover:bg-muted transition-colors active:scale-95"
             >
               <div className={`w-11 h-11 rounded-full flex items-center justify-center ${svc.color}`}>
