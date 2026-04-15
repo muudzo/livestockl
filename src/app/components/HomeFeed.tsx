@@ -1,9 +1,9 @@
-import { useState, useCallback, useDeferredValue } from "react";
+import { Fragment, useState, useCallback, useDeferredValue } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, GraduationCap, Droplet } from "lucide-react";
+import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, GraduationCap, Droplet, Plus, TrendingUp } from "lucide-react";
 import { categories } from "../data/mockData";
-import { useLivestockList, usePrefetchLivestockItem } from "../../hooks/useLivestock";
+import { useLivestockList, usePrefetchLivestockItem, useMyListings } from "../../hooks/useLivestock";
 import { useFavorites, useToggleFavorite } from "../../hooks/useFavorites";
 import { getThumbnailUrl } from "../../lib/imageUtils";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -13,6 +13,89 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { toast } from "sonner";
+
+/**
+ * State-aware post-listing prompt at the top of the feed:
+ * - Logged-in, zero listings → dominant empty-state card ("post your first animal")
+ * - Logged-in, has listings  → subtle inline chip ("+ post another")
+ * - Anonymous                → null here (an inline prompt appears mid-feed instead)
+ */
+function PostListingCTA() {
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.user);
+  const { data: myListings, isLoading } = useMyListings();
+
+  if (!user) return null;
+  if (isLoading) return null;
+
+  const listingCount = myListings?.length ?? 0;
+
+  if (listingCount === 0) {
+    return (
+      <div className="rounded-xl border-2 border-dashed border-emerald-300 bg-emerald-50/70 p-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-semibold text-base flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-emerald-700" />
+            Post your first listing
+          </div>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Reach verified buyers across Zimbabwe — takes 2 minutes.
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate('/post')}
+          className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 min-h-[44px]"
+        >
+          <Plus className="w-4 h-4 mr-1.5" />
+          Post
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-muted-foreground">
+        You have <span className="font-medium text-foreground">{listingCount}</span> active listing{listingCount === 1 ? '' : 's'}
+      </span>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => navigate('/post')}
+        className="min-h-[40px]"
+      >
+        <Plus className="w-4 h-4 mr-1" />
+        Post another
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Mid-feed prompt shown to anonymous users after they've scrolled past a few
+ * listings — by then they have context for what the platform is, so inviting
+ * them to list doesn't feel premature.
+ */
+function AnonymousSellPrompt() {
+  const navigate = useNavigate();
+  return (
+    <div className="rounded-xl border bg-slate-50 p-4 flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <div className="font-semibold">Want to sell livestock?</div>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Create a free account and list your first animal.
+        </p>
+      </div>
+      <Button
+        size="sm"
+        onClick={() => navigate('/auth')}
+        className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 min-h-[40px]"
+      >
+        Sign up
+      </Button>
+    </div>
+  );
+}
 
 export function HomeFeed() {
   const navigate = useNavigate();
@@ -162,6 +245,7 @@ export function HomeFeed() {
       </div>
 
       <div className="px-4 pt-4 space-y-5">
+        <PostListingCTA />
         {isLoading ? (
           <div className="space-y-5">
             {[1, 2, 3].map((i) => (
@@ -206,10 +290,13 @@ export function HomeFeed() {
             </Button>
           </div>
         ) : (
-          filteredLivestock.map((item: any) => {
+          filteredLivestock.map((item: any, index: number) => {
             const seller = getSellerInfo(item);
+            const showAnonPrompt = !user && index === 5;
             return (
-              <div key={item.id} className="bg-card rounded-xl shadow-sm overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5" onMouseEnter={() => handlePrefetch(item.id)} onTouchStart={() => handlePrefetch(item.id)}>
+              <Fragment key={item.id}>
+              {showAnonPrompt && <AnonymousSellPrompt />}
+              <div className="bg-card rounded-xl shadow-sm overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5" onMouseEnter={() => handlePrefetch(item.id)} onTouchStart={() => handlePrefetch(item.id)}>
                 <div role="link" tabIndex={0} aria-label={`View details for ${item.title}`} className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/item/${item.id}`); } }}>
                   <ImageWithFallback src={getThumbnailUrl(getImageUrl(item), 400)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                   <div className="absolute bottom-2 left-2">
@@ -281,6 +368,7 @@ export function HomeFeed() {
                   </div>
                 </div>
               </div>
+              </Fragment>
             );
           })
         );
