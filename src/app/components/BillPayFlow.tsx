@@ -159,19 +159,62 @@ export function BillPayFlow() {
     return true;
   }, [selectedBiller, amount]);
 
+  // Resolve the right product for this biller. Real billers have many
+  // products (AIRTIME has ~50 bundles); picking [0] sends the wrong one.
+  // Prefer USD-denominated products matching the biller family.
+  const resolveProduct = (biller: BillerInfo) => {
+    const products = biller.products || [];
+    const code = biller.biller_code.toUpperCase();
+    // AIRTIME → prefer AIRTIME_USD for USD top-up
+    if (code === 'AIRTIME') {
+      return products.find(p => p.Code === 'AIRTIME_USD') || products.find(p => p.Code === 'AIRTIME') || products[0];
+    }
+    // ZETDC → prefer PREPAID_USD
+    if (code === 'ZETDC') {
+      return products.find(p => p.Code === 'PREPAID_USD') || products[0];
+    }
+    return products[0];
+  };
+
+  // Build the Payment Product payload per v1.33 Dual Currency spec.
+  // RequiresForexPayment: TRUE for USD products on a ZWG vendor wallet.
+  // Infer from:
+  //   - product.RequiresForex === true/false → use directly
+  //   - null / undefined → true if product code contains USD
+  const buildProductPayload = (biller: BillerInfo, priceAmount: number | undefined) => {
+    const product = resolveProduct(biller);
+    if (!product) return undefined;
+    const inferredForex =
+      product.RequiresForex === true
+        ? true
+        : product.RequiresForex === false
+          ? false
+          : (product.Code || '').toUpperCase().includes('USD');
+    return [{
+      ...product,
+      Quantity: 1,
+      Price: priceAmount ?? product.Price ?? 0,
+      RequiresForexPayment: inferredForex,
+    }];
+  };
+
   const handleAuth = async () => {
     if (!selectedBiller) return;
     if (!validateAccount()) return;
 
-    const product = selectedBiller.products?.[0];
+    const product = resolveProduct(selectedBiller);
     const needsAmount = product?.AuthAmountMandated !== true;
     if (needsAmount && !validateAmount()) return;
+
+    const parsedAmount = amount ? parseFloat(amount) : undefined;
+    const productPayload = buildProductPayload(selectedBiller, parsedAmount);
 
     try {
       const result = await billPayAuth.mutateAsync({
         billerCode: selectedBiller.biller_code,
         accountNumber: accountNumber.trim(),
-        amount: amount ? parseFloat(amount) : undefined,
+        amount: parsedAmount,
+        products: productPayload,
       });
       setAuthResult(result);
 
@@ -192,6 +235,9 @@ export function BillPayFlow() {
     if (isNaN(payAmount) || payAmount <= 0) return;
 
     setPaySubmitted(true);
+    // v1.33 spec requires AUTH and PAY to be IDENTICAL — use the same
+    // product payload resolution for both.
+    const productPayload = buildProductPayload(selectedBiller, payAmount);
     try {
       const result = await billPayPay.mutateAsync({
         billerCode: selectedBiller.biller_code,
@@ -199,6 +245,7 @@ export function BillPayFlow() {
         amount: payAmount,
         reference: authResult.reference, // SAME reference from AUTH
         totalAmount: payAmount,
+        products: productPayload,
       });
       setPayResult(result);
       setStep('result');
