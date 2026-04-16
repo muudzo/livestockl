@@ -624,6 +624,16 @@ The runtime is always in a datacenter, and the payments API call is always serve
 
 **What we proved on this repo.** Agent `Penny Sniper` wins an auction → `win-detector` edge function → `payment-orchestrator` edge function → Paynow Core → EcoCash USSD on the subscriber's phone. End-to-end zero keyboard. The step that forced the CF Worker detour was the second-to-last arrow; the rest of the chain worked on first try.
 
+**Paynow's own sibling products are already agent-ready — Core is the outlier.**
+
+| Paynow product | Host | Bot wall | Agent-reachable from edge runtime? | Evidence |
+|---|---|---|---|---|
+| **BillPay** | `billpay.paynow.co.zw` | None | ✅ Yes | 6 edge functions shipped on `main`, AUTH + PAY live-verified 2026-04-16 at `AIRTIME-*` / `ZETDC-*` references — see [`supabase/functions/billpay/`](../../../supabase/functions/billpay/) |
+| **TXT (SMS)** | `www.txt.co.zw` / `usd.txt.co.zw` | None | ✅ Yes | Feature branch `feature/sms-notifications`, ~60 LOC per flow, HTTP Basic Auth |
+| **Core** | `www.paynow.co.zw/interface/*` | Yes (CF) | ❌ No — relay required | `live_paynow_blocked` ledger events under every direct attempt |
+
+BillPay and TXT prove Paynow's infrastructure team already knows how to ship an agent-reachable API. Fixing Core is pattern adoption, not new invention.
+
 **Why this matters commercially for Paynow.** The companies building these flows are the fastest-growing segment of the payments market (agentic commerce, auto-pilot fintech, embedded payments). They default-deploy on serverless platforms because those platforms are what the frameworks ship with. If Paynow remains unreachable from Vercel / Supabase / Workers / Deno Deploy / AWS Lambda, it auto-loses the entire cohort to Paystack and Flutterwave — both already agent-reachable on their public APIs. Zimbabwe-specific payment methods are Paynow's moat; that moat only matters if an agent can actually call through it.
 
 **Concrete ask.** The #1 recommendation above is the unblocking move. No new architecture required — just a subdomain alias without the CF bot challenge, mirroring what BillPay already does. That single change makes Paynow first-class for agents.

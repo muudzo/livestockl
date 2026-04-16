@@ -35,6 +35,8 @@ Extension of the DX benchmark with a second comparison: Paynow Core against **tw
 | **Structured errors** | ❌ URL-encoded strings | 🟡 JSON with `Narration` + `TechnicalNarration` fields; numeric codes (0-5, 99) only on reversal endpoint | ❌ Description only |
 | **State machine documented** | ❌ (mixed statuses, hash order unclear) | ✅ 6 states, explicit poll intervals (120s/180s/600s) | N/A (one-shot) |
 | **Time to first successful call** | ~3.5h, then blocked entirely | ~1.5h | ~30 min |
+| **Agent-reachable from serverless edge?** | ❌ No (needs CF Worker relay; see [workaround below](#workaround-shipped-cloudflare-worker-relay)) | ✅ Yes — verified via live AUTH+PAY from Supabase Edge on 2026-04-16 | ✅ Yes — verified via feature branch |
+| **Live verification 2026-04-16** | Blocked direct (`os error 104`), unblocked via relay | `AIRTIME-*` / `ZETDC-*` refs returned on `billpay-staging.paynow.co.zw` | SMS delivery confirmed via TXT sandbox |
 
 ---
 
@@ -87,6 +89,8 @@ All seven together would likely move Paynow Core from **4.2/10 → ~7-8/10**, co
 **Verified live 2026-04-16 19:08 UTC.** Agent `Penny Sniper` won `AGENT · Hereford Heifer`, orchestrator went direct → blocked, then via relay → accepted. Ledger shows `live_paynow_accepted` with a real Paynow `pollurl`, and the subscriber's handset received the Express Checkout USSD prompt autonomously.
 
 **Why this matters for the recommendations above.** The relay confirms recommendation #1 (separate unprotected subdomain) is the right fix — our workaround effectively replicates what `billpay.paynow.co.zw` already does for BillPay. A CF Worker is a tolerable patch for a handful of integrators, but each new ZW fintech integrating Paynow Core has to discover the block and invent their own proxy. Moving the endpoint once solves it permanently for the whole ecosystem.
+
+**Agentic commerce lens.** BillPay and TXT are both agent-reachable today — an autonomous agent running on Supabase / Vercel / Workers / Lambda can call them on the first try. Paynow Core is not, without the relay. Across the three products there's one pattern and one exception; the exception is the flagship product. The commercial risk is that the agent cohort (Claude tasks, OpenAI Operators, embedded-payment SaaS) defaults to whichever African gateway is agent-reachable on its public API — and Paystack + Flutterwave both are. Paynow's Zimbabwe-specific mobile-money coverage is genuinely differentiated; that differentiation only translates to revenue if an agent can reach it without a sidecar.
 
 ---
 
