@@ -20,7 +20,7 @@ This extension compares Paynow Core against two sibling products in the same eco
 
 **Paynow's own sibling products are materially easier to integrate than Paynow Core.**
 
-The organization already knows how to build good API DX — Core has simply not adopted those patterns.
+The organization already knows how to build good API DX — Core has simply not adopted those patterns. The gap is also visible externally: the Paynow developer forum has three open threads reporting the same blocker across 7 months, none resolved.
 
 ---
 
@@ -90,6 +90,25 @@ A ~70 LOC Cloudflare Worker relay proxies signed requests to Paynow.
 Auction win → Direct attempt blocked → Relay success → Poll URL returned → USSD prompt delivered → Ledger confirmed.
 
 The workaround proves the architectural diagnosis: **Paynow Core needs a reachable API surface identical in pattern to BillPay.** The relay works — but every integrator must independently rediscover and implement this workaround. That is ecosystem friction.
+
+---
+
+## Cross-check against Paynow's own developer forum
+
+The Paynow developer forum ([forums.paynow.co.zw](https://forums.paynow.co.zw/)) has three open threads reporting this exact symptom across 7 months. None are marked resolved, no official fix is posted, and Cloudflare is not identified as the cause in any of them.
+
+| Thread | Opened | Last activity | Status |
+|---|---|---|---|
+| [Paynow failing on supabase (#8759)](https://forums.paynow.co.zw/t/paynow-failing-on-supabase/8759/5) | 2026-02-03 | 2026-04-04 | Community-posted DigitalOcean VPS proxy eventually reported as working. No staff fix. |
+| [Connection Reset Error from Supabase Edge Functions (#8022)](https://forums.paynow.co.zw/t/connection-reset-error-from-supabase-edge-functions/8022) | 2025-09-03 | 2025-09-11 | Paynow staff requested IP address. No follow-up. |
+| [Technical Details — Connection Reset (os error 104) (#9095)](https://forums.paynow.co.zw/t/technical-details-for-integration-connection-reset-os-error-104/9095) | 2026-04-01 | 2026-04-10 | Paynow staff requested logs. Thread stalled. |
+
+**What this confirms:**
+- The block is not isolated to our project — at least three integrators independently reproduced it.
+- The only working workaround in the public record is a paid VPS proxy (DigitalOcean). No one has previously identified Cloudflare bot protection as the cause, and no one has published a free-tier fix.
+- Paynow support has acknowledged the problem in all three threads but posted no resolution in any.
+
+**Discoverability is its own DX problem.** The forum homepage has no visible search bar — developers locating these threads must already know the symptom string (`os error 104` or `connection reset`) and query Google via `site:forums.paynow.co.zw`. A developer debugging their own code will not land here quickly. The documented symptom exists publicly; the diagnosis does not.
 
 ---
 
