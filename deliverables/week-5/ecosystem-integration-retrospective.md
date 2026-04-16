@@ -8,6 +8,14 @@ This extension compares Paynow Core against two sibling products in the same eco
 
 ---
 
+## Methodology — minimum-effort integration
+
+**Scope was deliberately kept "lazy"** — one integration attempt per product, using only the publicly documented path, with real production credentials, no custom workarounds or proxies until a wall forced one.
+
+**Why this matters:** the findings below approximate what a new Paynow customer experiences on their first attempt. Anything that wasn't smooth on the lazy path is a real DX issue, not an artifact of us trying something unusual. When the blocker appeared on Paynow Core, we documented it before building around it — so the evidence is "first-attempt" honest, not "we engineered past it to make the product look bad."
+
+---
+
 ## Core finding
 
 **Paynow's own sibling products are materially easier to integrate than Paynow Core.**
