@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { MessageCircle, Edit, Trash2, Loader2, Package, Trophy } from "lucide-react";
+import { MessageCircle, Edit, Trash2, Loader2, Package, Trophy, Bot, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -146,26 +146,60 @@ export function MyListings() {
               <Button onClick={() => navigate('/')}>Browse Listings</Button>
             </div>
           ) : (
-            wonItems.map((item: any) => (
+            wonItems.map((item: any) => {
+              const agent = item.__agent as { id: string; name: string; type: string; strategy?: string } | null;
+              const order = item.__paymentOrder as { paynow_reference?: string; status?: string; method?: string } | null;
+              const isPaid = order?.status === 'paid';
+              return (
               <div key={item.id} className="bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-md">
                 <div className="flex gap-3">
                   <div className="w-24 h-24 bg-muted rounded-xl overflow-hidden flex-shrink-0">
                     <ImageWithFallback src={getThumbnailUrl(getImageUrl(item))} alt={item.title} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{item.title}</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold truncate">{item.title}</h3>
+                      {agent && (
+                        <Badge variant="outline" className="text-[10px] font-medium border-indigo-300 text-indigo-700 bg-indigo-50 flex items-center gap-1 px-2 py-0.5">
+                          <Bot className="w-3 h-3" />
+                          {agent.name}
+                        </Badge>
+                      )}
+                      {isPaid && (
+                        <Badge variant="outline" className="text-[10px] font-medium border-emerald-300 text-emerald-700 bg-emerald-50 flex items-center gap-1 px-2 py-0.5">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Paid
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-lg font-bold text-emerald-700">Won at US${getCurrentBid(item).toLocaleString()}</p>
                     <p className="text-sm text-slate-500">{item.location} • {item.breed}</p>
+                    {order?.paynow_reference && (
+                      <p className="text-[11px] text-slate-500 font-mono truncate mt-1" title={order.paynow_reference}>
+                        Ref: {order.paynow_reference}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex gap-2 mt-4">
-                  <Button
-                    className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-150"
-                    onClick={() => navigate(`/checkout/${item.id}`)}
-                    aria-label={`Pay now for: ${item.title}`}
-                  >
-                    Pay Now
-                  </Button>
+                  {isPaid ? (
+                    <Button
+                      variant="outline"
+                      className="flex-1 h-11 border-emerald-300 text-emerald-700"
+                      onClick={() => navigate(`/item/${item.id}`)}
+                      aria-label={`View receipt for: ${item.title}`}
+                    >
+                      View Receipt
+                    </Button>
+                  ) : (
+                    <Button
+                      className="flex-1 h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] transition-all duration-150"
+                      onClick={() => navigate(`/checkout/${item.id}`)}
+                      aria-label={`Pay now for: ${item.title}`}
+                    >
+                      Pay Now
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     className="flex-1 h-11 border-slate-300 active:scale-[0.98] transition-all duration-150"
@@ -176,7 +210,8 @@ export function MyListings() {
                   </Button>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </TabsContent>
       </Tabs>

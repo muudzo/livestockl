@@ -255,15 +255,53 @@ export function useWonItems() {
         );
       }
 
+      // Embed agent_bids (FK: agent_bids.bid_id → bids.id) so we can tell
+      // which wins were placed by an agent and pull the agent name onto
+      // the card.
       const { data: winningBids, error } = await supabase
         .from('bids')
-        .select('livestock_id, amount, livestock_items(*)')
+        .select(`
+          id,
+          livestock_id,
+          amount,
+          livestock_items(*),
+          agent_bids(agent_id, strategy, agents(id, name, agent_type))
+        `)
         .eq('user_id', user!.id)
         .eq('is_winner', true)
         .limit(50);
 
       if (error) throw error;
-      return winningBids?.map(b => b.livestock_items).filter(Boolean) || [];
+      if (!winningBids?.length) return [];
+
+      // Fetch any payment orders tied to these listings so we can surface
+      // agent-settlement state (Paid / Blocked / Retrying) on the card.
+      const livestockIds = winningBids.map((b: any) => b.livestock_id).filter(Boolean);
+      const { data: orders } = livestockIds.length
+        ? await supabase
+            .from('agent_payment_orders')
+            .select('livestock_id, paynow_reference, status, method, amount')
+            .in('livestock_id', livestockIds)
+        : { data: [] as any[] };
+
+      const ordersByListing = new Map<string, any>();
+      for (const o of orders || []) ordersByListing.set(o.livestock_id, o);
+
+      return winningBids
+        .map((b: any) => {
+          const item = b.livestock_items;
+          if (!item) return null;
+          const agentBid = Array.isArray(b.agent_bids) ? b.agent_bids[0] : b.agent_bids;
+          const agent = agentBid?.agents;
+          return {
+            ...item,
+            __agent: agent
+              ? { id: agent.id, name: agent.name, type: agent.agent_type, strategy: agentBid?.strategy }
+              : null,
+            __paymentOrder: ordersByListing.get(item.id) || null,
+          };
+        })
+        .filter(Boolean);
     },
   });
 }
