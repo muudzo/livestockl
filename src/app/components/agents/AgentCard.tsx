@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Play, Pause, Zap, Clock, DollarSign, CheckCircle2, Pencil, Check, X } from 'lucide-react';
+import { Play, Pause, Zap, Clock, DollarSign, CheckCircle2, Pencil, Check, X, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useRunAgent, useUpdateAgentStatus, useUpdateAgent, type Agent } from '../../../hooks/useAgents';
+import { useRunAgent, useUpdateAgentStatus, useUpdateAgent, useDeleteAgent, type Agent } from '../../../hooks/useAgents';
 import { AGENT_ICONS, AGENT_COLORS, STATUS_STYLES, ACTION_MAP } from './constants';
 
 export function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSelected: boolean; onSelect: () => void }) {
@@ -10,9 +10,11 @@ export function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSel
   const runAgent = useRunAgent();
   const updateStatus = useUpdateAgentStatus();
   const updateAgent = useUpdateAgent();
+  const deleteAgent = useDeleteAgent();
 
   const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(agent.name);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const handleRun = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -65,6 +67,33 @@ export function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSel
     e.stopPropagation();
     setIsEditing(false);
     setDraftName(agent.name);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmingDelete(true);
+  };
+
+  const confirmDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    deleteAgent.mutate(
+      { agentId: agent.id },
+      {
+        onSuccess: () => {
+          toast.success(`${agent.name} deleted`);
+          setConfirmingDelete(false);
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'Delete failed');
+          setConfirmingDelete(false);
+        },
+      }
+    );
+  };
+
+  const cancelDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setConfirmingDelete(false);
   };
 
   return (
@@ -134,8 +163,34 @@ export function AgentCard({ agent, isSelected, onSelect }: { agent: Agent; isSel
           <button onClick={handleRun} disabled={runAgent.isPending} className="p-2.5 rounded hover:bg-muted disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center" title="Run now">
             <Zap className={`w-4 h-4 ${runAgent.isPending ? 'animate-pulse text-yellow-500' : ''}`} />
           </button>
+          <button onClick={handleDeleteClick} disabled={deleteAgent.isPending} className="p-2.5 rounded hover:bg-red-50 text-muted-foreground hover:text-red-600 disabled:opacity-50 min-w-[44px] min-h-[44px] flex items-center justify-center" title="Delete agent" aria-label={`Delete ${agent.name}`}>
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
+      {confirmingDelete && (
+        <div className="mt-3 p-3 rounded-md border border-red-200 bg-red-50 flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+          <p className="text-xs text-red-900">
+            Delete <span className="font-medium">{agent.name}</span>? Goals, decisions, and activity logs will be removed.
+          </p>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={confirmDelete}
+              disabled={deleteAgent.isPending}
+              className="px-3 py-1.5 text-xs font-medium rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleteAgent.isPending ? 'Deleting…' : 'Delete'}
+            </button>
+            <button
+              onClick={cancelDelete}
+              disabled={deleteAgent.isPending}
+              className="px-3 py-1.5 text-xs font-medium rounded border border-red-300 text-red-900 hover:bg-red-100"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="flex gap-3 mt-2 pt-2 border-t border-border/50 text-xs">
         <span className="text-muted-foreground"><DollarSign className="w-3 h-3 inline -mt-0.5" /> US${agent.stats.total_spent || 0}</span>
         <span className="text-muted-foreground">{agent.stats.total_bids || 0} bids</span>

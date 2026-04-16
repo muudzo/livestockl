@@ -321,6 +321,29 @@ export function useUpdateAgent() {
   });
 }
 
+// Delete an agent (owner-only via RLS). Child rows cascade via FK.
+export function useDeleteAgent() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ agentId }: { agentId: string }) => {
+      const { error } = await supabase
+        .from('agents')
+        .delete()
+        .eq('id', agentId);
+      if (error) throw error;
+      return agentId;
+    },
+    onSuccess: (agentId) => {
+      queryClient.invalidateQueries({ queryKey: ['agents'] });
+      queryClient.removeQueries({ queryKey: ['agent_goals', agentId] });
+      queryClient.removeQueries({ queryKey: ['agent_decisions', agentId] });
+      queryClient.removeQueries({ queryKey: ['agent_activity', agentId] });
+      queryClient.removeQueries({ queryKey: ['agent_payments', agentId] });
+    },
+  });
+}
+
 // Auto-run has been replaced by explicit "Run Now" buttons + cron schedules.
 // Kept as a no-op for any stale callers; will be removed in a later sweep.
 export function useAutoRunAgents(_intervalMs = 15000) {
