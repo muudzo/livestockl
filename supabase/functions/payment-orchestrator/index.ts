@@ -133,13 +133,29 @@ async function attemptPaynowExpressCheckout({
     .join("&");
 
   try {
+    // Use the Cloudflare Worker relay if configured. CF Workers egress via
+    // CF's own trusted network so the TCP RST we see going direct from
+    // Supabase doesn't apply. If relay env isn't set, fall back to direct
+    // (will almost certainly hit "Connection reset by peer (os error 104)").
+    const relayUrl = Deno.env.get("PAYNOW_RELAY_URL");
+    const relaySecret = Deno.env.get("PAYNOW_RELAY_SECRET");
+    const useRelay = !!relayUrl && !!relaySecret;
+
+    const targetUrl = useRelay
+      ? `${relayUrl}?target=remotetransaction`
+      : "https://www.paynow.co.zw/interface/remotetransaction";
+    const headers: Record<string, string> = {
+      "Content-Type": "application/x-www-form-urlencoded",
+    };
+    if (useRelay) headers["x-relay-secret"] = relaySecret!;
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20_000);
     let res: Response;
     try {
-      res = await fetch("https://www.paynow.co.zw/interface/remotetransaction", {
+      res = await fetch(targetUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers,
         body: formBody,
         signal: controller.signal,
       });

@@ -1,0 +1,7 @@
+name = "paynow-relay"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+# RELAY_SECRET is set via `wrangler secret put RELAY_SECRET` (not committed).
+# Deploy: cd paynow-relay && wrangler deploy
+# Health check: curl https://paynow-relay.<your-subdomain>.workers.dev/health

@@ -1,0 +1,14 @@
+{
+  "name": "paynow-relay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker proxy for Paynow Core API — unblocks Supabase Edge Functions which are CF-blocked at TCP layer.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "secret": "wrangler secret put RELAY_SECRET"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}
