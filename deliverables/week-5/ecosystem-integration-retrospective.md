@@ -68,6 +68,28 @@ All seven together would likely move Paynow Core from **4.2/10 → ~7-8/10**, co
 
 ---
 
+## Workaround shipped: Cloudflare Worker relay
+
+**Problem.** Supabase Edge Functions (Deno, eu-region) cannot reach `www.paynow.co.zw/interface/*` server-to-server. Every request terminates with `error sending request … client error (Connect): Connection reset by peer (os error 104)` — Cloudflare's bot-protection TCP RST before TLS negotiation. This blocks any autonomous server-initiated payment, including agent auto-settlement after an auction win.
+
+**Confirmed empirically.** Settlement-ledger row under `payment_order_id=b19d72e8-…` on 2026-04-16 captured the RST with `network_blocked: true` directly from the orchestrator's attempt.
+
+**Workaround.** A single-file Cloudflare Worker (`paynow-relay.zimlivestock.workers.dev`, ~70 LOC) accepts signed requests from Supabase and proxies them to Paynow. Because Workers egress through Cloudflare's own trusted network, the outbound call isn't subject to the same bot rules — the same request that fails TCP-level direct succeeds through the relay.
+
+| Metric | Direct from Supabase | Via CF Worker relay |
+|---|---|---|
+| Request outcome | TCP RST (os error 104) | HTTP 200, `pollurl` returned |
+| Latency | N/A (fail fast) | ~400-800 ms round-trip |
+| Infra cost | — | $0 (CF free tier, 100k req/day) |
+| Time to build | — | ~20 minutes end-to-end |
+| LOC added | — | ~70 (relay) + ~15 (orchestrator patch) |
+
+**Verified live 2026-04-16 19:08 UTC.** Agent `Penny Sniper` won `AGENT · Hereford Heifer`, orchestrator went direct → blocked, then via relay → accepted. Ledger shows `live_paynow_accepted` with a real Paynow `pollurl`, and the subscriber's handset received the Express Checkout USSD prompt autonomously.
+
+**Why this matters for the recommendations above.** The relay confirms recommendation #1 (separate unprotected subdomain) is the right fix — our workaround effectively replicates what `billpay.paynow.co.zw` already does for BillPay. A CF Worker is a tolerable patch for a handful of integrators, but each new ZW fintech integrating Paynow Core has to discover the block and invent their own proxy. Moving the endpoint once solves it permanently for the whole ecosystem.
+
+---
+
 ## One-line summary for the presentation
 
 > *Paynow Core's DX weaknesses are all problems that Paynow's own sibling products — BillPay and TXT — have already solved. The fix isn't research; it's internal pattern adoption.*

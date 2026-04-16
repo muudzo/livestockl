@@ -43,18 +43,21 @@ DECLARE
   img_dorper   text := 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80';
   img_pig      text := 'https://images.unsplash.com/photo-1764943051090-991c5a82174c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80';
 
-  -- 10 listing tuples: (title_suffix, category, breed, age, weight, desc, location, health, starting_price, winning_bid, image, seller, minutes_to_end)
+  -- 10 listing tuples: (title_suffix, category, breed, age, weight, desc, location, health, starting_price, winning_bid, image, seller, minutes_to_end, state)
+  -- state = 'ended' means end_time in the past and status='ended' (ready for win-detector)
+  -- state = 'active' means end_time = NOW() + minutes_to_end
+  -- Demo mix: 3 already ended + 7 active staggered 2-14 min out.
   specs text[][] := ARRAY[
-    ARRAY['Hereford Heifer',    'Cattle',  'Hereford',       '3 years', '420kg', 'Small-cap agent test — agent should snipe at US$0.01 close to expiry.',  'Harare',    'Excellent', '0.01', '0.01', img_hereford, seller_a::text, '1'],
-    ARRAY['Brahman Bull',       'Cattle',  'Brahman',        '4 years', '480kg', 'Agent fallback test — allocate US$0.02 ceiling.',                        'Bulawayo',  'Excellent', '0.01', '0.02', img_brahman,  seller_b::text, '2'],
-    ARRAY['Angus Calf',         'Cattle',  'Angus',          '8 months','240kg', 'Agent budget test — ceiling US$0.03.',                                   'Mutare',    'Good',      '0.01', '0.03', img_angus,    seller_c::text, '3'],
-    ARRAY['Boer Goat',          'Goats',   'Boer',           '1 year',  '45kg',  'Agent goal: goats cheap. Winning at US$0.04.',                           'Gweru',     'Excellent', '0.01', '0.04', img_boergoat, seller_d::text, '4'],
-    ARRAY['Dorper Lamb',        'Sheep',   'Dorper',         '6 months','30kg',  'Agent goal: sheep cheap. Winning at US$0.05.',                           'Masvingo',  'Good',      '0.01', '0.05', img_dorper,   seller_e::text, '5'],
-    ARRAY['Mixed Boer Pair',    'Goats',   'Boer Cross',     '2 years', '50kg',  'Agent concurrency test (parallel win).',                                 'Chinhoyi',  'Good',      '0.01', '0.01', img_boergoat, seller_a::text, '6'],
-    ARRAY['Merino Ewe',         'Sheep',   'Merino',         '1 year',  '38kg',  'Agent settlement test — EcoCash Express to buyer phone.',                'Kadoma',    'Excellent', '0.01', '0.02', img_merino,   seller_b::text, '7'],
-    ARRAY['Large White Pig',    'Pigs',    'Large White',    '9 months','80kg',  'Agent fallback chain test (EcoCash → OneMoney → Card).',                 'Kwekwe',    'Good',      '0.01', '0.03', img_pig,      seller_c::text, '8'],
-    ARRAY['Holstein Heifer',    'Cattle',  'Holstein',       '2 years', '360kg', 'Agent multi-win rollup test.',                                           'Harare',    'Good',      '0.01', '0.04', img_brahman,  seller_d::text, '9'],
-    ARRAY['Boer Kid',           'Goats',   'Boer',           '4 months','18kg',  'Agent final-win test — last auction in the stagger window.',             'Bulawayo',  'Excellent', '0.01', '0.05', img_boergoat, seller_e::text, '10']
+    ARRAY['Hereford Heifer',    'Cattle',  'Hereford',       '3 years', '420kg', 'Pre-ended — ready for agent win-detector to settle via CF Worker relay + real EcoCash push.',  'Harare',    'Excellent', '0.01', '0.01', img_hereford, seller_a::text, '-2',  'ended'],
+    ARRAY['Brahman Bull',       'Cattle',  'Brahman',        '4 years', '480kg', 'Pre-ended — second settlement in the batch.',                                                  'Bulawayo',  'Excellent', '0.01', '0.02', img_brahman,  seller_b::text, '-2',  'ended'],
+    ARRAY['Angus Calf',         'Cattle',  'Angus',          '8 months','240kg', 'Pre-ended — shows multi-listing rollup on the Agent Dashboard.',                                'Mutare',    'Good',      '0.01', '0.03', img_angus,    seller_c::text, '-2',  'ended'],
+    ARRAY['Boer Goat',          'Goats',   'Boer',           '1 year',  '45kg',  'Live — ends 2 min into the demo; watch end-auctions cron flip status.',                          'Gweru',     'Excellent', '0.01', '0.04', img_boergoat, seller_d::text, '2',   'active'],
+    ARRAY['Dorper Lamb',        'Sheep',   'Dorper',         '6 months','30kg',  'Live — ends 4 min in.',                                                                          'Masvingo',  'Good',      '0.01', '0.05', img_dorper,   seller_e::text, '4',   'active'],
+    ARRAY['Mixed Boer Pair',    'Goats',   'Boer Cross',     '2 years', '50kg',  'Live — ends 6 min in.',                                                                          'Chinhoyi',  'Good',      '0.01', '0.01', img_boergoat, seller_a::text, '6',   'active'],
+    ARRAY['Merino Ewe',         'Sheep',   'Merino',         '1 year',  '38kg',  'Live — ends 8 min in.',                                                                          'Kadoma',    'Excellent', '0.01', '0.02', img_merino,   seller_b::text, '8',   'active'],
+    ARRAY['Large White Pig',    'Pigs',    'Large White',    '9 months','80kg',  'Live — ends 10 min in.',                                                                         'Kwekwe',    'Good',      '0.01', '0.03', img_pig,      seller_c::text, '10',  'active'],
+    ARRAY['Holstein Heifer',    'Cattle',  'Holstein',       '2 years', '360kg', 'Live — ends 12 min in. Carries the demo through Q&A overrun.',                                   'Harare',    'Good',      '0.01', '0.04', img_brahman,  seller_d::text, '12',  'active'],
+    ARRAY['Boer Kid',           'Goats',   'Boer',           '4 months','18kg',  'Live — ends 14 min in.',                                                                         'Bulawayo',  'Excellent', '0.01', '0.05', img_boergoat, seller_e::text, '14',  'active']
   ];
 
   spec text[];
@@ -62,6 +65,11 @@ BEGIN
   ---------------------------------------------------------------------------
   -- 1. Idempotent cleanup
   ---------------------------------------------------------------------------
+  DELETE FROM public.settlement_ledger WHERE payment_order_id IN (
+    SELECT id FROM public.agent_payment_orders
+     WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'AGENT · %')
+  );
+  DELETE FROM public.agent_payment_orders WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'AGENT · %');
   DELETE FROM public.agent_bids  WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'AGENT · %');
   DELETE FROM public.bids        WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'AGENT · %');
   DELETE FROM public.livestock_items WHERE title LIKE 'AGENT · %';
@@ -99,18 +107,20 @@ BEGIN
       seller_id, status, duration_days, end_time, created_at
     )
     VALUES (
-      'AGENT · ' || spec[1] || ' — ends ' || spec[13] || 'm',
+      'AGENT · ' || spec[1] || (CASE WHEN spec[14] = 'ended' THEN ' — won!' ELSE ' — ends ' || spec[13] || 'm' END),
       spec[2], spec[3], spec[4], spec[5], spec[6], spec[7], spec[8],
       spec[9]::numeric, spec[10]::numeric, 1, ARRAY[spec[11]],
-      spec[12]::uuid, 'active', 1,
+      spec[12]::uuid, spec[14], 1,
       NOW() + make_interval(mins => spec[13]::int),
       NOW() - interval '6 hours'
     )
     RETURNING id INTO item_id;
 
-    -- The buyer's winning bid at the agent's ceiling (1–5¢)
+    -- Buyer's winning bid. For pre-ended listings we set is_winner=true so
+    -- win-detector picks it up on first fire; active listings stay false
+    -- until end-auctions cron flips them.
     INSERT INTO public.bids (livestock_id, user_id, amount, is_winner, created_at)
-    VALUES (item_id, buyer_id, spec[10]::numeric, false, NOW() - interval '1 minute')
+    VALUES (item_id, buyer_id, spec[10]::numeric, spec[14] = 'ended', NOW() - interval '1 minute')
     RETURNING id INTO bid_uuid;
 
     -- Link it through agent_bids so win-detector can settle it
