@@ -73,6 +73,98 @@ function simulatePaynowPayment(method: string, attempt: number): {
 // Fallback order: EcoCash → OneMoney → Card
 const FALLBACK_CHAIN = ["ecocash", "onemoney", "card"];
 
+async function computePaynowHash(values: Record<string, string>, integrationKey: string): Promise<string> {
+  const hashString = Object.values(values).join("") + integrationKey;
+  const data = new TextEncoder().encode(hashString);
+  const hashBuffer = await crypto.subtle.digest("SHA-512", data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .toUpperCase();
+}
+
+/**
+ * Fire a real Paynow mobile-money Express Checkout (USSD push) from the server.
+ *
+ * Returns `{ success, pollUrl, error, networkBlocked }`. `networkBlocked=true`
+ * means the fetch never reached Paynow (Cloudflare / DNS / timeout), so the
+ * caller should fall back to the simulator to keep the demo flow intact. Any
+ * other failure is treated as a real provider decline.
+ */
+async function attemptPaynowExpressCheckout({
+  method,
+  phone,
+  amount,
+  reference,
+  livestockTitle,
+}: {
+  method: "ecocash" | "onemoney";
+  phone: string;
+  amount: number;
+  reference: string;
+  livestockTitle: string;
+}): Promise<{ success: boolean; pollUrl?: string; error?: string; networkBlocked?: boolean; rawResponse?: string }> {
+  const integrationId = Deno.env.get("PAYNOW_INTEGRATION_ID");
+  const integrationKey = Deno.env.get("PAYNOW_INTEGRATION_KEY");
+  const resultUrl = Deno.env.get("PAYNOW_RESULT_URL") ||
+    `${Deno.env.get("SUPABASE_URL")}/functions/v1/payment-webhook`;
+  const returnUrl = Deno.env.get("PAYNOW_RETURN_URL") || "https://zimlivestock.co.zw";
+
+  if (!integrationId || !integrationKey) {
+    return { success: false, error: "Paynow credentials not configured" };
+  }
+
+  const values: Record<string, string> = {
+    id: integrationId,
+    reference,
+    amount: amount.toFixed(2),
+    additionalinfo: `${livestockTitle} — ${reference}`,
+    authemail: Deno.env.get("PAYNOW_MERCHANT_EMAIL") || "agent@zimlivestock.co.zw",
+    phone,
+    method,
+    resulturl: resultUrl,
+    returnurl: returnUrl,
+    status: "Message",
+  };
+  values.hash = await computePaynowHash(values, integrationKey);
+
+  const formBody = Object.entries(values)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20_000);
+    let res: Response;
+    try {
+      res = await fetch("https://www.paynow.co.zw/interface/remotetransaction", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formBody,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const text = await res.text();
+    const params: Record<string, string> = {};
+    for (const pair of text.split("&")) {
+      const [k, ...rest] = pair.split("=");
+      params[decodeURIComponent(k)] = decodeURIComponent(rest.join("="));
+    }
+    const status = (params.status || "").toLowerCase();
+    if (status === "ok" || status === "sent") {
+      return { success: true, pollUrl: params.pollurl, rawResponse: text };
+    }
+    return { success: false, error: params.error || text || `Paynow status=${params.status}`, rawResponse: text };
+  } catch (err) {
+    // Cloudflare, TLS, DNS, timeout — treat as network-blocked so caller can
+    // gracefully degrade to the simulator instead of failing the whole run.
+    return { success: false, error: (err as Error).message, networkBlocked: true };
+  }
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -289,13 +381,65 @@ async function executePayment(supabase: any, order: any, agent: any, log: import
         details: { amount: order.amount },
       });
 
-      log.info("Payment attempt starting", { paymentOrderId: order.id, method, attempt, amount: order.amount });
+      log.info("Payment attempt starting", { paymentOrderId: order.id, method, attempt, amount: order.amount, livePhone: payerPhone });
 
-      // Simulate the payment call
-      const result = simulatePaynowPayment(method, attempt);
+      // Live Paynow Express Checkout for ecocash/onemoney when a phone is on
+      // file. If Paynow accepts the push, we're done — the subscriber's
+      // handset gets a USSD prompt and the webhook will reconcile the final
+      // status asynchronously. If the fetch never leaves Supabase (Cloudflare
+      // block), fall through to the simulator so the agent demo still lands.
+      let result: { success: boolean; delay: number; error: string | null; reference: string | null };
+      const hasIntegrationId = !!Deno.env.get("PAYNOW_INTEGRATION_ID");
+      const shouldTryLive = (method === "ecocash" || method === "onemoney") && !!payerPhone && hasIntegrationId;
 
-      // Simulate network delay (capped for Edge Function timeout)
-      await new Promise(resolve => setTimeout(resolve, Math.min(result.delay, 2000)));
+      if (shouldTryLive) {
+        const livestockTitle = order.livestock_id ? `Agent purchase ${order.livestock_id.slice(0, 8)}` : "Agent purchase";
+        const liveRef = `AG-${order.id.slice(0, 8)}-${attempt}`;
+        const live = await attemptPaynowExpressCheckout({
+          method: method as "ecocash" | "onemoney",
+          phone: payerPhone!,
+          amount: order.amount,
+          reference: liveRef,
+          livestockTitle,
+        });
+
+        await supabase.from("settlement_ledger").insert({
+          payment_order_id: order.id,
+          event: live.success ? "live_paynow_accepted" : (live.networkBlocked ? "live_paynow_blocked" : "live_paynow_declined"),
+          method,
+          attempt_number: attempt,
+          details: {
+            phone: payerPhone,
+            live_reference: liveRef,
+            poll_url: live.pollUrl,
+            error: live.error,
+            network_blocked: !!live.networkBlocked,
+          },
+        });
+
+        if (live.success) {
+          // Paynow accepted the push; treat this as success. Poll URL will
+          // confirm final payment status via the existing webhook.
+          result = { success: true, delay: 0, error: null, reference: liveRef };
+        } else if (live.networkBlocked) {
+          // Cloudflare / DNS / timeout — fall through to simulator for
+          // continuity. Surface the blocker in the activity log for clarity.
+          await supabase.from("agent_activity_log").insert({
+            agent_id: order.agent_id,
+            event_type: "payment_initiated",
+            message: `Paynow Express push blocked at network layer (${live.error}) — falling back to simulator`,
+            metadata: { payment_order_id: order.id, method, phone: payerPhone, error: live.error },
+          });
+          result = simulatePaynowPayment(method, attempt);
+          await new Promise((r) => setTimeout(r, Math.min(result.delay, 2000)));
+        } else {
+          // Real provider decline — don't simulate success, use the real error.
+          result = { success: false, delay: 0, error: live.error || "Paynow declined", reference: null };
+        }
+      } else {
+        result = simulatePaynowPayment(method, attempt);
+        await new Promise((resolve) => setTimeout(resolve, Math.min(result.delay, 2000)));
+      }
 
       if (result.success) {
         paid = true;

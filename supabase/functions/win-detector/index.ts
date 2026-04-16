@@ -108,11 +108,15 @@ serve(async (req: Request) => {
 
         if (existingPayment?.length) continue; // Already handled
 
-        // Trigger payment orchestrator
+        // Trigger payment orchestrator. Orchestrator gates on CRON_SECRET so
+        // we need to forward the same bearer token we were invoked with.
         const paymentUrl = Deno.env.get("SUPABASE_URL") + "/functions/v1/payment-orchestrator";
         const payRes = await fetch(paymentUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${cronSecret}`,
+          },
           body: JSON.stringify({
             action: "initiate_payment",
             agentId,

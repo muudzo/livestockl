@@ -683,6 +683,19 @@ CREATE TABLE IF NOT EXISTS public.settlement_ledger (
   created_at timestamptz DEFAULT now()
 );
 
+-- Event whitelist. live_paynow_* were added when payment-orchestrator
+-- started attempting real Paynow Express Checkout from the edge function
+-- (and surfacing Cloudflare blocks so the benchmark doc has proof).
+ALTER TABLE public.settlement_ledger DROP CONSTRAINT IF EXISTS settlement_ledger_event_check;
+ALTER TABLE public.settlement_ledger ADD CONSTRAINT settlement_ledger_event_check
+  CHECK (event = ANY (ARRAY[
+    'order_created', 'payment_initiated', 'payment_processing',
+    'payment_succeeded', 'payment_failed', 'retry_scheduled',
+    'retry_attempted', 'fallback_method', 'settlement_complete',
+    'order_cancelled', 'refund_initiated',
+    'live_paynow_accepted', 'live_paynow_blocked', 'live_paynow_declined'
+  ]));
+
 CREATE INDEX IF NOT EXISTS idx_settlement_ledger_order ON public.settlement_ledger(payment_order_id);
 
 ALTER TABLE public.settlement_ledger ENABLE ROW LEVEL SECURITY;
