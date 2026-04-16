@@ -1,5 +1,15 @@
 # Paynow DX Benchmark Report (Baseline)
 
+## TL;DR — 30-second read
+
+1. **Overall Paynow Core DX: 4.2/10.** Works, but integration took ~3.5h vs ~30–90 min for every other provider benchmarked (Stripe, Paystack, Flutterwave). Integration cost: 835 LOC vs ~557–608 LOC for competitors.
+2. **Hard blocker on cloud-native use.** Paynow Core's API at `www.paynow.co.zw/interface/*` sits behind the same Cloudflare bot wall as the website and TCP-RSTs every request from datacenter IPs — Supabase Edge, AWS Lambda, Cloudflare Workers all fail. Reconfirmed 2026-04-16 under fresh creds 23657 (`os error 104`). Every other benchmarked provider is reachable from edge runtimes on first try. See [§5 BLOCKER](#blocker-cloudflare-bot-protection-blocks-all-programmatic-api-access).
+3. **Workaround shipped, not scalable.** A 70-LOC Cloudflare Worker proxy unblocks agent-initiated payments (free tier, 20 min to deploy, verified live 2026-04-16 with EcoCash USSD delivered to `+263781497764`). But every integrator hitting this block has to rediscover it and build their own proxy — the recommendation below solves it once for the ecosystem. See [§5 Workaround subsection](#workaround-shipped-cloudflare-worker-relay-2026-04-16).
+4. **The fix already exists inside Paynow.** BillPay sits at `billpay.paynow.co.zw` with no bot wall and is agent-reachable on the first call (live-verified 2026-04-16, `AIRTIME-*` + `ZETDC-*` references from Supabase Edge). TXT is the same pattern at `txt.co.zw`. Paynow's flagship is the outlier within its own product family. See [§15 Agentic Commerce Implications](#15-agentic-commerce-implications).
+5. **#1 recommendation: move the API to `api.paynow.co.zw` without the bot wall** — mirroring what BillPay already ships. No new architecture required. Without it, Paynow auto-loses the agentic-commerce cohort (Claude tasks, OpenAI Operators, embedded-payment SaaS, auto-settle marketplaces) to Paystack and Flutterwave, both already agent-reachable on their public APIs. See [§14 #1 recommendation](#the-1-recommendation).
+
+---
+
 ## 1. Integration Summary
 
 | Field | Value |

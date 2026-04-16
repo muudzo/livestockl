@@ -41,6 +41,7 @@ return { redirectUrl: session.url };
 ```
 
 **What you think about while writing this:** "Which fields do I need?" — TypeScript autocomplete answers every question.
+**Reachable from Supabase Edge Function:** ✅ Yes, first try. `api.stripe.com` accepts datacenter IPs.
 
 ---
 
@@ -71,6 +72,7 @@ return { redirectUrl: data.data.authorization_url };
 ```
 
 **What you think about while writing this:** "That was relatively easy."
+**Reachable from Supabase Edge Function:** ✅ Yes, first try. `api.paystack.co` is a clean API subdomain.
 
 ---
 
@@ -102,6 +104,7 @@ return { redirectUrl: data.data.link };
 ```
 
 **What you think about while writing this:** "Almost the same as Paystack... but wait, amount is NOT in cents? OK, easier."
+**Reachable from Supabase Edge Function:** ✅ Yes, first try. `api.flutterwave.com` accepts datacenter IPs.
 
 ---
 
@@ -145,6 +148,7 @@ return {
 ```
 
 **What you think about while writing this:** "Why am I computing a hash manually? Why is the status literally 'Message'? Why do I need 4 env vars? Why can't I POST from my server?"
+**Reachable from Supabase Edge Function:** ❌ No. TCP-RST at `os error 104` — Cloudflare bot wall on `www.paynow.co.zw`. The browser-form workaround above exists because server-side POST is unreachable. Agent-initiated payments require a Cloudflare Worker relay ([paynow-relay/src/index.js](../../../paynow-relay/src/index.js) — 70 LOC).
 
 ---
 
@@ -200,6 +204,7 @@ const response = await fetch(
 ```
 
 **What you think about while writing this:** "I need to encrypt my request AND decrypt the response? Every single time? ...and it doesn't even work because their HTTP headers are broken?"
+**Reachable from Supabase Edge Function:** 🟡 TCP reachable at `api.pesepay.com`, but Pesepay returns malformed HTTP headers that crash the Deno fetch client before the response can be parsed. Functionally equivalent to unreachable.
 
 ---
 
