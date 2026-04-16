@@ -1,0 +1,41 @@
+# Supabase project config.
+#
+# Only per-function settings are pinned here — project-level settings live
+# in the Dashboard. This file prevents `--no-verify-jwt` flag drift during
+# CLI deploys: functions listed below will auto-skip JWT verification even
+# when `supabase functions deploy <name>` is run WITHOUT the explicit flag.
+#
+# Without this, every redeploy silently re-enables JWT verification on
+# service-to-service functions, breaking agent auto-pay and cron jobs.
+
+project_id = "hmeieslclzycyjjjflfh"
+
+# Cron / service-to-service functions — authenticated via CRON_SECRET bearer,
+# not user JWT. These MUST NOT verify JWT or the cron triggers 401.
+[functions.end-auctions]
+verify_jwt = false
+
+[functions.win-detector]
+verify_jwt = false
+
+[functions.payment-orchestrator]
+verify_jwt = false
+
+[functions.billpay-reconcile]
+verify_jwt = false
+
+[functions.payment-poll-sync]
+verify_jwt = false
+
+[functions.security-agent]
+verify_jwt = false
+
+[functions.consistency-checker]
+verify_jwt = false
+
+[functions.chaos-test]
+verify_jwt = false
+
+# Webhooks — called by external providers without a JWT
+[functions.payment-webhook]
+verify_jwt = false

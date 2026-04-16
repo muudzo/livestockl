@@ -141,6 +141,20 @@ async function attemptPaynowExpressCheckout({
     const relaySecret = Deno.env.get("PAYNOW_RELAY_SECRET");
     const useRelay = !!relayUrl && !!relaySecret;
 
+    // Running on hosted Supabase without the relay is a config regression —
+    // the direct path TCP-RSTs and the simulator silently takes over, so a
+    // ledger row reads "paid" with a fake reference. Make the regression
+    // loud: scream in logs on every call. We don't hard-fail the demo
+    // path, but ops will see the warning immediately.
+    const onHostedEdge = Deno.env.get("DENO_DEPLOYMENT_ID") !== undefined;
+    if (!useRelay && onHostedEdge) {
+      console.error(
+        "[payment-orchestrator] PAYNOW_RELAY_URL/SECRET missing on hosted edge — " +
+          "direct Paynow calls will TCP-RST and fall back to simulator. " +
+          "Set the secrets or expect no real EcoCash pushes.",
+      );
+    }
+
     const targetUrl = useRelay
       ? `${relayUrl}?target=remotetransaction`
       : "https://www.paynow.co.zw/interface/remotetransaction";

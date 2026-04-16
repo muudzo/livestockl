@@ -126,6 +126,18 @@ serve(async (req: Request) => {
         });
         const payResult = await payRes.json();
 
+        // Surface payment-orchestrator failures at this layer. Previously a
+        // 401 from the orchestrator (e.g. missing CRON_SECRET forward, or
+        // relay env drift) was buried in the `payment` sub-object while the
+        // outer response still said "1 win detected", which made silent
+        // agent-win regressions undetectable from CI.
+        if (!payRes.ok || payResult.error || payResult.code?.startsWith("UNAUTHORIZED")) {
+          throw new Error(
+            `payment-orchestrator rejected win for ${auction.id}: ` +
+              (payResult.error || payResult.message || `HTTP ${payRes.status}`),
+          );
+        }
+
         // Update bid status
         await supabase
           .from("agent_bids")
