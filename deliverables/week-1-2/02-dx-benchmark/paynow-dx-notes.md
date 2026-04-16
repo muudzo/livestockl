@@ -175,7 +175,7 @@ This is the single biggest DX pain point. Every other provider's webhook verific
 
 ### BLOCKER: Cloudflare Bot Protection Blocks All Programmatic API Access
 
-**Date tested:** 2026-03-16
+**Date tested:** 2026-03-16 · **Reconfirmed:** 2026-04-16 (same `os error 104` under fresh Supabase creds 23657 and a different edge-region assignment)
 
 **Root cause identified:** Paynow serves both its website AND its API on the same domain (`www.paynow.co.zw`) behind **Cloudflare bot protection**. Browsers can pass Cloudflare's JavaScript challenge (confirmed by `cf_clearance` cookie in browser requests), but all programmatic HTTP clients (curl, axios, fetch, Deno) are blocked because they cannot solve the challenge.
 
@@ -273,6 +273,35 @@ Even from a Zimbabwean network, Node.js cannot reach Paynow's API because Cloudf
 **DX observation:** We had to build a separate Node.js + Express server just to attempt the integration — no other provider in this benchmark required anything beyond a single Edge Function. Even after building it, the API was unreachable due to Cloudflare blocking.
 
 **Impact:** Cannot complete end-to-end testing. Paynow's API is functionally unusable from any server-side code. This is the most critical DX finding in the entire benchmark.
+
+#### Workaround shipped: Cloudflare Worker relay (2026-04-16)
+
+The community suggestion above — "route requests through a VPS with a static IP" — works but adds ops overhead (a VPS to maintain, patch, monitor, pay for) that a payment integration shouldn't require. We shipped a lighter workaround instead: a **Cloudflare Worker** proxying Paynow calls.
+
+**Why CF Workers unblock the block.** Workers egress through Cloudflare's own trusted network, so the bot challenge that fires on requests from Supabase / AWS / Fly / Render IP ranges does not fire on Worker-originated requests to `*.paynow.co.zw`. The TCP RST (`os error 104`) vanishes. Paynow's server treats the relay as a first-class caller.
+
+**Cost profile:**
+
+| Resource | Qty | Cost |
+|---|---|---|
+| CF Worker source | 70 LOC in a single file | — |
+| CF Worker deploy | `wrangler deploy` | — |
+| CF free tier | 100,000 requests/day | $0/mo |
+| Round-trip overhead | ~400–800 ms added latency | negligible vs USSD approve time (5–15s) |
+| Time to build & verify | — | ~20 min end-to-end |
+
+Compared to the VPS suggestion: no host to patch, no static IP to reserve, no failover plan beyond "CF's own 99.99%". The single-file nature means any integrator can read it in 60 seconds.
+
+**Evidence.**
+
+| State | Ledger proof |
+|---|---|
+| Direct Supabase → Paynow | `settlement_ledger` row `payment_order_id=b19d72e8-…` · `event=live_paynow_blocked` · `error: "Connection reset by peer (os error 104)"` · `network_blocked=true` |
+| Via CF Worker relay | `payment_order_id=846efdfa-…` · `event=live_paynow_accepted` · real `pollurl=https://www.paynow.co.zw/Interface/CheckPayment/?guid=1ff4f270-…` · USSD delivered to `+263781497764` |
+
+**Strategic caveat.** This is a tactical workaround, not a permanent answer. Every integrator still has to discover the block, read forum threads, build (or copy) the relay, and maintain a CF account. Moving Paynow Core to `api.paynow.co.zw` without bot protection — as BillPay already does at `billpay.paynow.co.zw` — solves it permanently for everyone on the ecosystem.
+
+Worker source: [`paynow-relay/src/index.js`](../../../paynow-relay/src/index.js) · Orchestrator integration: [`payment-orchestrator/index.ts`](../../../supabase/functions/payment-orchestrator/index.ts)
 
 ### Supported Payment Methods
 - EcoCash (USSD prompt via `/remotetransaction`)
@@ -568,5 +597,35 @@ In Paynow Dashboard > Integration Settings:
 ### The #1 recommendation:
 **Move the API to a separate subdomain (e.g. `api.paynow.co.zw`) without Cloudflare bot protection.** Currently, the API sits on `www.paynow.co.zw/interface/*` behind Cloudflare's JavaScript challenge, making it impossible to call from any server-side code (Edge Functions, Lambda, Express, curl). Every other provider has a dedicated API domain with no bot protection. Until this is fixed, Paynow is unusable from modern cloud architectures.
 
+**The pattern already exists inside Paynow.** BillPay sits at `billpay.paynow.co.zw` with no bot wall and is straightforward to call from edge runtimes. The fix for Paynow Core is pattern adoption, not new architecture. **Tactical stopgap that works today:** a 70-LOC Cloudflare Worker proxy ([shipped and verified 2026-04-16](#workaround-shipped-cloudflare-worker-relay-2026-04-16)) — free tier, 20 min to deploy. Every new integrator currently has to discover the block and reinvent this proxy; a subdomain move eliminates that tax for the whole ecosystem.
+
 ### The #2 recommendation:
 **Provide a lightweight JavaScript SDK** that abstracts hash computation, form encoding, and the two-endpoint split. This single change would reduce integration code by ~40% and eliminate the webhook hash ordering problem entirely.
+
+---
+
+## 15. Agentic Commerce Implications
+
+The Cloudflare block isn't just a DX friction — it's a *hard block on autonomous payment flows*. The broader industry (OpenAI Operators, Anthropic Claude agents, browser agents, Shopify agents) is moving toward software that transacts on a user's behalf without keyboard input. Every agent architecture we evaluated or built looks structurally the same:
+
+```
+agent trigger  →  server runtime (edge / lambda / worker)  →  payments API  →  push to user
+```
+
+The runtime is always in a datacenter, and the payments API call is always server-to-server. If that edge rejects datacenter IPs, the agent can't close the loop. Concretely:
+
+| Agent scenario | Paynow today | Paynow if #1 ships |
+|---|---|---|
+| Scheduled recurring payment ("pay my ZESA every month on salary day") | ❌ blocked | ✅ trivial |
+| AI-assisted checkout ("Claude, buy me that heifer if it's still under $650") | ❌ blocked | ✅ trivial |
+| Platform auto-settlement on marketplace win (the pattern we shipped here) | ❌ blocked without relay | ✅ trivial |
+| Fraud-detection hold-and-release orchestrator | ❌ blocked | ✅ trivial |
+| Third-party B2B payout via a SaaS integrator | ❌ blocked | ✅ trivial |
+
+**What we proved on this repo.** Agent `Penny Sniper` wins an auction → `win-detector` edge function → `payment-orchestrator` edge function → Paynow Core → EcoCash USSD on the subscriber's phone. End-to-end zero keyboard. The step that forced the CF Worker detour was the second-to-last arrow; the rest of the chain worked on first try.
+
+**Why this matters commercially for Paynow.** The companies building these flows are the fastest-growing segment of the payments market (agentic commerce, auto-pilot fintech, embedded payments). They default-deploy on serverless platforms because those platforms are what the frameworks ship with. If Paynow remains unreachable from Vercel / Supabase / Workers / Deno Deploy / AWS Lambda, it auto-loses the entire cohort to Paystack and Flutterwave — both already agent-reachable on their public APIs. Zimbabwe-specific payment methods are Paynow's moat; that moat only matters if an agent can actually call through it.
+
+**Concrete ask.** The #1 recommendation above is the unblocking move. No new architecture required — just a subdomain alias without the CF bot challenge, mirroring what BillPay already does. That single change makes Paynow first-class for agents.
+
+---
