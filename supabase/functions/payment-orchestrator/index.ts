@@ -118,6 +118,17 @@ serve(async (req: Request) => {
         });
       }
 
+      // Resolve the phone for EcoCash Express. Agent config overrides the
+      // owner's profile phone so operators can demo with a burner number
+      // without touching their main account.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("phone")
+        .eq("id", agent.user_id)
+        .single();
+
+      const payerPhone: string | null = agent.config?.payment_phone || profile?.phone || null;
+
       // Create the payment order
       const { data: order, error: orderError } = await supabase
         .from("agent_payment_orders")
@@ -134,25 +145,28 @@ serve(async (req: Request) => {
 
       if (orderError) throw orderError;
 
-      log.info("Payment order created", { paymentOrderId: order.id, agentId, livestockId, amount, method: "ecocash" });
+      log.info("Payment order created", { paymentOrderId: order.id, agentId, livestockId, amount, method: "ecocash", payerPhone });
 
       // Log to settlement ledger
       await supabase.from("settlement_ledger").insert({
         payment_order_id: order.id,
         event: "order_created",
-        details: { agent_id: agentId, livestock_id: livestockId, amount },
+        details: { agent_id: agentId, livestock_id: livestockId, amount, payer_phone: payerPhone },
       });
 
       // Log agent activity
+      const expressCheckoutMsg = payerPhone
+        ? `EcoCash Express checkout initiated for US$${amount} on ${payerPhone}`
+        : `Payment order created for US$${amount} — starting with EcoCash (no phone on file)`;
       await supabase.from("agent_activity_log").insert({
         agent_id: agentId,
         event_type: "payment_initiated",
-        message: `Payment order created for US$${amount} — starting with EcoCash`,
-        metadata: { payment_order_id: order.id, amount, method: "ecocash" },
+        message: expressCheckoutMsg,
+        metadata: { payment_order_id: order.id, amount, method: "ecocash", payer_phone: payerPhone },
       });
 
       // Now execute the payment (with retries and fallback)
-      return await executePayment(supabase, order, agent, log);
+      return await executePayment(supabase, order, agent, log, payerPhone);
     }
 
     if (action === "retry_payment") {
@@ -181,8 +195,15 @@ serve(async (req: Request) => {
         .eq("id", order.agent_id)
         .single();
 
-      log.info("Retrying payment order", { paymentOrderId, agentId: order.agent_id });
-      return await executePayment(supabase, order, agent, log);
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("phone")
+        .eq("id", agent.user_id)
+        .single();
+      const payerPhone: string | null = agent.config?.payment_phone || profile?.phone || null;
+
+      log.info("Retrying payment order", { paymentOrderId, agentId: order.agent_id, payerPhone });
+      return await executePayment(supabase, order, agent, log, payerPhone);
     }
 
     // Get payment status and ledger for an order
@@ -215,7 +236,7 @@ serve(async (req: Request) => {
   }
 });
 
-async function executePayment(supabase: any, order: any, agent: any, log: import("../_shared/logger.ts").Logger) {
+async function executePayment(supabase: any, order: any, agent: any, log: import("../_shared/logger.ts").Logger, payerPhone: string | null = null) {
   let currentMethod = order.method;
   let attempt = order.attempt_count;
   let lastError: string | null = null;
@@ -329,11 +350,12 @@ async function executePayment(supabase: any, order: any, agent: any, log: import
           .eq("id", order.agent_id);
 
         // Agent activity
+        const phoneSuffix = payerPhone && method === "ecocash" ? ` → ${payerPhone}` : "";
         await supabase.from("agent_activity_log").insert({
           agent_id: order.agent_id,
           event_type: "payment_completed",
-          message: `Payment of US$${order.amount} completed via ${method.toUpperCase()} (attempt ${attempt}). Ref: ${paynowRef}`,
-          metadata: { payment_order_id: order.id, reference: paynowRef, method, attempts: attempt },
+          message: `Payment of US$${order.amount} completed via ${method.toUpperCase()}${phoneSuffix} (attempt ${attempt}). Ref: ${paynowRef}`,
+          metadata: { payment_order_id: order.id, reference: paynowRef, method, attempts: attempt, payer_phone: payerPhone },
         });
 
         break;
