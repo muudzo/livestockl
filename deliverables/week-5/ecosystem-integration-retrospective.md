@@ -1,113 +1,118 @@
-# Ecosystem Integration Retrospective: BillPay + TXT vs Paynow Core
+# Ecosystem Integration Retrospective
 
-**Deliverable — Paynow DX project, Goal #3 extension · 2026-04-14**
+**BillPay + TXT vs Paynow Core**
 
-Extension of the DX benchmark with a second comparison: Paynow Core against **two sibling products in the same Paynow family** — BillPay and TXT.
+*Paynow DX Project — Goal #3 Extension · 2026-04-14*
 
-**Finding:** Paynow's own sibling products are measurably better-documented and easier to integrate than Paynow Core. The organization already knows how to write good docs; Core hasn't received the same treatment.
+This extension compares Paynow Core against two sibling products in the same ecosystem: BillPay and TXT.
+
+---
+
+## Core finding
+
+**Paynow's own sibling products are materially easier to integrate than Paynow Core.**
+
+The organization already knows how to build good API DX — Core has simply not adopted those patterns.
 
 ---
 
 ## What was integrated
 
-| Product | Status | LOC / scope |
+| Product | Status | Scope |
 |---|---|---|
-| **Paynow Core** | Shipped on `main` | 835 LOC, DX score 4.2/10 |
-| **BillPay v1.33** | Full integration shipped (`main`) | 6 edge functions, 15 billers, simulation mode, ~240 LOC per flow |
-| **TXT SMS API** | Feature branch `feature/sms-notifications` (supervisor review) | ~60 LOC per flow |
+| Paynow Core | Shipped (`main`) | 835 LOC · DX score 4.2/10 |
+| BillPay v1.33 | Full integration (`main`) | 6 edge functions · 15 billers · simulation mode · ~240 LOC per flow |
+| TXT SMS API v1.12 | Feature branch | ~60 LOC per flow |
 
 ---
 
-## DX side-by-side
+## DX comparison
 
 | Dimension | Paynow Core | BillPay | TXT |
 |---|---|---|---|
-| **Base URL** | `www.paynow.co.zw/interface/*` | `billpay.paynow.co.zw/api/*` | `www.txt.co.zw` / `usd.txt.co.zw` |
-| **Separate API subdomain?** | ❌ Shared with website | ✅ Dedicated | ✅ Dedicated |
-| **Cloudflare blocks programmatic clients?** | ✅ Yes (dealbreaker) | ❌ No | ❌ No |
-| **Auth** | SHA-512 hash of concatenated values | HTTP Basic Auth | HTTP Basic Auth / IP whitelist |
-| **Auth LOC per call** | ~7 (hash + uppercase) | 1 header | 1 header |
-| **Request/response format** | Form-encoded both ways | JSON | Form-encoded req, `SUCCESS:`/`ERROR:` resp |
-| **Endpoints per flow** | 2 (web + mobile) | 1 (`/process` + action) | 1 per concern |
-| **Versioned docs** | ❌ | ✅ v1.33 (23 Jan 2024) | ✅ v1.12 (4 Mar 2024) |
-| **Documented test identifiers** | ❌ No test phone numbers | ✅ 6 member prefixes (AT, AF, PT, PF, PP, PFF) + 5 product types | ✅ Test mode redirects SMS |
-| **Postman collection** | ❌ | ❌ | ✅ `postman.com/paynow/paynow-txt` |
-| **Structured errors** | ❌ URL-encoded strings | 🟡 JSON with `Narration` + `TechnicalNarration` fields; numeric codes (0-5, 99) only on reversal endpoint | ❌ Description only |
-| **State machine documented** | ❌ (mixed statuses, hash order unclear) | ✅ 6 states, explicit poll intervals (120s/180s/600s) | N/A (one-shot) |
-| **Time to first successful call** | ~3.5h, then blocked entirely | ~1.5h | ~30 min |
-| **Agent-reachable from serverless edge?** | ❌ No (needs CF Worker relay; see [workaround below](#workaround-shipped-cloudflare-worker-relay)) | ✅ Yes — verified via live AUTH+PAY from Supabase Edge on 2026-04-16 | ✅ Yes — verified via feature branch |
-| **Live verification 2026-04-16** | Blocked direct (`os error 104`), unblocked via relay | `AIRTIME-*` / `ZETDC-*` refs returned on `billpay-staging.paynow.co.zw` | SMS delivery confirmed via TXT sandbox |
+| Dedicated API subdomain | ❌ Shared with website | ✅ `billpay.paynow.co.zw` | ✅ `txt.co.zw` |
+| Cloud infra reachable | ❌ Blocked by CF bot protection | ✅ | ✅ |
+| Authentication | SHA-512 concatenated hash | HTTP Basic Auth | HTTP Basic Auth / IP whitelist |
+| Auth complexity | ~7 LOC + ordering risk | 1 header | 1 header |
+| Format | Form-encoded both ways | JSON | Form-encoded req, simple text resp |
+| Versioned docs | ❌ | ✅ v1.33 (dated) | ✅ v1.12 (dated) |
+| Test identifiers | ❌ | ✅ 6 simulation prefixes | ✅ Sandbox redirect |
+| Postman collection | ❌ | ❌ | ✅ Published |
+| Structured errors | ❌ | 🟡 Partial (reversal only) | ❌ |
+| State machine documented | ❌ | ✅ Explicit states + polling intervals | N/A |
+| Time to first success | ~3.5h (then blocked) | ~1.5h | ~30 min |
 
 ---
 
-## The surprising finding
+## The structural insight
 
-Paynow Core's weaknesses are **already solved inside the Paynow organization**:
+Every major weakness in Paynow Core is already solved elsewhere inside Paynow:
 
-1. **Cloudflare unreachability** — BillPay sits on `billpay.paynow.co.zw` with no bot protection. TXT sits on `txt.co.zw`. The pattern that would unblock Paynow Core already exists in two sibling products.
-2. **Auth complexity** — BillPay and TXT both use standard HTTP Basic Auth. Paynow Core's SHA-512 hash-of-concatenated-values is a pattern the sibling products did not replicate.
-3. **Testing** — BillPay's systematic failure-simulation prefixes (`AT` = auth timeout, `PF` = pay fail, `PFF` = flagged, etc.) let a developer test every error path without real money. Paynow Core has nothing comparable.
-4. **Polling spec** — BillPay specifies poll intervals explicitly. Paynow Core requires reverse-engineering from observation.
-5. **Versioning** — BillPay and TXT both publish version + date. Paynow Core docs carry neither.
+1. **Reachability** — BillPay and TXT use dedicated API subdomains without bot protection. Core does not.
+2. **Authentication simplicity** — BillPay/TXT use HTTP Basic Auth. Core uses a custom SHA-512 concatenation pattern.
+3. **Testability** — BillPay provides deterministic failure simulation prefixes (`AT`, `PF`, `PFF`, etc.). Core provides no structured test identifiers.
+4. **State clarity** — BillPay documents polling intervals (120s / 180s / 600s). Core requires inference.
+5. **Documentation hygiene** — BillPay and TXT publish version numbers and dates. Core does not.
 
-**The fix for Paynow Core isn't research. It's adoption of patterns already shipping in BillPay and TXT.**
-
----
-
-## Recommendations for Paynow Core (ranked by effort × impact)
-
-| # | Change | Effort | Source pattern |
-|---|---|---|---|
-| 1 | Move API to `api.paynow.co.zw` without Cloudflare bot protection | ~1 week | BillPay's `billpay.paynow.co.zw` |
-| 2 | Switch auth from SHA-512 hash to HTTP Basic Auth | ~2 weeks with migration window | BillPay / TXT |
-| 3 | Publish documented test phone numbers for EcoCash/OneMoney | ~1 day | BillPay's member prefixes |
-| 4 | Publish a Postman collection | ~1 day | TXT |
-| 5 | Version docs + add publish date | ~1 hour | BillPay / TXT |
-| 6 | Document webhook hash field ordering explicitly | ~1 hour | — |
-| 7 | Add structured error responses with codes | ~1 week | BillPay reversal error codes (0-5, 99) as the one existing pattern inside Paynow |
-
-All seven together would likely move Paynow Core from **4.2/10 → ~7-8/10**, competitive with Paystack. None require new invention.
+**This is not a capability gap. It is an internal consistency gap.**
 
 ---
 
 ## Workaround shipped: Cloudflare Worker relay
 
-**Problem.** Supabase Edge Functions (Deno, eu-region) cannot reach `www.paynow.co.zw/interface/*` server-to-server. Every request terminates with `error sending request … client error (Connect): Connection reset by peer (os error 104)` — Cloudflare's bot-protection TCP RST before TLS negotiation. This blocks any autonomous server-initiated payment, including agent auto-settlement after an auction win.
+### Problem
+Supabase Edge Functions cannot reach `www.paynow.co.zw/interface/*` directly. Requests terminate with TCP RST (`os error 104`) due to Cloudflare bot protection.
 
-**Confirmed empirically.** Settlement-ledger row under `payment_order_id=b19d72e8-…` on 2026-04-16 captured the RST with `network_blocked: true` directly from the orchestrator's attempt.
+This blocks:
+- Server-initiated settlement
+- Agent-driven autonomous payments
+- Any headless orchestration flow
 
-**Workaround.** A single-file Cloudflare Worker (`paynow-relay.zimlivestock.workers.dev`, ~70 LOC) accepts signed requests from Supabase and proxies them to Paynow. Because Workers egress through Cloudflare's own trusted network, the outbound call isn't subject to the same bot rules — the same request that fails TCP-level direct succeeds through the relay.
+### Solution implemented
+A ~70 LOC Cloudflare Worker relay proxies signed requests to Paynow.
 
-| Metric | Direct from Supabase | Via CF Worker relay |
+| Metric | Direct | Via Worker |
 |---|---|---|
-| Request outcome | TCP RST (os error 104) | HTTP 200, `pollurl` returned |
-| Latency | N/A (fail fast) | ~400-800 ms round-trip |
-| Infra cost | — | $0 (CF free tier, 100k req/day) |
-| Time to build | — | ~20 minutes end-to-end |
-| LOC added | — | ~70 (relay) + ~15 (orchestrator patch) |
+| Outcome | TCP RST | HTTP 200 |
+| Latency | — | ~400–800 ms |
+| Cost | — | $0 (free tier) |
+| Build time | — | ~20 min |
 
-**Verified live 2026-04-16 19:08 UTC.** Agent `Penny Sniper` won `AGENT · Hereford Heifer`, orchestrator went direct → blocked, then via relay → accepted. Ledger shows `live_paynow_accepted` with a real Paynow `pollurl`, and the subscriber's handset received the Express Checkout USSD prompt autonomously.
+### Live verification — 2026-04-16
+Auction win → Direct attempt blocked → Relay success → Poll URL returned → USSD prompt delivered → Ledger confirmed.
 
-**Why this matters for the recommendations above.** The relay confirms recommendation #1 (separate unprotected subdomain) is the right fix — our workaround effectively replicates what `billpay.paynow.co.zw` already does for BillPay. A CF Worker is a tolerable patch for a handful of integrators, but each new ZW fintech integrating Paynow Core has to discover the block and invent their own proxy. Moving the endpoint once solves it permanently for the whole ecosystem.
-
-**Agentic commerce lens.** BillPay and TXT are both agent-reachable today — an autonomous agent running on Supabase / Vercel / Workers / Lambda can call them on the first try. Paynow Core is not, without the relay. Across the three products there's one pattern and one exception; the exception is the flagship product. The commercial risk is that the agent cohort (Claude tasks, OpenAI Operators, embedded-payment SaaS) defaults to whichever African gateway is agent-reachable on its public API — and Paystack + Flutterwave both are. Paynow's Zimbabwe-specific mobile-money coverage is genuinely differentiated; that differentiation only translates to revenue if an agent can reach it without a sidecar.
+The workaround proves the architectural diagnosis: **Paynow Core needs a reachable API surface identical in pattern to BillPay.** The relay works — but every integrator must independently rediscover and implement this workaround. That is ecosystem friction.
 
 ---
 
-## One-line summary for the presentation
+## Recommended changes (effort × impact ranked)
 
-> *Paynow Core's DX weaknesses are all problems that Paynow's own sibling products — BillPay and TXT — have already solved. The fix isn't research; it's internal pattern adoption.*
+| # | Change | Effort | Pattern source |
+|---|---|---|---|
+| 1 | Move Core to `api.paynow.co.zw` (no bot protection) | ~1 week | BillPay |
+| 2 | Migrate to HTTP Basic Auth (with transition window) | ~2 weeks | BillPay / TXT |
+| 3 | Publish test phone numbers | ~1 day | BillPay |
+| 4 | Publish Postman collection | ~1 day | TXT |
+| 5 | Version + date docs | ~1 hour | BillPay |
+| 6 | Explicit webhook hash ordering | ~1 hour | — |
+| 7 | Add structured error codes | ~1 week | BillPay reversal pattern |
+
+If implemented together, Core likely moves from **4.2/10 → 7–8/10** without new R&D.
 
 ---
 
-## Caveats
+## Agentic commerce risk lens
 
-- TXT not integrated end-to-end under production credentials — DX assessment based on docs + spec review, not full live flow
-- BillPay's Cloudflare exposure untested from cloud infra — pattern is correct in principle (separate subdomain, no bot protection), but Edge-Function reachability specifically not confirmed during the internship window
-- Sample is three Paynow products; findings are internal-ecosystem scope, not industry-wide
+BillPay and TXT are already agent-reachable. Paynow Core — the flagship — is not.
 
-## Related
+As AI agents, serverless backends, and autonomous checkout flows become default, gateways that are reachable from cloud infrastructure win by default. **Paystack and Flutterwave already are.**
 
-- [paynow-dx-notes.md](../week-1-2/02-dx-benchmark/paynow-dx-notes.md) — full Paynow Core benchmark
-- [docs/billpay-integration-plan.md](../../docs/billpay-integration-plan.md) · [docs/paynow-billpay-vendor-api.md](../../docs/paynow-billpay-vendor-api.md) · [docs/txt-co-zw-sms-api.md](../../docs/txt-co-zw-sms-api.md)
-- [feature-branch-review.md](feature-branch-review.md) — SMS branch review
+Paynow's Zimbabwe mobile-money coverage is genuinely differentiated. But differentiation only converts to revenue if an agent can reach the API on the first attempt.
+
+Right now, two internal products meet that bar. Core does not.
+
+---
+
+## One-line presentation summary
+
+> *Paynow Core's DX gaps are not innovation problems — they are internal pattern adoption problems.*
