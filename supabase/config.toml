@@ -18,6 +18,14 @@ verify_jwt = false
 [functions.win-detector]
 verify_jwt = false
 
+# auction-sniper accepts EITHER CRON_SECRET (for cron / chained calls) OR
+# the owning user's JWT (for the Run Now button). Handler enforces both via
+# authorizeAgent — the gateway must let both through, hence verify_jwt=false.
+# Without this, CRON-bearer invocations 401 at the platform layer before our
+# handler runs, which silently broke the win-detector chain from sniper.
+[functions.auction-sniper]
+verify_jwt = false
+
 [functions.payment-orchestrator]
 verify_jwt = false
 

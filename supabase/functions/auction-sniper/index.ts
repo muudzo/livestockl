@@ -48,6 +48,36 @@ serve(async (req: Request) => {
     }
 
     if (action === "scan_ending_soon") {
+      // Settle any already-won auctions FIRST. Win settlement is independent
+      // of having active scan goals — an agent that finished a goal still
+      // needs its wins to settle, otherwise agent_bids.status sits at
+      // 'placed' forever and EcoCash never fires. Run the chain unconditionally
+      // up front so this works even when goals are empty (e.g. demo seed
+      // populates agent_bids directly without inserting a matching goal row).
+      let settlementResult: any = null;
+      const cronSecretEarly = Deno.env.get("CRON_SECRET");
+      if (cronSecretEarly) {
+        try {
+          const winRes = await fetch(
+            Deno.env.get("SUPABASE_URL") + "/functions/v1/win-detector",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${cronSecretEarly}`,
+              },
+              body: JSON.stringify({ agentId }),
+            },
+          );
+          settlementResult = await winRes.json();
+          log.info("win-detector chained from sniper (pre-scan)", { agentId, settlementResult });
+        } catch (chainErr) {
+          log.error("win-detector chain failed (non-fatal)", { agentId, error: (chainErr as Error).message });
+        }
+      } else {
+        log.warn("CRON_SECRET not set — wins won't auto-settle from sniper", { agentId });
+      }
+
       // Get goals for this sniper
       const { data: goals } = await supabase
         .from("agent_goals")
@@ -56,7 +86,11 @@ serve(async (req: Request) => {
         .eq("status", "active");
 
       if (!goals?.length) {
-        return new Response(JSON.stringify({ message: "No active snipe goals", snipes: [] }), {
+        return new Response(JSON.stringify({
+          message: "No active snipe goals",
+          snipes: [],
+          settlement: settlementResult,
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -197,6 +231,7 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({
         message: `Sniper scan complete: ${snipeResults.length} snipe(s) executed`,
         snipes: snipeResults,
+        settlement: settlementResult,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
