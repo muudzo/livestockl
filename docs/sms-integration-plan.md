@@ -1,0 +1,158 @@
+# SMS & Airtime Integration Plan — ZimLivestock via txt.co.zw
+
+## Overview
+Add SMS notifications for critical auction events (payment confirmed, auction won, outbid) using the txt.co.zw API. Also enables airtime rewards for referrals and first listings.
+
+**Why SMS:** 40%+ of rural Zimbabwe uses feature phones. SMS has 98% open rate. Cost: ~US$0.03/message.
+
+## Core: Reusable `send-sms` Edge Function
+
+Location: `supabase/functions/send-sms/index.ts`
+
+```typescript
+// POST body
+{
+  recipientPhone: string,   // "0771234567"
+  message: string,           // max 160 chars
+  eventType: string,         // "payment_confirmed", "auction_won", etc.
+  userId: string,            // for logging
+}
+```
+
+**Responsibilities:**
+1. Normalize phone to Zimbabwe format (+263...)
+2. POST to `https://usd.txt.co.zw/Remote/SendMessage`
+3. Log to `sms_log` table
+4. Check rate limit (max 10 SMS/user/hour)
+5. Never throw — SMS failure must not block calling function
+
+**Auth:** HTTP Basic Auth with txt.co.zw credentials stored as Supabase secrets.
+
+## Where SMS Gets Sent
+
+### 1. Payment Confirmed (Highest Value)
+**Modify:** `supabase/functions/payment-webhook/index.ts` → inside `completePayment()`
+
+| Recipient | SMS |
+|---|---|
+| Buyer | "Payment confirmed: US$X for [item]. Ref: ZL-XXX. Thank you for using ZimLivestock." |
+| Seller | "Payment received: US$X for [item]. Your payout will be processed within 24hrs." |
+
+### 2. Auction Won
+**Modify:** `supabase/functions/end-auctions/index.ts` → after `end_expired_auctions()` RPC
+
+| Recipient | SMS |
+|---|---|
+| Winner | "You won [item] for US$X! Pay now at zimlivestock.co.zw to complete your purchase." |
+| Seller | "Your auction for [item] ended. Sold for US$X. Buyer will be prompted to pay." |
+
+### 3. Outbid Notification (Highest Engagement)
+**Modify:** `supabase/schema.sql` → `place_bid()` function
+
+Add to PL/pgSQL:
+```sql
+SELECT user_id INTO v_prev_bidder FROM public.bids
+  WHERE livestock_id = p_livestock_id AND user_id != p_user_id
+  ORDER BY amount DESC LIMIT 1;
+
+IF v_prev_bidder IS NOT NULL THEN
+  INSERT INTO public.notifications (user_id, type, title, message, priority)
+  VALUES (v_prev_bidder, 'bid', 'You''ve been outbid',
+    'Someone bid US$' || p_amount || ' on ' || v_item.title, 'high');
+END IF;
+```
+
+SMS sent async via `pg_net` or notification trigger → `send-sms`.
+
+| Recipient | SMS |
+|---|---|
+| Previous bidder | "You've been outbid on [item]. New highest: US$X. Place a higher bid now." |
+
+### 4. Auction Ending Soon (Phase 1b)
+**New:** `supabase/functions/auction-ending-alerts/index.ts` (cron every 15 min)
+
+Query auctions ending within 1 hour with bids → SMS highest bidder.
+
+| Recipient | SMS |
+|---|---|
+| Highest bidder | "Your bid of US$X on [item] expires in less than 1 hour." |
+
+### 5. Airtime Rewards (Phase 2)
+Uses `https://usd.txt.co.zw/Remote/DirectRecharge`
+
+| Trigger | Recipient | Amount |
+|---|---|---|
+| First listing posted | Seller | US$0.50 airtime |
+| Referral signup | Referrer + new user | US$0.25 each |
+
+## New DB Table: `sms_log`
+
+```sql
+CREATE TABLE IF NOT EXISTS public.sms_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES public.profiles(id),
+  phone text NOT NULL,
+  message text NOT NULL,
+  event_type text NOT NULL,
+  status text DEFAULT 'sent' CHECK (status IN ('sent', 'delivered', 'failed')),
+  provider_reference text,
+  cost_usd numeric(6,4),
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sms_log_user ON public.sms_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_sms_log_created ON public.sms_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sms_log_user_recent ON public.sms_log(user_id, created_at DESC);
+```
+
+## Files to Create
+
+| File | Purpose |
+|---|---|
+| `supabase/functions/send-sms/index.ts` | Core reusable SMS sender |
+| `supabase/functions/auction-ending-alerts/index.ts` | Cron: "ending soon" SMS (Phase 1b) |
+
+## Files to Modify
+
+| File | Change |
+|---|---|
+| `supabase/functions/payment-webhook/index.ts` | Add SMS calls in `completePayment()` |
+| `supabase/functions/end-auctions/index.ts` | Query winners after RPC, send SMS |
+| `supabase/schema.sql` | Add outbid notification to `place_bid()`, add `sms_log` table |
+
+## Data Flow
+```
+Event (payment, auction end, outbid)
+  → Edge Function detects event
+  → Queries profiles.phone for user
+  → Calls send-sms Edge Function
+  → send-sms POSTs to usd.txt.co.zw/Remote/SendMessage
+  → Logs to sms_log table
+  → Returns success/failure (never throws)
+```
+
+## Security
+- **Credentials:** `TXT_API_USERNAME` + `TXT_API_PASSWORD` as Supabase secrets
+- **Phone numbers:** Already in `profiles.phone` (required at signup)
+- **Rate limiting:** Max 10 SMS/user/hour via `sms_log` index
+- **Cost cap:** Max 500 SMS/day (US$15/day) enforced in `send-sms`
+- **Internal only:** `send-sms` requires service role auth, not publicly callable
+- **Opt-out:** Phase 2 — add `sms_opt_out` column to profiles
+
+## Minimal Viable Integration
+
+1. `send-sms` Edge Function (reusable core)
+2. Modify `payment-webhook` — SMS on payment confirmed (buyer + seller)
+3. Modify `end-auctions` — SMS on auction won (winner + seller)
+4. Schema: `sms_log` table
+
+**Estimated effort:** ~14 hours total for Phase 1
+
+## txt.co.zw API Reference
+
+- **Host:** `https://usd.txt.co.zw` (USD currency)
+- **Send SMS:** `POST /Remote/SendMessage` — fields: Recipients, Body, sending_number
+- **Send Airtime:** `POST /Remote/DirectRecharge` — fields: Recipient, Amount
+- **Check Balance:** `GET /Remote/AccountBalance`
+- **Auth:** HTTP Basic or Username + IP whitelist
+- **Test mode:** Available — directs SMS to predefined emails/numbers
