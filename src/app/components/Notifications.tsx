@@ -1,8 +1,28 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { X, CheckCheck, Loader2, BellOff } from "lucide-react";
-import { useNotifications, useMarkAllRead, useDeleteNotification } from "../../hooks/useNotifications";
+import { useNotifications, useMarkAllRead, useMarkRead, useDeleteNotification } from "../../hooks/useNotifications";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+
+// Route notifications by type. The notifications table has no link column,
+// so we infer destination from `type`. Adding a `link text` column would
+// let us deep-link to specific items/auctions, but that's a follow-up
+// migration plus 12+ insert-site updates.
+function destinationForType(type: string): string {
+  switch (type) {
+    case 'auction_won':
+    case 'payment':
+      return '/payments';
+    case 'message':
+      return '/messages';
+    case 'bid':
+    case 'auction_ending':
+      return '/my-listings';
+    default:
+      return '/';
+  }
+}
 
 function NotificationSkeleton() {
   return (
@@ -21,10 +41,19 @@ function NotificationSkeleton() {
 }
 
 export function Notifications() {
+  const navigate = useNavigate();
   const { data: notifications, isLoading } = useNotifications();
   const markAllRead = useMarkAllRead();
+  const markRead = useMarkRead();
   const deleteNotification = useDeleteNotification();
   const [filter, setFilter] = useState<string>('all');
+
+  const handleOpen = (notification: any) => {
+    if (!notification.read) {
+      markRead.mutate(notification.id);
+    }
+    navigate(destinationForType(notification.type));
+  };
 
   const items = notifications || [];
   const unreadCount = items.filter((n: any) => !n.read).length;
@@ -136,7 +165,16 @@ export function Notifications() {
           filteredNotifications.map((notification: any) => (
             <div
               key={notification.id}
-              className={`bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-sm ${getPriorityColor(notification.priority)} ${!notification.read ? 'bg-emerald-50' : ''}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleOpen(notification)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleOpen(notification);
+                }
+              }}
+              className={`bg-card border rounded-xl p-5 transition-all duration-200 hover:shadow-sm cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${getPriorityColor(notification.priority)} ${!notification.read ? 'bg-emerald-50' : ''}`}
             >
               <div className="flex items-start gap-3">
                 <span className="text-2xl">{getPriorityIcon(notification.priority)}</span>
@@ -148,7 +186,10 @@ export function Notifications() {
                   </p>
                 </div>
                 <button
-                  onClick={() => dismissNotification(notification.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissNotification(notification.id);
+                  }}
                   className="w-11 h-11 flex items-center justify-center text-muted-foreground transition-colors duration-200 hover:text-red-500 shrink-0"
                   aria-label="Dismiss notification"
                 >

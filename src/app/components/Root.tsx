@@ -73,17 +73,28 @@ export function Root() {
           {/* More — same typographic treatment */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="More options"
+            aria-label={
+              !menuOpen && unreadCount && unreadCount > 0
+                ? `More options, ${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}`
+                : 'More options'
+            }
             className={`flex-1 text-center py-3 min-h-[44px] relative transition-all ${
               menuOpen
                 ? 'text-foreground font-bold text-[13px]'
                 : 'text-muted-foreground font-medium text-[12px] hover:text-foreground/80'
             }`}
           >
-            {!menuOpen && unreadCount && unreadCount > 0 && (
-              <span className="absolute top-2.5 right-[28%] w-1 h-1 bg-emerald-600 rounded-full" />
-            )}
-            More
+            <span className="inline-flex items-center gap-1.5">
+              More
+              {!menuOpen && unreadCount && unreadCount > 0 && (
+                <span
+                  aria-hidden
+                  className="inline-flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[10px] font-bold leading-none text-white bg-emerald-600 rounded-full"
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </span>
           </button>
         </div>
       </nav>
