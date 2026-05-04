@@ -1,17 +1,22 @@
 -- ============================================================================
--- FINAL DEMO SEED — auctions ending across the next 60 minutes
+-- FINAL DEMO SEED — auctions ending across the next 60 minutes (2 agents)
 -- ============================================================================
 -- Replaces demo-agent-auctions.sql (April 16 demo). This seed creates a
--- DEMO-prefixed batch with longer end-time spread (5–55 min) so:
---   - The demo presenter can bid live without racing a 2-min countdown.
---   - The agent can win at least one auction during the demo window.
---   - Different attendees can watch staggered settlements.
+-- DEMO-prefixed batch where two distinct buyer agents — each with its own
+-- strategy and category focus — accumulate multiple wins each.
 --
--- Mix: 2 already ended (won, ready for win-detector to settle),
---      8 active staggered every 5–10 minutes across the next hour.
+--   Agent 1: Penny Sniper       (sniper, cattle/sheep focus)
+--   Agent 2: Boer Bargainer     (sniper, goats/pigs focus)
+--
+-- Mix: 4 already ended (2 per agent — ready for win-detector to settle),
+--      8 active staggered every 5–8 min across the next hour
+--      (4 active per agent, distinct categories so they don't compete
+--      head-to-head; the demo focuses on parallel autonomous flows).
+--
+-- All bids ≤ US$0.05 — penny-range so we can demo real EcoCash Express
+-- pushes without burning real money. Both agents have max_bid_usd = 0.05.
 --
 -- Buyer profile: tatendawalter62@gmail.com (id 861ee7b2-...).
--- Phone is set to 0781497764 so payment-orchestrator surfaces it.
 --
 -- IDEMPOTENT: re-running clears any DEMO · %-prefixed rows first.
 -- ============================================================================
@@ -26,7 +31,9 @@ DECLARE
   seller_d  uuid := '5a4f04db-aaff-4a8b-9d1b-ac2046d45878';
   seller_e  uuid := '1e397880-49de-4279-9986-def2b22abd26';
 
-  agent_uuid uuid;
+  penny_uuid uuid;
+  boer_uuid  uuid;
+  active_agent_uuid uuid;
   item_id    uuid;
   bid_uuid   uuid;
 
@@ -38,36 +45,37 @@ DECLARE
   img_dorper   text := 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80';
   img_pig      text := 'https://images.unsplash.com/photo-1764943051090-991c5a82174c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80';
 
-  -- (title_suffix, category, breed, age, weight, desc, location, health, starting_price, current_bid, image, seller, minutes_to_end, state)
-  -- All bids ≤ US$0.05 — penny-range so we can demo real EcoCash Express
-  -- pushes without burning real money. Agent max_bid_usd is also 0.05.
+  -- (title_suffix, category, breed, age, weight, desc, location, health, starting_price, current_bid, image, seller, minutes_to_end, state, agent_label)
+  -- agent_label is 'penny' or 'boer' — routes the agent_bid to the right agent.
+  -- Penny Sniper: cattle + sheep (5 listings — 2 ended + 3 active)
+  -- Boer Bargainer: goats + pigs (5 listings — 2 ended + 3 active)
   specs text[][] := ARRAY[
-    ARRAY['Hereford Heifer',  'Cattle', 'Hereford',    '3 years', '420kg', 'Pre-ended for win-detector demo — settles via CF Worker relay + EcoCash push.', 'Harare',   'Excellent', '0.01', '0.01', img_hereford, seller_a::text, '-3',  'ended'],
-    ARRAY['Brahman Bull',     'Cattle', 'Brahman',     '4 years', '480kg', 'Pre-ended — second settlement in the batch.',                                  'Bulawayo', 'Excellent', '0.01', '0.02', img_brahman,  seller_b::text, '-3',  'ended'],
-    ARRAY['Boer Goat',        'Goats',  'Boer',        '1 year',  '45kg',  'Live — ends 5 min in. Bid live during demo Act 2.',                              'Gweru',    'Excellent', '0.01', '0.01', img_boergoat, seller_d::text, '5',   'active'],
-    ARRAY['Dorper Lamb',      'Sheep',  'Dorper',      '6 months','30kg',  'Live — ends 12 min in. Mid-demo settlement window.',                             'Masvingo', 'Good',      '0.01', '0.02', img_dorper,   seller_e::text, '12',  'active'],
-    ARRAY['Mixed Boer Pair',  'Goats',  'Boer Cross',  '2 years', '50kg',  'Live — ends 20 min in.',                                                         'Chinhoyi', 'Good',      '0.01', '0.03', img_boergoat, seller_a::text, '20',  'active'],
-    ARRAY['Angus Calf',       'Cattle', 'Angus',       '8 months','240kg', 'Live — ends 28 min in. Carries through Q&A buffer.',                             'Mutare',   'Good',      '0.01', '0.04', img_angus,    seller_c::text, '28',  'active'],
-    ARRAY['Merino Ewe',       'Sheep',  'Merino',      '1 year',  '38kg',  'Live — ends 35 min in.',                                                         'Kadoma',   'Excellent', '0.01', '0.05', img_merino,   seller_b::text, '35',  'active'],
-    ARRAY['Large White Pig',  'Pigs',   'Large White', '9 months','80kg',  'Live — ends 42 min in.',                                                         'Kwekwe',   'Good',      '0.01', '0.02', img_pig,      seller_c::text, '42',  'active'],
-    ARRAY['Holstein Heifer',  'Cattle', 'Holstein',    '2 years', '360kg', 'Live — ends 50 min in.',                                                         'Harare',   'Good',      '0.01', '0.03', img_brahman,  seller_d::text, '50',  'active'],
-    ARRAY['Boer Kid',         'Goats',  'Boer',        '4 months','18kg',  'Live — ends 58 min in. Last to settle in this batch.',                           'Bulawayo', 'Excellent', '0.01', '0.04', img_boergoat, seller_e::text, '58',  'active']
+    ARRAY['Hereford Heifer',  'Cattle', 'Hereford',    '3 years', '420kg', 'Pre-ended — Penny Sniper #1 settles via CF Worker relay + EcoCash push.', 'Harare',   'Excellent', '0.01', '0.01', img_hereford, seller_a::text, '-3',  'ended',  'penny'],
+    ARRAY['Brahman Bull',     'Cattle', 'Brahman',     '4 years', '480kg', 'Pre-ended — Penny Sniper #2.',                                            'Bulawayo', 'Excellent', '0.01', '0.02', img_brahman,  seller_b::text, '-3',  'ended',  'penny'],
+    ARRAY['Boer Goat',        'Goats',  'Boer',        '1 year',  '45kg',  'Pre-ended — Boer Bargainer #1 settles in parallel.',                       'Gweru',    'Excellent', '0.01', '0.01', img_boergoat, seller_d::text, '-3',  'ended',  'boer'],
+    ARRAY['Large White Pig',  'Pigs',   'Large White', '9 months','80kg',  'Pre-ended — Boer Bargainer #2.',                                          'Kwekwe',   'Good',      '0.01', '0.02', img_pig,      seller_c::text, '-3',  'ended',  'boer'],
+    ARRAY['Dorper Lamb',      'Sheep',  'Dorper',      '6 months','30kg',  'Live — ends 8 min in. Penny Sniper extends its run.',                      'Masvingo', 'Good',      '0.01', '0.02', img_dorper,   seller_e::text, '8',   'active', 'penny'],
+    ARRAY['Mixed Boer Pair',  'Goats',  'Boer Cross',  '2 years', '50kg',  'Live — ends 14 min in. Boer Bargainer extends its run.',                   'Chinhoyi', 'Good',      '0.01', '0.03', img_boergoat, seller_a::text, '14',  'active', 'boer'],
+    ARRAY['Angus Calf',       'Cattle', 'Angus',       '8 months','240kg', 'Live — ends 22 min in. Penny Sniper, mid-demo settlement.',                'Mutare',   'Good',      '0.01', '0.04', img_angus,    seller_c::text, '22',  'active', 'penny'],
+    ARRAY['Boer Kid',         'Goats',  'Boer',        '4 months','18kg',  'Live — ends 30 min in. Boer Bargainer.',                                  'Bulawayo', 'Excellent', '0.01', '0.04', img_boergoat, seller_e::text, '30',  'active', 'boer'],
+    ARRAY['Merino Ewe',       'Sheep',  'Merino',      '1 year',  '38kg',  'Live — ends 40 min in. Penny Sniper.',                                    'Kadoma',   'Excellent', '0.01', '0.05', img_merino,   seller_b::text, '40',  'active', 'penny'],
+    ARRAY['Holstein Heifer',  'Cattle', 'Holstein',    '2 years', '360kg', 'Live — ends 50 min in. Carries through Q&A buffer.',                       'Harare',   'Good',      '0.01', '0.03', img_brahman,  seller_d::text, '50',  'active', 'penny'],
+    ARRAY['Sow & Piglets',    'Pigs',   'Hampshire',   '3 years', '180kg', 'Live — ends 56 min in. Boer Bargainer, last to settle.',                   'Bulawayo', 'Excellent', '0.01', '0.04', img_pig,      seller_a::text, '56',  'active', 'boer'],
+    ARRAY['Damara Ewe',       'Sheep',  'Damara',      '2 years', '42kg',  'Live — ends 60 min in. Penny Sniper, last in batch.',                      'Mutare',   'Good',      '0.01', '0.05', img_merino,   seller_c::text, '60',  'active', 'penny']
   ];
 
   spec text[];
 BEGIN
   ---------------------------------------------------------------------------
-  -- 1. Idempotent cleanup of prior DEMO · % rows
+  -- 1. Idempotent cleanup of prior DEMO · % rows (FK-aware order)
   ---------------------------------------------------------------------------
-  -- Clean up agent flow first
   DELETE FROM public.settlement_ledger WHERE payment_order_id IN (
     SELECT id FROM public.agent_payment_orders
      WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %')
   );
   DELETE FROM public.agent_payment_orders WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
   DELETE FROM public.agent_bids  WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
-  -- Demo payments referencing prior demo listings — must clear BEFORE
-  -- livestock_items so the FK from payments.livestock_id doesn't block.
+  -- payments must clear BEFORE livestock_items (FK from payments.livestock_id)
   DELETE FROM public.payments WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
   DELETE FROM public.notifications WHERE link LIKE '/item/%' AND link IN (
     SELECT '/item/' || id::text FROM public.livestock_items WHERE title LIKE 'DEMO · %'
@@ -81,32 +89,57 @@ BEGIN
   UPDATE public.profiles SET phone = '0781497764' WHERE id = buyer_id;
 
   ---------------------------------------------------------------------------
-  -- 3. Reuse Penny Sniper agent if it exists (don't double up)
+  -- 3. Two agents — Penny Sniper (cattle/sheep) + Boer Bargainer (goats/pigs)
   ---------------------------------------------------------------------------
-  SELECT id INTO agent_uuid
-    FROM public.agents
-   WHERE user_id = buyer_id
-     AND name = 'Penny Sniper'
-   LIMIT 1;
-
-  IF agent_uuid IS NULL THEN
+  SELECT id INTO penny_uuid FROM public.agents
+   WHERE user_id = buyer_id AND name = 'Penny Sniper' LIMIT 1;
+  IF penny_uuid IS NULL THEN
     INSERT INTO public.agents (user_id, agent_type, name, status, config)
     VALUES (buyer_id, 'sniper', 'Penny Sniper', 'active',
-            jsonb_build_object('max_bid_usd', 0.05, 'snipe_window_seconds', 30, 'payment_phone', '0781497764'))
-    RETURNING id INTO agent_uuid;
+            jsonb_build_object(
+              'max_bid_usd', 0.05,
+              'snipe_window_seconds', 30,
+              'payment_phone', '0781497764',
+              'category_focus', ARRAY['Cattle', 'Sheep']))
+    RETURNING id INTO penny_uuid;
   ELSE
-    -- Refresh ceiling on the existing agent so all penny-range bids stay
-    -- within budget — keeps real EcoCash pushes affordable during the demo.
     UPDATE public.agents
-       SET config = jsonb_set(jsonb_set(config, '{max_bid_usd}', '0.05'::jsonb),
-                              '{payment_phone}', '"0781497764"'::jsonb)
-     WHERE id = agent_uuid;
+       SET config = jsonb_set(jsonb_set(jsonb_set(config,
+                              '{max_bid_usd}', '0.05'::jsonb),
+                              '{payment_phone}', '"0781497764"'::jsonb),
+                              '{category_focus}', '["Cattle","Sheep"]'::jsonb),
+           status = 'active'
+     WHERE id = penny_uuid;
+  END IF;
+
+  SELECT id INTO boer_uuid FROM public.agents
+   WHERE user_id = buyer_id AND name = 'Boer Bargainer' LIMIT 1;
+  IF boer_uuid IS NULL THEN
+    INSERT INTO public.agents (user_id, agent_type, name, status, config)
+    VALUES (buyer_id, 'sniper', 'Boer Bargainer', 'active',
+            jsonb_build_object(
+              'max_bid_usd', 0.05,
+              'snipe_window_seconds', 30,
+              'payment_phone', '0781497764',
+              'category_focus', ARRAY['Goats', 'Pigs']))
+    RETURNING id INTO boer_uuid;
+  ELSE
+    UPDATE public.agents
+       SET config = jsonb_set(jsonb_set(jsonb_set(config,
+                              '{max_bid_usd}', '0.05'::jsonb),
+                              '{payment_phone}', '"0781497764"'::jsonb),
+                              '{category_focus}', '["Goats","Pigs"]'::jsonb),
+           status = 'active'
+     WHERE id = boer_uuid;
   END IF;
 
   ---------------------------------------------------------------------------
-  -- 4. Seed listings + pre-placed bids
+  -- 4. Seed listings + pre-placed bids, routed to the right agent
   ---------------------------------------------------------------------------
   FOREACH spec SLICE 1 IN ARRAY specs LOOP
+    -- Resolve agent for this listing
+    active_agent_uuid := CASE spec[15] WHEN 'penny' THEN penny_uuid ELSE boer_uuid END;
+
     INSERT INTO public.livestock_items (
       title, category, breed, age, weight, description, location, health,
       starting_price, current_bid, bid_count, image_urls,
@@ -123,25 +156,28 @@ BEGIN
     RETURNING id INTO item_id;
 
     -- Buyer's bid. Pre-ended listings are already winners; active ones flip
-    -- via end-auctions cron / RPC.
+    -- when end-auctions / place_bid fires.
     INSERT INTO public.bids (livestock_id, user_id, amount, is_winner, created_at)
     VALUES (item_id, buyer_id, spec[10]::numeric, spec[14] = 'ended', NOW() - interval '1 minute')
     RETURNING id INTO bid_uuid;
 
-    -- agent_bids.status defaults to 'placed' (now in schema.sql, no longer
-    -- relying on a defensive ALTER inside the seed)
     INSERT INTO public.agent_bids (agent_id, livestock_id, bid_id, amount, strategy, status)
-    VALUES (agent_uuid, item_id, bid_uuid, spec[10]::numeric, 'snipe', 'placed');
+    VALUES (active_agent_uuid, item_id, bid_uuid, spec[10]::numeric, 'snipe', 'placed');
   END LOOP;
 
-  RAISE NOTICE 'Final-demo seed complete — agent %, 10 listings (2 ended + 8 active across 60 min)', agent_uuid;
+  RAISE NOTICE 'Final-demo seed complete — Penny %, Boer %, 12 listings (4 ended + 8 active across 60 min)', penny_uuid, boer_uuid;
 END $$;
 
--- Verification
+-- Verification — wins per agent + active count + end-time spread
 SELECT
-  count(*) FILTER (WHERE status = 'active') AS active_listings,
-  count(*) FILTER (WHERE status = 'ended')  AS ended_listings,
-  min(end_time)                              AS earliest_end,
-  max(end_time)                              AS latest_end
-FROM public.livestock_items
-WHERE title LIKE 'DEMO · %';
+  a.name AS agent,
+  count(*) FILTER (WHERE li.status = 'ended')  AS already_won,
+  count(*) FILTER (WHERE li.status = 'active') AS active_bids,
+  min(li.end_time) AS earliest_end,
+  max(li.end_time) AS latest_end
+FROM public.agents a
+JOIN public.agent_bids ab ON ab.agent_id = a.id
+JOIN public.livestock_items li ON li.id = ab.livestock_id
+WHERE li.title LIKE 'DEMO · %'
+GROUP BY a.name
+ORDER BY a.name;
