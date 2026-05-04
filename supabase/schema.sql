@@ -103,8 +103,13 @@ create table if not exists public.notifications (
   message text not null,
   read boolean default false,
   priority text default 'medium' check (priority in ('high', 'medium', 'low')),
+  -- Optional deep-link path. When set, the client navigates here on tap instead
+  -- of falling back to type-based routing. Lets us route outbid bidders to the
+  -- specific item, while sellers go to /my-listings, even though both are type='bid'.
+  link text,
   created_at timestamptz default now()
 );
+alter table public.notifications add column if not exists link text;
 
 -- Indexes
 create index if not exists idx_livestock_category on public.livestock_items(category);
@@ -205,13 +210,15 @@ begin
       bid_count = bid_count + 1
   where id = p_livestock_id;
 
-  -- Notify seller that a new bid was placed
-  insert into public.notifications (user_id, type, title, message, priority)
+  -- Notify seller that a new bid was placed → /my-listings
+  insert into public.notifications (user_id, type, title, message, priority, link)
   values (v_item.seller_id, 'bid', 'New bid on your listing',
           'Someone bid US$' || p_amount || ' on ' || v_item.title,
-          'medium');
+          'medium',
+          '/my-listings');
 
-  -- Notify all previous bidders (excluding the current bidder) that they've been outbid
+  -- Notify all previous bidders (excluding the current bidder) — deep-link to the item
+  -- so they land on the bid form and can re-bid in one tap.
   for v_prev_bidder in
     select distinct on (user_id) user_id
     from public.bids
@@ -219,10 +226,11 @@ begin
       and user_id != p_user_id
       and id != v_bid_id
   loop
-    insert into public.notifications (user_id, type, title, message, priority)
+    insert into public.notifications (user_id, type, title, message, priority, link)
     values (v_prev_bidder.user_id, 'bid', 'You''ve been outbid!',
             'A new bid of US$' || p_amount || ' was placed on ' || v_item.title || '. Place a higher bid to stay in the race!',
-            'high');
+            'high',
+            '/item/' || p_livestock_id::text);
   end loop;
 
   return v_bid_id;
@@ -278,32 +286,36 @@ begin
       update public.bids set is_winner = false where livestock_id = v_item.id;
       update public.bids set is_winner = true where id = v_winning_bid.id;
 
-      -- Notify winner
-      insert into public.notifications (user_id, type, title, message, priority)
+      -- Notify winner → /payments to complete payment
+      insert into public.notifications (user_id, type, title, message, priority, link)
       values (v_winning_bid.user_id, 'auction_won', 'You won!',
               'You won the auction for ' || v_item.title || ' at US$' || v_winning_bid.amount || '. Head to the listing to complete payment.',
-              'high');
+              'high',
+              '/payments');
 
-      -- Notify seller
-      insert into public.notifications (user_id, type, title, message, priority)
+      -- Notify seller → /my-listings
+      insert into public.notifications (user_id, type, title, message, priority, link)
       values (v_item.seller_id, 'auction_ending', 'Auction sold!',
               'Your listing ' || v_item.title || ' sold for US$' || v_winning_bid.amount || '.',
-              'high');
+              'high',
+              '/my-listings');
 
-      -- Notify losing bidders
-      insert into public.notifications (user_id, type, title, message, priority)
+      -- Notify losing bidders → item detail (so they can see what won and explore similar)
+      insert into public.notifications (user_id, type, title, message, priority, link)
       select distinct b.user_id, 'auction_lost', 'Auction ended',
              'The auction for ' || v_item.title || ' has ended. The winning bid was US$' || v_winning_bid.amount || '.',
-             'medium'
+             'medium',
+             '/item/' || v_item.id::text
       from public.bids b
       where b.livestock_id = v_item.id
         and b.user_id != v_winning_bid.user_id;
     else
-      -- Notify seller that auction ended with no bids
-      insert into public.notifications (user_id, type, title, message, priority)
+      -- Notify seller that auction ended with no bids → /my-listings
+      insert into public.notifications (user_id, type, title, message, priority, link)
       values (v_item.seller_id, 'auction_ending', 'Auction ended',
               'Your listing ' || v_item.title || ' ended with no bids.',
-              'medium');
+              'medium',
+              '/my-listings');
     end if;
   end loop;
 

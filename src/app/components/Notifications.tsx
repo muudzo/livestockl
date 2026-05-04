@@ -5,12 +5,15 @@ import { useNotifications, useMarkAllRead, useMarkRead, useDeleteNotification } 
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 
-// Route notifications by type. The notifications table has no link column,
-// so we infer destination from `type`. Adding a `link text` column would
-// let us deep-link to specific items/auctions, but that's a follow-up
-// migration plus 12+ insert-site updates.
-function destinationForType(type: string): string {
-  switch (type) {
+// Notifications carry an optional `link` set by the writing RPC/Edge Function.
+// When present we navigate there directly — this is how outbid bidders go to
+// /item/<id> while sellers (also type='bid') go to /my-listings. For older
+// rows that predate the link column, we fall back to type-based routing.
+function destinationFor(notification: { type: string; link?: string | null }): string {
+  if (notification.link && typeof notification.link === 'string') {
+    return notification.link;
+  }
+  switch (notification.type) {
     case 'auction_won':
     case 'payment':
       return '/payments';
@@ -52,7 +55,7 @@ export function Notifications() {
     if (!notification.read) {
       markRead.mutate(notification.id);
     }
-    navigate(destinationForType(notification.type));
+    navigate(destinationFor(notification));
   };
 
   const items = notifications || [];
