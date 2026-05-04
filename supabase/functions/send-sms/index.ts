@@ -44,7 +44,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // ── Auth: require service role key or CRON_SECRET ──
+    // Auth gate. Service-role / CRON for SMS sends; the read-only health
+    // probe is open to any caller the Supabase gateway already authenticated
+    // (logged-in user or anon) — it sends no SMS and reveals only whether the
+    // txt.co.zw REMOTE credentials are provisioned.
     const authHeader = req.headers.get("Authorization") || "";
     const cronSecret = Deno.env.get("CRON_SECRET");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -52,13 +55,77 @@ Deno.serve(async (req) => {
     const isCron = cronSecret && authHeader === `Bearer ${cronSecret}`;
     const isServiceRole =
       serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`;
+    const isPrivileged = isCron || isServiceRole;
 
-    if (!isCron && !isServiceRole) {
+    const payload = await req.json();
+    const { action } = payload;
+
+    if (!isPrivileged && action !== "health") {
       return json({ success: false, error: "Unauthorized" }, 401);
     }
 
+    // ── Health check action — verifies txt.co.zw REMOTE creds without sending SMS ──
+    if (action === "health") {
+      const txtUsername = Deno.env.get("TXT_USERNAME");
+      const txtPassword = Deno.env.get("TXT_PASSWORD");
+
+      if (!txtUsername || !txtPassword) {
+        return json({
+          ok: false,
+          status: "credentials_missing",
+          error: "TXT_USERNAME / TXT_PASSWORD not set in Supabase secrets",
+        });
+      }
+
+      const basicAuth = btoa(`${txtUsername}:${txtPassword}`);
+      try {
+        const res = await fetch(`${TXT_HOST}/Remote/AccountBalance`, {
+          method: "GET",
+          headers: { Authorization: `Basic ${basicAuth}` },
+          redirect: "manual",
+        });
+
+        // 302 → /user/logon means REMOTE/Basic Auth not provisioned
+        if (res.status === 302 || res.status === 301) {
+          return json({
+            ok: false,
+            status: "auth_not_provisioned",
+            httpStatus: res.status,
+            error: "Auth path inactive — REMOTE role not enabled for Basic Auth on this account",
+            host: TXT_HOST,
+          });
+        }
+
+        if (!res.ok) {
+          const body = (await res.text()).slice(0, 300);
+          return json({
+            ok: false,
+            status: "http_error",
+            httpStatus: res.status,
+            error: body,
+            host: TXT_HOST,
+          });
+        }
+
+        const balance = (await res.text()).trim();
+        return json({
+          ok: true,
+          status: "live",
+          balance,
+          host: TXT_HOST,
+        });
+      } catch (fetchErr) {
+        return json({
+          ok: false,
+          status: "unreachable",
+          error: (fetchErr as Error).message,
+          host: TXT_HOST,
+        });
+      }
+    }
+
     // ── Parse & validate input ──
-    const { recipientPhone, message, eventType, userId } = await req.json();
+    const { recipientPhone, message, eventType, userId } = payload;
 
     if (!recipientPhone || !message) {
       return json(

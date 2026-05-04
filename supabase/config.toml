@@ -47,3 +47,10 @@ verify_jwt = false
 # Webhooks — called by external providers without a JWT
 [functions.payment-webhook]
 verify_jwt = false
+
+# send-sms exposes a read-only `action: "health"` probe used by the test
+# harness with anon/user JWT, plus full SMS send gated to service role inside
+# the handler. verify_jwt=false lets the health probe through cleanly; the
+# in-function auth gate still rejects unauthorized SMS sends.
+[functions.send-sms]
+verify_jwt = false

@@ -14,14 +14,58 @@ interface TestResult {
   detail: string;
 }
 
+interface HealthState {
+  status: "idle" | "checking" | "live" | "blocked" | "missing" | "error";
+  detail: string;
+}
+
 export default function TestSmsNotification() {
   const [phone, setPhone] = useState("0771111111");
   const [message, setMessage] = useState("Test SMS from ZimLivestock");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<TestResult[]>([]);
+  const [health, setHealth] = useState<HealthState>({ status: "idle", detail: "" });
 
   const addResult = (result: TestResult) => {
     setResults((prev) => [...prev, result]);
+  };
+
+  const pingHealth = async () => {
+    setHealth({ status: "checking", detail: "Calling /Remote/AccountBalance…" });
+
+    if (!isSupabaseConfigured) {
+      setHealth({ status: "missing", detail: "Supabase not configured locally" });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke("send-sms", {
+        body: { action: "health" },
+      });
+
+      if (error) {
+        setHealth({ status: "error", detail: `Edge Function error: ${error.message}` });
+        return;
+      }
+
+      if (data?.ok && data?.status === "live") {
+        setHealth({ status: "live", detail: `Balance: ${data.balance} on ${data.host}` });
+      } else if (data?.status === "credentials_missing") {
+        setHealth({ status: "missing", detail: data.error });
+      } else if (data?.status === "auth_not_provisioned") {
+        setHealth({
+          status: "blocked",
+          detail: `${data.error} (HTTP ${data.httpStatus} on ${data.host})`,
+        });
+      } else {
+        setHealth({
+          status: "error",
+          detail: data?.error || `Unexpected response: ${JSON.stringify(data)}`,
+        });
+      }
+    } catch (err: any) {
+      setHealth({ status: "error", detail: err.message });
+    }
   };
 
   const runAllTests = async () => {
@@ -190,6 +234,49 @@ export default function TestSmsNotification() {
             />
             <p className="text-xs text-muted-foreground mt-1">{message.length}/160 characters</p>
           </div>
+        </div>
+
+        <div className="rounded border p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">txt.co.zw credential health</Label>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={pingHealth}
+              disabled={health.status === "checking"}
+            >
+              {health.status === "checking" ? (
+                <>
+                  <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                  Pinging…
+                </>
+              ) : (
+                "Ping txt.co.zw"
+              )}
+            </Button>
+          </div>
+          {health.status !== "idle" && (
+            <div
+              className={`text-xs rounded p-2 border ${
+                health.status === "live"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                  : health.status === "blocked"
+                  ? "bg-amber-50 border-amber-200 text-amber-900"
+                  : health.status === "missing"
+                  ? "bg-slate-50 border-slate-200 text-slate-700"
+                  : health.status === "checking"
+                  ? "bg-slate-50 border-slate-200 text-slate-700"
+                  : "bg-red-50 border-red-200 text-red-900"
+              }`}
+            >
+              <div className="font-medium uppercase tracking-wide">{health.status}</div>
+              <div className="mt-0.5">{health.detail}</div>
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            Hits <code>/Remote/AccountBalance</code> — no SMS sent, no cost. Confirms whether REMOTE/Basic Auth is provisioned.
+          </p>
         </div>
 
         <Button onClick={runAllTests} disabled={loading} className="w-full">
