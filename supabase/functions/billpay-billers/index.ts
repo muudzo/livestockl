@@ -29,7 +29,12 @@ const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 const API_TIMEOUT_MS = 30_000;
 
 // ─── Curated farmer-relevant biller codes ───
+// "Test" is included so the Demo UI can exercise the live AUTH→PAY path
+// against the v1.33-documented prefix-based simulator (AT/AF/PT/PF/PP/PFF)
+// — production BillPay test meters like 37132567431 only resolve on the
+// BillPay test environment, not on prod creds. Test biller works on both.
 const CURATED_CODES = [
+  "Test",
   "ZETDC", "AIRTIME", "COH", "BCC", "MAS", "GWE",
   "UZ", "NUST", "MSU", "GZU", "CIMAS", "FMH",
   "NLAC", "DOVES", "DSTV",
