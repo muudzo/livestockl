@@ -9,3 +9,21 @@ dist
 docs/paynow-billpay-vendor-api.md
 docs/txt-co-zw-sms-api.md
 .vercel
+
+# OS metadata
+.DS_Store
+
+# Deno lockfile — Edge Functions are deployed via supabase CLI which
+# resolves imports from the URL pin in each function; the local lock is
+# a build artifact, not a source of truth.
+deno.lock
+
+# Supabase CLI workspace state (project ref, pooler url, version metadata).
+# All values are derivable from `supabase link` + `supabase status`; tracking
+# them produces noise on every CLI upgrade. Untracked via `git rm --cached`.
+supabase/.temp/
+
+# Local node-backend learning clone — contains 2.6k files of node_modules
+# and Postgres data dirs; the working source is tracked in the
+# learn/node-backend-clone branch, not the main app tree.
+backend-clone/
