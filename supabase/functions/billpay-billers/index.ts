@@ -34,7 +34,7 @@ const API_TIMEOUT_MS = 30_000;
 // — production BillPay test meters like 37132567431 only resolve on the
 // BillPay test environment, not on prod creds. Test biller works on both.
 const CURATED_CODES = [
-  "Test",
+  "TEST",
   "ZETDC", "AIRTIME", "COH", "BCC", "MAS", "GWE",
   "UZ", "NUST", "MSU", "GZU", "CIMAS", "FMH",
   "NLAC", "DOVES", "DSTV",
