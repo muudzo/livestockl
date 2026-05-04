@@ -607,8 +607,13 @@ CREATE TABLE IF NOT EXISTS public.agent_bids (
   bid_id uuid REFERENCES public.bids(id) ON DELETE SET NULL,
   amount numeric NOT NULL CHECK (amount > 0),
   strategy text NOT NULL,
+  -- win-detector reads this to find unsettled bids ('placed') and writes
+  -- 'won' / 'lost' on terminal state. Was previously only added by the
+  -- demo seed's defensive ALTER, which broke fresh init from schema.sql.
+  status text DEFAULT 'placed',
   created_at timestamptz DEFAULT now()
 );
+ALTER TABLE public.agent_bids ADD COLUMN IF NOT EXISTS status text DEFAULT 'placed';
 
 CREATE INDEX IF NOT EXISTS idx_agent_bids_agent ON public.agent_bids(agent_id);
 CREATE INDEX IF NOT EXISTS idx_agent_bids_livestock ON public.agent_bids(livestock_id);
