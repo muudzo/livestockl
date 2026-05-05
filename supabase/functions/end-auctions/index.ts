@@ -103,6 +103,22 @@ Deno.serve(async (req) => {
         .eq("status", "ended")
         .eq("bids.is_winner", true);
 
+      // One batched idempotency lookup over the past 5 min — avoids N round-trips.
+      const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+      const { data: recentSms } = await supabase
+        .from("sms_log")
+        .select("event_type, message")
+        .gte("created_at", fiveMinAgo)
+        .in("event_type", ["auction_won", "auction_sold"]);
+
+      const recentTitles = new Set(
+        (recentSms ?? []).map((r) => `${r.event_type}::${r.message?.slice(0, 80) ?? ""}`),
+      );
+
+      // Build all dispatch promises, then fire in parallel — sequential await
+      // hits Edge Function CPU budget at ~8 items.
+      const dispatches: Promise<void>[] = [];
+
       for (const item of settled ?? []) {
         const seller = (item as any).seller;
         const winningBid = ((item as any).bids ?? [])[0];
@@ -110,36 +126,31 @@ Deno.serve(async (req) => {
         const amount = winningBid?.amount;
         const title = (item as any).title;
 
-        // Idempotency: skip if we've already SMS'd about this item.
-        const { count: existingSms } = await supabase
-          .from("sms_log")
-          .select("*", { count: "exact", head: true })
-          .eq("event_type", "auction_won")
-          .ilike("message", `%${title}%`)
-          .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
-
-        if ((existingSms ?? 0) > 0) continue;
-
         if (winner?.phone && amount) {
-          await trySendSms({
-            phone: winner.phone,
-            message: `You won "${title}" for US$${amount}! Pay now at zimlivestock.co.zw to complete your purchase.`.slice(0, 160),
-            eventType: "auction_won",
-            userId: winningBid.user_id,
-          });
-          smsSentCount++;
+          const msg = `You won "${title}" for US$${amount}! Pay now at zimlivestock.co.zw to complete your purchase.`.slice(0, 160);
+          if (!recentTitles.has(`auction_won::${msg.slice(0, 80)}`)) {
+            dispatches.push(
+              trySendSms({ phone: winner.phone, message: msg, eventType: "auction_won", userId: winningBid.user_id }),
+            );
+            smsSentCount++;
+          }
         }
 
         if (seller?.phone && amount) {
-          await trySendSms({
-            phone: seller.phone,
-            message: `Your auction for "${title}" ended. Sold for US$${amount}. Buyer will be prompted to pay.`.slice(0, 160),
-            eventType: "auction_sold",
-            userId: seller.id,
-          });
-          smsSentCount++;
+          const msg = `Your auction for "${title}" ended. Sold for US$${amount}. Buyer will be prompted to pay.`.slice(0, 160);
+          if (!recentTitles.has(`auction_sold::${msg.slice(0, 80)}`)) {
+            dispatches.push(
+              trySendSms({ phone: seller.phone, message: msg, eventType: "auction_sold", userId: seller.id }),
+            );
+            smsSentCount++;
+          }
         }
       }
+
+      // Fire-and-forget pattern; trySendSms swallows errors internally so we
+      // never throw out of here. allSettled keeps the function alive long
+      // enough for fetches to flush even if some upstream calls error.
+      await Promise.allSettled(dispatches);
     }
 
     return new Response(
