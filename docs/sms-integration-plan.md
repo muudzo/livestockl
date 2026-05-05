@@ -171,7 +171,7 @@ Event (payment, auction end, outbid)
 | 2026-05-05 | Paynow provisioned proper REMOTE user `remote_tatenda` with separate password | **HTTP 403** with status line: *"remote_tatenda is not configured to access this API from `<requesting IP>`"* | Auth at user level works; account is configured with IP whitelist, current IP not on it |
 | 2026-05-05 | Confirmed credentials work cross-host: only `usd.txt.co.zw` accepts these creds; `www.txt.co.zw` returns 302 | Hosts are credential-scoped — confirms v1.12 §Hosts warning |
 
-### Three credential-related insights the docs don't make obvious
+### Four credential-related insights the docs don't make obvious
 
 1. **Portal username ≠ REMOTE-API username.** The user account you log in to txt.co.zw with via a browser is a different identity from the one you use to call the API. REMOTE-API users are conventionally prefixed `remote_*` (e.g. `remote_tatenda`) and must be created separately by Paynow support.
 
@@ -181,6 +181,8 @@ Event (payment, auction end, outbid)
    - The transition from 302 to 403 confirms that REMOTE provisioning happened and auth at the user level is working — only the IP gate remains.
 
 3. **Basic Auth path coexists with IP whitelist.** The v1.12 spec presents Basic Auth as an alternative to Username+IP, but in practice an account can be configured with **both layers active**: even when Basic Auth credentials are correct, requests from non-whitelisted IPs are rejected. The 16-character password is necessary but not sufficient.
+
+4. **Account-level KYC verification gates outbound SMS — separately from REMOTE provisioning.** Even after the REMOTE user is created, the password set, and the IP whitelisted, the first SMS send returns `200 OK` with body: *"Sorry, you are not permitted to send SMS until you verify your mobile number. Go to https://usd.txt.co.zw/customer/verifykyc"*. The customer (portal-user identity, not the REMOTE-API user) must log into the web portal at `/customer/verifykyc`, submit a mobile number, and complete OTP verification. **None of this is mentioned in v1.12.** Plan integration timelines accordingly: REMOTE provisioning + IP whitelist + KYC verification are three separate manual workflows on Paynow's side, each potentially gated on different teams.
 
 ### Why we shipped a relay anyway (the agentic-commerce constraint)
 
@@ -252,13 +254,15 @@ Use cases:
 4. **Use the health-probe pattern.** Even before any SMS send code is written, deploy `/Remote/AccountBalance` as a connectivity probe. The 302/403 distinction is the single most useful diagnostic signal in this integration.
 5. **Negotiate test mode early.** v1.12 §Test Mode mentions test-mode REMOTE users that route SMS to predefined addresses. Ask for one for your dev environment before you start sending real SMS — production SMS billing accumulates fast during integration debugging.
 
-### Status as of 2026-05-05
+### Status as of 2026-05-05 (live)
 
-- **Integration shipped to main:** ✅ `supabase/functions/send-sms/index.ts`, test harness, this plan
+- **Integration shipped to main:** ✅ `supabase/functions/send-sms/index.ts`, relay (`paynow-txt-relay/`), test harness, this plan
 - **REMOTE user provisioned:** ✅ `remote_tatenda` on `usd.txt.co.zw`
-- **Credentials stored:** ✅ Supabase secrets `TXT_USERNAME`, `TXT_PASSWORD`
-- **Health probe live:** ✅ Returns 403 (IP-whitelist enforced)
-- **Static-IP relay:** 🟡 In flight — laptop + ngrok architecture
-- **Paynow IP whitelist:** 🟡 Pending — residential IP submitted to support
+- **Credentials stored:** ✅ Supabase secrets (`TXT_USERNAME`, `TXT_PASSWORD`, `TXT_RELAY_URL`, `TXT_RELAY_SECRET`)
+- **Static-IP relay:** ✅ Mac mini at `41.173.195.173`, exposed via Cloudflare Tunnel (free quick-tunnel)
+- **Paynow IP whitelist:** ✅ Whitelisted for `remote_tatenda`
+- **Account KYC:** ✅ Mobile number verified on `usd.txt.co.zw/customer/verifykyc`
+- **Health probe:** ✅ Returns `{ ok: true, status: "live", balance: "$2.00", via: "relay" }`
+- **Live SMS:** ✅ End-to-end smoke test delivered to subscriber phone
 
-The integration is one Paynow config flip (whitelist a single IP) away from passing end-to-end live tests. All client-side work is done.
+Full chain proven: `Supabase Edge → Cloudflare Tunnel → Mac mini relay → txt.co.zw → SIM`.

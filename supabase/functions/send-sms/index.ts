@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         try {
           const res = await fetch(`${relayUrl.replace(/\/$/, "")}/balance`, {
             method: "GET",
-            headers: { "x-relay-secret": relaySecret },
+            headers: { "x-relay-secret": relaySecret, "ngrok-skip-browser-warning": "1" },
           });
           const data = await res.json();
           return json({ ...data, via: "relay", relayUrl });
@@ -211,6 +211,7 @@ Deno.serve(async (req) => {
           headers: {
             "Content-Type": "application/json",
             "x-relay-secret": relaySecret,
+            "ngrok-skip-browser-warning": "1",
           },
           body: JSON.stringify({ recipientPhone: phone, message: body }),
         });
