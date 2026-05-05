@@ -27,3 +27,4 @@ supabase/.temp/
 # and Postgres data dirs; the working source is tracked in the
 # learn/node-backend-clone branch, not the main app tree.
 backend-clone/
+paynow-txt-relay/.env

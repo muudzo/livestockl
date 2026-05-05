@@ -66,6 +66,30 @@ Deno.serve(async (req) => {
 
     // ── Health check action — verifies txt.co.zw REMOTE creds without sending SMS ──
     if (action === "health") {
+      const relayUrl = Deno.env.get("TXT_RELAY_URL");
+      const relaySecret = Deno.env.get("TXT_RELAY_SECRET");
+
+      // Path 1: route through static-IP relay (production path; whitelisted IP)
+      if (relayUrl && relaySecret) {
+        try {
+          const res = await fetch(`${relayUrl.replace(/\/$/, "")}/balance`, {
+            method: "GET",
+            headers: { "x-relay-secret": relaySecret },
+          });
+          const data = await res.json();
+          return json({ ...data, via: "relay", relayUrl });
+        } catch (fetchErr) {
+          return json({
+            ok: false,
+            status: "relay_unreachable",
+            error: (fetchErr as Error).message,
+            via: "relay",
+            relayUrl,
+          });
+        }
+      }
+
+      // Path 2: direct call (works only if Supabase Edge IP is whitelisted)
       const txtUsername = Deno.env.get("TXT_USERNAME");
       const txtPassword = Deno.env.get("TXT_PASSWORD");
 
@@ -73,7 +97,7 @@ Deno.serve(async (req) => {
         return json({
           ok: false,
           status: "credentials_missing",
-          error: "TXT_USERNAME / TXT_PASSWORD not set in Supabase secrets",
+          error: "Neither TXT_RELAY_URL nor TXT_USERNAME/TXT_PASSWORD set",
         });
       }
 
@@ -93,6 +117,7 @@ Deno.serve(async (req) => {
             httpStatus: res.status,
             error: "Auth path inactive — REMOTE role not enabled for Basic Auth on this account",
             host: TXT_HOST,
+            via: "direct",
           });
         }
 
@@ -104,6 +129,7 @@ Deno.serve(async (req) => {
             httpStatus: res.status,
             error: body,
             host: TXT_HOST,
+            via: "direct",
           });
         }
 
@@ -113,6 +139,7 @@ Deno.serve(async (req) => {
           status: "live",
           balance,
           host: TXT_HOST,
+          via: "direct",
         });
       } catch (fetchErr) {
         return json({
@@ -120,6 +147,7 @@ Deno.serve(async (req) => {
           status: "unreachable",
           error: (fetchErr as Error).message,
           host: TXT_HOST,
+          via: "direct",
         });
       }
     }
@@ -166,21 +194,42 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Send via txt.co.zw or simulate ──
+    // Send via static-IP relay (preferred), direct (only works if Supabase
+    // Edge IP is whitelisted), or simulate (no creds at all).
+    const relayUrl = Deno.env.get("TXT_RELAY_URL");
+    const relaySecret = Deno.env.get("TXT_RELAY_SECRET");
     const txtUsername = Deno.env.get("TXT_USERNAME");
     const txtPassword = Deno.env.get("TXT_PASSWORD");
 
     let providerRef = "";
     let status = "sent";
 
-    if (!txtUsername || !txtPassword) {
-      // Simulation mode — no credentials configured
-      console.log(`[SMS SIM] To: ${phone} | ${body}`);
-      status = "simulated";
-      providerRef = `SIM-${Date.now()}`;
-    } else {
+    if (relayUrl && relaySecret) {
       try {
-        // HTTP Basic Auth per txt.co.zw docs (v1.12)
+        const res = await fetch(`${relayUrl.replace(/\/$/, "")}/sms`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-relay-secret": relaySecret,
+          },
+          body: JSON.stringify({ recipientPhone: phone, message: body }),
+        });
+        const data = await res.json();
+        if (data?.success && data?.status === "sent") {
+          status = "sent";
+          providerRef = data.reference;
+        } else {
+          status = "failed";
+          providerRef = data?.error || data?.status || `HTTP-${res.status}`;
+          console.error(`[SMS] relay rejected:`, data);
+        }
+      } catch (fetchErr) {
+        console.error(`[SMS] relay unreachable: ${(fetchErr as Error).message}`);
+        status = "failed";
+        providerRef = "relay_unreachable";
+      }
+    } else if (txtUsername && txtPassword) {
+      try {
         const basicAuth = btoa(`${txtUsername}:${txtPassword}`);
         const params = new URLSearchParams({
           Recipients: phone,
@@ -206,11 +255,9 @@ Deno.serve(async (req) => {
           const responseText = await res.text();
 
           if (responseText.startsWith("SUCCESS:")) {
-            // Response format: "SUCCESS: {message id}"
             providerRef = responseText.substring(9).trim();
             status = "sent";
           } else if (responseText.startsWith("ERROR:")) {
-            // Response format: "ERROR: {error description}"
             const errorDesc = responseText.substring(7).trim();
             console.error(`[SMS] txt.co.zw error: ${errorDesc}`);
             status = "failed";
@@ -227,6 +274,10 @@ Deno.serve(async (req) => {
         );
         status = "failed";
       }
+    } else {
+      console.log(`[SMS SIM] To: ${phone} | ${body}`);
+      status = "simulated";
+      providerRef = `SIM-${Date.now()}`;
     }
 
     // ── Log to sms_log (fire-and-forget) ──

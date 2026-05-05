@@ -156,3 +156,109 @@ Event (payment, auction end, outbid)
 - **Check Balance:** `GET /Remote/AccountBalance`
 - **Auth:** HTTP Basic or Username + IP whitelist
 - **Test mode:** Available — directs SMS to predefined emails/numbers
+
+---
+
+## Integration Journey & Operational Findings
+
+*Appended 2026-05-05 after live integration attempts. Captures what the up-front plan didn't predict.*
+
+### Timeline of attempts
+
+| Date | Attempt | Result | Diagnostic signal |
+|---|---|---|---|
+| 2026-05-04 | Set Basic Auth secrets with portal username `tatendanyemudzo` | **HTTP 302 → /user/logon** on both `usd.txt.co.zw` and `www.txt.co.zw` | Auth not recognized — portal username is not the REMOTE-API user |
+| 2026-05-05 | Paynow provisioned proper REMOTE user `remote_tatenda` with separate password | **HTTP 403** with status line: *"remote_tatenda is not configured to access this API from `<requesting IP>`"* | Auth at user level works; account is configured with IP whitelist, current IP not on it |
+| 2026-05-05 | Confirmed credentials work cross-host: only `usd.txt.co.zw` accepts these creds; `www.txt.co.zw` returns 302 | Hosts are credential-scoped — confirms v1.12 §Hosts warning |
+
+### Three credential-related insights the docs don't make obvious
+
+1. **Portal username ≠ REMOTE-API username.** The user account you log in to txt.co.zw with via a browser is a different identity from the one you use to call the API. REMOTE-API users are conventionally prefixed `remote_*` (e.g. `remote_tatenda`) and must be created separately by Paynow support.
+
+2. **HTTP 302 vs HTTP 403 are diagnostically distinct.**
+   - `302 → /user/logon` = "this username is not a recognized REMOTE user on this host" (or wrong password)
+   - `403 → "<user> is not configured to access this API from <IP>"` = REMOTE user exists; IP whitelist is enforced; current IP is not on it
+   - The transition from 302 to 403 confirms that REMOTE provisioning happened and auth at the user level is working — only the IP gate remains.
+
+3. **Basic Auth path coexists with IP whitelist.** The v1.12 spec presents Basic Auth as an alternative to Username+IP, but in practice an account can be configured with **both layers active**: even when Basic Auth credentials are correct, requests from non-whitelisted IPs are rejected. The 16-character password is necessary but not sufficient.
+
+### Why we shipped a relay anyway (the agentic-commerce constraint)
+
+The test-machine that ran our integration attempts was a **Supabase Edge Function** — a serverless platform with rotating egress IPs across multiple datacenter regions. Even if Paynow whitelists one IP today, the next request can egress from a different IP tomorrow. This makes IP whitelisting structurally incompatible with serverless platforms.
+
+This is the same DX gap the research investigation identifies for Paynow Core (see [research-investigation.md](../deliverables/week-6/research-investigation.md)) — except for txt.co.zw it surfaces at the *application* layer instead of the *transport* layer:
+
+| Product | Failure mode | Fix |
+|---|---|---|
+| Paynow Core | TCP RST (`os error 104`) before HTTP | CF Worker relay (egress from Cloudflare network is trusted) |
+| txt.co.zw (this product) | HTTP 403 with explicit IP-not-whitelisted message | Static-IP relay (IP must be whitelisted by Paynow per REMOTE user) |
+
+Both require integrators to operate proxy infrastructure that no other major payment / SMS gateway demands. **The recommendation in the research investigation — *adopt the BillPay subdomain pattern, drop bot/IP gating on the API surface* — applies to txt.co.zw symmetrically.** A `remote_*` user that authenticates on Basic Auth alone (matching v1.12 §Basic Authentication as documented, without the additional IP enforcement) would unblock every serverless caller.
+
+### Architecture shipped (constrained — no credit card available)
+
+Without budget for a managed cloud provider (Oracle Cloud, Fly.io, DigitalOcean, AWS — all require a credit/debit card for signup), the workaround uses infrastructure the developer already has:
+
+```
+Browser → Supabase Edge (send-sms) ─┐
+                                    │ POST via ngrok URL
+                                    ▼
+                          Local laptop relay (Deno HTTP server, localhost:8787)
+                                    │ adds Basic Auth + forwards
+                                    │ egresses from developer's residential IP
+                                    ▼
+                          usd.txt.co.zw (whitelists residential IP for `remote_tatenda`)
+```
+
+**Key invariant:** The IP that hits `usd.txt.co.zw` is the **laptop's residential IP**, not ngrok's. ngrok is a free inbound tunnel for Supabase to reach the laptop; it does not affect outbound calls *from* the laptop. So the single IP given to Paynow for whitelisting is the laptop's home internet egress.
+
+**Components:**
+- `paynow-txt-local-relay/relay.ts` — 40-LOC Deno HTTP server: validates shared secret header, adds Basic Auth, forwards body to `https://usd.txt.co.zw/Remote/SendMessage` (or `/Remote/AccountBalance` for health probes).
+- ngrok free tier — `ngrok http 8787` exposes `localhost:8787` as a public HTTPS URL. Free signup requires only an email address.
+- Supabase secrets — `TXT_RELAY_URL` (ngrok URL) and `TXT_RELAY_SECRET` (shared header for relay auth).
+
+**Trade-offs accepted:**
+| Trade-off | Mitigation |
+|---|---|
+| Laptop must be online with relay running | Acceptable for demo; long-term needs migration to a paid static-IP host |
+| Residential IP can rotate with ISP DHCP renewal | Verified stability via repeated `curl ifconfig.me`; if IP changes mid-demo, request re-whitelist |
+| ngrok free URL changes per session | Update `TXT_RELAY_URL` Supabase secret on each restart |
+| ngrok free has 8-hour session limit | Restart before demo; bandwidth quota is far above demo needs |
+
+### Diagnostic tooling shipped
+
+`supabase/functions/send-sms/index.ts` exposes a free, read-only `action: "health"` action that hits `/Remote/AccountBalance` and returns a structured status:
+
+| Status | Meaning |
+|---|---|
+| `live` | Credentials work; balance returned |
+| `auth_not_provisioned` | REMOTE user not recognized (HTTP 302 → login) |
+| `credentials_missing` | `TXT_USERNAME` / `TXT_PASSWORD` Supabase secrets unset |
+| `http_error` (with body) | Auth recognized; access denied — typically the 403 IP message |
+| `unreachable` | Network failure |
+
+This action is exposed without service-role gating (the SMS-send action remains gated) so the test harness ([`src/app/components/TestSmsNotification.tsx`](../src/app/components/TestSmsNotification.tsx)) can ping it from a browser. The harness has a "Ping txt.co.zw" button with color-coded status.
+
+Use cases:
+- **Pre-demo verification.** One click confirms upstream is reachable without spending the $0.03/SMS test cost.
+- **Post-incident triage.** When SMS sends start failing in production, a single curl distinguishes "Paynow's account changed state" from "our relay is down."
+- **Onboarding new integrators.** A new team member can run the probe on day one to confirm credentials are propagated.
+
+### Recommendations for future txt.co.zw integrators
+
+1. **Confirm REMOTE user identity up front.** Before starting integration, ask Paynow support to confirm: (a) what is the exact REMOTE-API username (it will likely have a `remote_` prefix), (b) which host is it provisioned on (`www.txt.co.zw` ZWG vs `usd.txt.co.zw` USD), (c) is IP whitelist active or pure Basic Auth.
+2. **Provision both hosts at signup.** If you ever need ZWG billing, get the user added on `www.txt.co.zw` at the same time. Cross-host migration is a manual support ticket.
+3. **Avoid IP whitelist for serverless deployments.** Insist on Basic Auth-only. If support insists on IP enforcement, you will need a static-IP relay — and the v1.12 docs do not warn integrators about this combinatorial gotcha.
+4. **Use the health-probe pattern.** Even before any SMS send code is written, deploy `/Remote/AccountBalance` as a connectivity probe. The 302/403 distinction is the single most useful diagnostic signal in this integration.
+5. **Negotiate test mode early.** v1.12 §Test Mode mentions test-mode REMOTE users that route SMS to predefined addresses. Ask for one for your dev environment before you start sending real SMS — production SMS billing accumulates fast during integration debugging.
+
+### Status as of 2026-05-05
+
+- **Integration shipped to main:** ✅ `supabase/functions/send-sms/index.ts`, test harness, this plan
+- **REMOTE user provisioned:** ✅ `remote_tatenda` on `usd.txt.co.zw`
+- **Credentials stored:** ✅ Supabase secrets `TXT_USERNAME`, `TXT_PASSWORD`
+- **Health probe live:** ✅ Returns 403 (IP-whitelist enforced)
+- **Static-IP relay:** 🟡 In flight — laptop + ngrok architecture
+- **Paynow IP whitelist:** 🟡 Pending — residential IP submitted to support
+
+The integration is one Paynow config flip (whitelist a single IP) away from passing end-to-end live tests. All client-side work is done.
