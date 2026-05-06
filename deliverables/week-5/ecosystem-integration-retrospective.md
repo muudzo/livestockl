@@ -2,7 +2,19 @@
 
 **BillPay + TXT vs Paynow Core**
 
-*Paynow DX Project — Goal #3 Extension · 2026-04-14*
+*Paynow DX Project — Goal #3 Extension · 2026-04-14 · Updated 2026-05-06*
+
+---
+
+## Executive summary
+
+Paynow's flagship payments product (Core) scores **4.2/10** on developer experience while its sibling products (BillPay, TXT) score significantly higher — using patterns Paynow has already proven internally. The gap is empirical, established across four evidence layers: first-attempt integration testing, a side-by-side DX comparison table, three independent developer-forum reports of the same blocker over seven months, and a working production workaround that quantifies the cost (TCP RST → relay-mediated HTTP 200 in 400-800ms).
+
+The recommended changes — grouped into three strategic themes and ranked by effort × impact — total roughly **4 weeks of internal work, no new R&D**, and would lift Core's DX score to an estimated **7-8/10**. The architectural keystone is moving Core to `api.paynow.co.zw` without bot protection, mirroring the existing `billpay.paynow.co.zw` pattern.
+
+**This is not a capability gap. It is an internal consistency gap.**
+
+---
 
 This extension compares Paynow Core against two sibling products in the same ecosystem: BillPay and TXT.
 
@@ -116,19 +128,46 @@ The Paynow developer forum ([forums.paynow.co.zw](https://forums.paynow.co.zw/))
 
 ---
 
-## Recommended changes (effort × impact ranked)
+## Recommended changes (grouped by strategic theme, ranked by effort × impact)
+
+The 8 recommendations cluster into 3 themes. Treating them as themes rather than a checklist makes ownership and sequencing legible to leadership: one keystone architectural change, one consistency sweep, one developer-onboarding upgrade.
+
+### Theme 1 — Cloud Reachability / Gateway Design *(the keystone)*
+
+This is the single highest-leverage change. Without it, every modern integrator independently rediscovers and engineers around the same TCP-RST block.
 
 | # | Change | Effort | Pattern source |
 |---|---|---|---|
 | 1 | Move Core to `api.paynow.co.zw` (no bot protection) | ~1 week | BillPay |
+
+### Theme 2 — API Surface Standardization *(consistency sweep)*
+
+Five small adoptions of patterns BillPay and TXT already use. Each is individually cheap; combined they remove the documentation-implicit and authentication-fragmentation friction across Core.
+
+| # | Change | Effort | Pattern source |
+|---|---|---|---|
 | 2 | Migrate to HTTP Basic Auth (with transition window) | ~2 weeks | BillPay / TXT |
+| 5 | Version + date docs | ~1 hour | BillPay |
+| 6 | Explicit webhook hash ordering documented in spec | ~1 hour | — |
+| 7 | Add structured error codes | ~1 week | BillPay reversal pattern |
+| 8 | State explicitly which webhook statuses are terminal-success vs non-terminal (`AwaitingDelivery` ambiguity) | ~1 hour | — |
+
+### Theme 3 — Developer Testing Experience *(sandbox + discoverability)*
+
+Two changes that lower time-to-first-success for any new integrator without touching production code.
+
+| # | Change | Effort | Pattern source |
+|---|---|---|---|
 | 3 | Publish test phone numbers | ~1 day | BillPay |
 | 4 | Publish Postman collection | ~1 day | TXT |
-| 5 | Version + date docs | ~1 hour | BillPay |
-| 6 | Explicit webhook hash ordering | ~1 hour | — |
-| 7 | Add structured error codes | ~1 week | BillPay reversal pattern |
 
-If implemented together, Core likely moves from **4.2/10 → 7–8/10** without new R&D.
+---
+
+**Total effort:** ~4 weeks calendar / ~3 dev-weeks focused work, **no new R&D**.
+
+**Projected impact:** Core DX score moves from **4.2/10 → 7–8/10**.
+
+**Sequencing:** Theme 1 first — it unblocks the largest class of integration failures and establishes the architectural pattern. Themes 2 and 3 can run in parallel and are individually shippable.
 
 ---
 
@@ -171,13 +210,7 @@ Real time-to-live-SMS-from-Supabase-Edge: **~2 weeks elapsed**, ~6 hours coding.
 
 Caught during a Paynow-internal spec review on 2026-05-05 and shipped as a 3-line fix the next morning. The webhook-status table in the official Web spec lists `AwaitingDelivery` but does not declare it terminal-success. Most integrators (this one included on first pass) treat it as non-terminal and rely on a follow-up `Paid` callback that for digital/auction goods may never arrive. Settled-but-undelivered orders sit as `pending` indefinitely until poll-sync clears them.
 
-This is a documentation-clarity issue, not a code defect on Paynow's side, but it belongs alongside *"webhook hash ordering"* in Recommendation #6 — both are spec-implicit conventions that bite every new integrator.
-
-**Suggested addition to the recommendations table:**
-
-| # | Change | Effort | Pattern source |
-|---|---|---|---|
-| 8 | State explicitly which webhook statuses are terminal-success vs non-terminal (`AwaitingDelivery` ambiguity) | ~1 hour | — |
+This is a documentation-clarity issue, not a code defect on Paynow's side, but it belongs alongside *"webhook hash ordering"* in the Theme 2 standardization sweep — both are spec-implicit conventions that bite every new integrator. Now folded into the main recommendations table as item #8.
 
 ### BillPay simulation prefixes are case-sensitive (undocumented)
 
@@ -188,7 +221,7 @@ Spec examples are uppercase (`AT12345`, `AF12345`); behaviour appears to require
 - The DX comparison table conclusions stand. BillPay and TXT are still materially easier to integrate than Core in the first-attempt sense.
 - The Cloudflare Worker relay validation (April 16 live test) is unaffected.
 - The forum cross-check (three unresolved threads, paid-VPS workarounds) is more relevant now, not less — the txt.co.zw IP-whitelist finding shows Paynow integrators are already silently routing live traffic through residential relays.
-- The Recommended Changes ranking (Effort × Impact) holds; #1 and #2 are unchanged. Add #8 above to the list.
+- The Recommended Changes ranking (Effort × Impact) holds; #1 and #2 are unchanged. #8 has been folded into the main table under Theme 2.
 
 ### What changed in the demo timeline
 
