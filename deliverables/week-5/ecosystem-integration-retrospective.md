@@ -130,13 +130,15 @@ If implemented together, Core likely moves from **4.2/10 → 7–8/10** without 
 
 ## Agentic commerce risk lens
 
-BillPay and TXT are already agent-reachable. Paynow Core — the flagship — is not.
+**BillPay and TXT are agent-reachable on the default integration path. Paynow Core is agent-reachable only with an engineered relay** — for ZimLivestock, that's the Cloudflare Worker described in §"Workaround shipped" above. Penny Sniper bids and pays through Core in production *because that relay exists*. Without it: TCP RST, no transaction.
 
-As AI agents, serverless backends, and autonomous checkout flows become default, gateways that are reachable from cloud infrastructure win by default. **Paystack and Flutterwave already are.**
+The point isn't that Core can never serve agents. It's that **every integrator who wants agentic flows on Core must independently rediscover the bot-wall block, diagnose Cloudflare as the cause (not surfaced in any forum thread), and build their own relay.** Two of three Paynow products skip that ceremony. The third inherits it on every greenfield integration.
 
-Paynow's Zimbabwe mobile-money coverage is genuinely differentiated. But differentiation only converts to revenue if an agent can reach the API on the first attempt.
+As AI agents, serverless backends, and autonomous checkout flows become default, gateways that are reachable from cloud infrastructure win by default. **Paystack and Flutterwave already are.** They don't require a relay.
 
-Right now, two internal products meet that bar. Core does not.
+Paynow's Zimbabwe mobile-money coverage is genuinely differentiated. But differentiation only converts to revenue if an agent can reach the API on the **first** attempt — without each developer having to rebuild the same workaround in isolation.
+
+Right now, two internal products meet that bar by default. Core meets it conditionally, via per-integrator effort that should not be required.
 
 ---
 
@@ -187,7 +189,7 @@ Spec examples are uppercase (`AT12345`, `AF12345`); behaviour appears to require
 - Live TXT-driven SMS chain now fires end-of-auction notifications from the Mac mini relay, demoed alongside Core via the Cloudflare Worker.
 - ZimLivestock's senior-engineer integration doc (`paynow-supabase-integration.md`) now contains a §12 *Shortcomings & Areas of Improvement* with P1–P10 explicitly mapping to the recommendations in this retrospective.
 
-The thesis hasn't moved. Two products in this ecosystem are agent-ready by default. A third is agent-ready only with engineered workarounds. The recommendations are unchanged in shape and gain one more entry.
+The thesis hasn't moved. Two products in this ecosystem are agent-ready by default. A third — Core — is agent-ready *only with engineered workarounds that each integrator must independently rediscover and ship.* ZimLivestock proves this works (Penny Sniper transacts through Core via the Cloudflare Worker relay), but the friction is structural: every new agent-driven Paynow integration starts from zero on the same problem. The recommendations are unchanged in shape and gain one more entry.
 
 ---
 
