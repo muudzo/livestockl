@@ -8,31 +8,63 @@
 
 ## 1. Architecture at a glance
 
-```
-Browser (React)
-    │
-    │  supabase.functions.invoke('initiate-payment')
-    ▼
-Supabase Edge Function (Deno)            ─── POST signed form ──▶  www.paynow.co.zw
-  initiate-payment / billpay / payment-poll-sync                         │
-    │                                                                    │  (Cloudflare blocks
-    │  service-role writes                                               │   direct egress from
-    ▼                                                                    │   Supabase IPs in
-Postgres (payments / bill_payments / notifications)                      │   some regions)
-    ▲                                                                    ▼
-    │                                                       Cloudflare Worker relay
-    │  hash-verified webhook ◀──── POST resulturl ─────────  paynow-relay (fallback)
-    │
-payment-webhook (Edge Function)
+### 1.1 Flow description
+
+ZimLivestock's Paynow integration is a **fault-tolerant payment state machine** layered on Supabase. The journey of a single payment passes through four trust boundaries:
+
+1. **Browser → Supabase Edge.** The React PWA invokes `initiate-payment` with a freshly minted reference and idempotency key. Supabase Auth verifies the JWT; the Edge function inserts a `payments` row in `pending` state.
+2. **Supabase Edge → Paynow.** The function builds the form, computes a SHA-512 hash over insertion-order values plus the integration key, and POSTs to `interface/initiatetransaction` (Web Checkout) or `interface/remotetransaction` (Express Checkout). On success Paynow returns a `pollurl`, a `browserurl` (Web), or USSD `instructions` (Express).
+3. **Paynow → Supabase Edge.** Paynow POSTs the terminal status to `resulturl` (`payment-webhook`). The webhook re-verifies the hash in *received* field order, then transitions `pending → paid|failed` atomically.
+4. **Fallback path.** If the webhook is dropped or delayed, the browser polls `payment-poll-sync` every 20 seconds while still pending. The function fetches the stored `pollurl` server-side, re-verifies the hash, and applies the same transition. If Paynow blocks Supabase egress, the function returns the signed form to the browser, which submits it from the user's residential IP — or the call is proxied through a Cloudflare Worker relay.
+
+### 1.2 Sequence diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Browser (React PWA)
+    participant Edge as Supabase Edge<br/>(initiate-payment)
+    participant DB as Postgres<br/>(payments)
+    participant Paynow as Paynow<br/>(www.paynow.co.zw)
+    participant Webhook as Supabase Edge<br/>(payment-webhook)
+    participant Poll as Supabase Edge<br/>(payment-poll-sync)
+
+    User->>Edge: invoke('initiate-payment', { reference, amount, method, phone? })
+    Edge->>DB: INSERT payments (status=pending, idempotency_key)
+    Edge->>Edge: SHA-512(values + integrationKey)
+    Edge->>Paynow: POST initiatetransaction OR remotetransaction
+    Paynow-->>Edge: { status: ok, pollurl, browserurl|instructions }
+    Edge->>DB: UPDATE payments SET paynow_reference = pollurl
+    Edge-->>User: { redirectUrl | instructions | formFields(fallback) }
+
+    par Webhook path
+        Paynow->>Webhook: POST resulturl (status=Paid|AwaitingDelivery|Cancelled, hash)
+        Webhook->>Webhook: verifyPaynowHash(received order)
+        Webhook->>DB: UPDATE payments WHERE status=pending → paid|failed
+    and Poll-sync fallback
+        loop every 20s while pending
+            User->>Poll: invoke('payment-poll-sync', { reference })
+            Poll->>Paynow: POST pollurl
+            Paynow-->>Poll: { status, hash }
+            Poll->>Poll: verifyPaynowHash
+            Poll->>DB: UPDATE payments (idempotent guard)
+        end
+    end
 ```
 
-Three independent failure modes are covered:
+> Diagram source is Mermaid — paste into [mermaid.live](https://mermaid.live) or import into draw.io / Lucid for PNG export.
+
+### 1.3 Failure modes covered
+
+Three independent failure modes; each has a deterministic recovery path:
 
 | Failure                                          | Recovery path                                  |
 |--------------------------------------------------|------------------------------------------------|
 | Paynow webhook never arrives                     | `payment-poll-sync` polls pollurl every 20s    |
 | Cloudflare blocks Supabase → Paynow direct call  | Browser-relay submission OR CF Worker relay    |
 | Double-click / network retry on initiate         | Unique index on `(user_id, idempotency_key)`   |
+| Webhook delivered before client navigates        | `.eq("status","pending")` idempotent guard     |
+| Paynow returns `AwaitingDelivery` (success)      | Treated as terminal-success in webhook         |
 
 ---
 
@@ -180,7 +212,46 @@ async function verifyPaynowHash(params: Record<string, string>, integrationKey: 
 
 ## 4. Express Checkout — EcoCash / OneMoney USSD push
 
-The only Paynow Merchant Services product that prompts the user's phone directly. We POST to `interface/remotetransaction` with `phone` and `method=ecocash|onemoney`.
+### 4.1 Summary
+
+Express Checkout is the only Paynow product that **pushes a USSD prompt directly to the user's phone** — no browser redirect, no card entry. The buyer gets a notification on their handset, enters their wallet PIN, and the merchant is informed asynchronously through `resulturl`. We use it for the EcoCash and OneMoney mobile money rails (98% of Zimbabwean payment volume).
+
+The endpoint is `interface/remotetransaction` and differs from Web Checkout in three ways: `phone` is required, `method` is set to `ecocash|onemoney`, and the response carries `instructions` + `pollurl` instead of `browserurl`. The user never leaves the app — the React client shows a "Check your phone" screen and starts polling. Terminal mobile-wallet errors (insufficient balance, suspended subscriber) are short-circuited with HTTP 402 so the client doesn't blindly fall back to Web Checkout.
+
+### 4.2 Sequence diagram
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Browser (PWA)
+    participant Edge as initiate-payment
+    participant DB as Postgres
+    participant Paynow as Paynow Express
+    participant Wallet as EcoCash/OneMoney
+    actor Phone as User's handset
+    participant Webhook as payment-webhook
+
+    User->>Edge: invoke({ reference, amount, method:ecocash, phone })
+    Edge->>DB: INSERT payments (pending, idempotency_key)
+    Edge->>Edge: SHA-512(values + key)
+    Edge->>Paynow: POST remotetransaction (signed form)
+    Paynow->>Wallet: trigger USSD push
+    Wallet->>Phone: dial-prompt (enter PIN)
+    Paynow-->>Edge: { status: ok|sent, instructions, pollurl }
+    Edge->>DB: UPDATE payments SET paynow_reference=pollurl
+    Edge-->>User: { instructions: "Check your phone", pollUrl }
+
+    User->>User: show "Check your phone" UI
+    Phone->>Wallet: PIN entered
+    Wallet-->>Paynow: authorized / declined / insufficient
+    Paynow->>Webhook: POST resulturl (Paid | AwaitingDelivery | Cancelled)
+    Webhook->>DB: UPDATE payments → paid|failed (hash-verified, idempotent)
+    User->>User: poll-sync every 20s; UI flips to "Paid"
+```
+
+### 4.3 Code path
+
+We POST to `interface/remotetransaction` with `phone` and `method=ecocash|onemoney`.
 
 `supabase/functions/initiate-payment/index.ts:189-247`
 
@@ -312,6 +383,25 @@ const paynowRes = await fetch("https://www.paynow.co.zw/interface/initiatetransa
 
 Paynow POSTs `application/x-www-form-urlencoded` to `resulturl` on terminal status changes. We verify hash, then transition state — atomically guarded by `.eq("status", "pending")` so retries are idempotent.
 
+### 6.1 Status taxonomy
+
+Per the Paynow Web spec, the webhook can deliver any of the following `status` values. **Three are terminal-success**, three are terminal-failure, the rest are non-terminal (we keep the row as `pending` and let poll-sync resolve):
+
+| Paynow status        | Class                | Our action                                         |
+|----------------------|----------------------|----------------------------------------------------|
+| `Paid`               | Terminal-success     | `payments.status = paid`, fan out notifications    |
+| `AwaitingDelivery`   | **Terminal-success** | `payments.status = paid` — funds settled, merchant has yet to flip Delivered |
+| `Delivered`          | Terminal-success     | `payments.status = paid`                           |
+| `Cancelled`          | Terminal-failure     | `payments.status = failed`                         |
+| `Failed`             | Terminal-failure     | `payments.status = failed`                         |
+| `Disputed`           | Terminal-failure     | `payments.status = failed`                         |
+| `Sent`               | Non-terminal         | no-op, remain `pending`                            |
+| `Created`            | Non-terminal         | no-op, remain `pending`                            |
+
+> **Why `AwaitingDelivery` is success.** Funds have been debited from the buyer and credited to the merchant wallet. The flag exists so merchants of physical goods can mark `Delivered` later (24h auto-confirm window). For digital/auction settlement, `AwaitingDelivery` means *settled* — we treat it as paid immediately.
+
+### 6.2 Handler
+
 `supabase/functions/payment-webhook/index.ts:115-163`
 
 ```ts
@@ -333,16 +423,19 @@ Deno.serve(async (req) => {
   const paynowRef = params.paynowreference || "";
   const status = (params.status || "").toLowerCase();
 
-  if (status === "paid" || status === "delivered") {
+  // Terminal-success: Paid, AwaitingDelivery, Delivered (per Paynow spec)
+  if (status === "paid" || status === "awaiting delivery" || status === "delivered") {
     await completePayment(reference, paynowRef, log);
   } else if (status === "cancelled" || status === "failed" || status === "disputed") {
     await failPayment(reference, log);
   }
-  // "awaiting delivery" / "sent" / "created" → still pending, no-op
+  // "sent" / "created" → still pending, no-op (poll-sync will resolve)
 
   return new Response("OK", { status: 200 });
 });
 ```
+
+> **Code-vs-spec note.** As of this write-up the deployed handler does not yet include `awaiting delivery` in the terminal-success branch — it falls through to no-op. This is logged in §13 *Shortcomings* and is a one-line fix.
 
 ### 6.1 Idempotent state transition
 
@@ -456,10 +549,20 @@ export function usePaynowPoll(reference: string | undefined, currentStatus: stri
 
 ## 8. Cloudflare egress workaround (relay pattern)
 
-Some Supabase Edge Function regions egress through IP ranges that `www.paynow.co.zw` (Cloudflare-fronted) rate-limits or blocks. Our two-tier mitigation:
+### 8.1 Why this is necessary
 
-1. **Browser-relay fallback** — if the Edge Function's direct `fetch` to Paynow fails, we return the signed form fields to the browser, which submits them itself (the browser is on a residential ISP, not a datacenter).
-2. **Dedicated Cloudflare Worker** — `paynow-relay` proxies the call from CF's own edge, which Paynow trusts.
+`www.paynow.co.zw` sits behind Cloudflare with strict bot/abuse rules. **Most Supabase Edge Function egress IPs are blocked at Cloudflare's edge** because the same /16 ranges are routinely abused by scrapers, credential stuffers, and free-tier serverless tenants on AWS/GCP. The block manifests as one of three signals depending on region:
+
+- **TCP RST during TLS handshake** — connection dropped before HTTP, no response body to parse.
+- **HTTP 403 with a Cloudflare challenge page** — the bot wall, rendered as HTML even though we sent `application/x-www-form-urlencoded`.
+- **HTTP 1020 Access Denied** — explicit firewall rule match, IP-level block.
+
+Paynow operations confirms the policy: **the bot wall stays on `www.paynow.co.zw` because they cannot whitelist every Supabase IP without inviting genuine abuse**. The dedicated `billpay.paynow.co.zw` subdomain has no such wall, which is why BillPay works direct from Edge with no relay (see [BillPay × Supabase Integration](billpay-supabase-integration.md)). The Research Investigation argues this same pattern should be adopted for Core (a separate `api.paynow.co.zw` subdomain).
+
+### 8.2 Two-tier mitigation
+
+1. **Browser-relay fallback** — if the Edge Function's direct `fetch` to Paynow fails (RST, 403, or 1020), the function returns the signed form fields to the browser. The browser submits them from the user's residential ISP IP, which Cloudflare does not block. This costs one extra round-trip but uses zero additional infrastructure.
+2. **Dedicated Cloudflare Worker** — `paynow-relay` proxies the call from Cloudflare's own edge, which Paynow trusts implicitly (Worker-to-origin runs on CF's internal network, bypassing the public bot wall). Auth via `x-relay-secret`; hostname allowlist locks the target to `paynow.co.zw`.
 
 Worker code (`paynow-relay/src/index.js`) — minimal, auth'd via `x-relay-secret`, target whitelisted to `paynow.co.zw`:
 
@@ -526,154 +629,49 @@ if (result?.provider === 'paynow' && result?.formFields) {
 
 ---
 
-## 9. BillPay Vendor API — AUTH then PAY
+## 9. BillPay Vendor API — separate document
 
-BillPay is a different transport (HTTPS JSON, Basic Auth) but the same merchant identity. The cardinal rule from spec v1.33: **AUTH and PAY must use the same `Reference`.** We enforce this with a DB lookup keyed on the AUTH-generated reference.
+> **BillPay is documented in its own deliverable: [BillPay × Supabase Integration](billpay-supabase-integration.md).** This section is a high-level orientation only; AUTH/PAY code, reconciliation cron, voucher fan-out, and the curated biller catalogue all live in that document.
 
-### 9.1 AUTH — generate reference, store authorized row
+### 9.1 How it works (executive summary)
 
-`supabase/functions/billpay/index.ts:320-408`
+BillPay is the **vendor-side bill-payment API** — a separate Paynow product from Web/Express Checkout. The merchant (us) prefunds a USD wallet, then debits that wallet on behalf of an end-customer paying ZESA, council rates, school fees, medical aid, or airtime. Transport is HTTPS JSON with HTTP Basic Auth — no SHA-512 hash signing, no Cloudflare bot wall, no relay infrastructure.
 
-```ts
-const basicAuth = btoa(`${billpayUser}:${billpayPass}`);
-const apiProducts = products || [
-  { Code: "USD", Quantity: 1, Price: amount || 0, RequiresForexPayment: requiresForexPayment || false },
-];
-const apiRequest = {
-  Action: "AUTH",
-  BillerCode: billerCode,
-  MemberNumber: accountNumber,
-  Reference: ref,                                // generated once, reused for PAY
-  TotalAmount: totalAmount || amount || "",
-  Products: apiProducts,
-};
+The flow is a **two-phase commit**:
 
-const apiRes = await fetch(BILLPAY_API, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    Authorization: `Basic ${basicAuth}`,
-  },
-  body: JSON.stringify(apiRequest),
-  signal: controller.signal,                     // 60s spec-recommended timeout
-});
+1. **AUTH** — we send the biller code, member number, and amount. Paynow validates the account exists, confirms the biller is online, returns the resolved member name + total payable. We persist the response keyed on a **client-generated reference** with `status='authorized'`.
+2. **PAY** — we re-send the **identical reference**. Paynow looks up the authorized row, debits our wallet, provisions the product (e.g. issues a ZETDC token), and returns `Paid | BeingProcessed | Flagged | Failed`. The same-reference invariant is the spec's primary idempotency primitive — if we send a different reference, Paynow treats it as a new transaction and will not match the AUTH.
 
-const apiData = await apiRes.json();
-if (apiData.Status !== "Authorized") {
-  return json({
-    status: "error",
-    action: "auth",
-    error: apiData.Narration,                    // user-safe narration only
-    technicalNarration: apiData.TechnicalNarration,  // logged, not exposed in prod responses
-  });
-}
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Browser
+    participant Edge as Supabase Edge<br/>(billpay)
+    participant DB as Postgres<br/>(bill_payments)
+    participant BP as billpay.paynow.co.zw
 
-await svc.from("bill_payments").insert({
-  user_id: user.id,
-  reference: ref,
-  biller_code: billerCode,
-  account_number: accountNumber,
-  account_holder: apiData.MemberName || apiData.AuthData?.MemberName,
-  amount: amount || apiData.TotalAmount || 0,
-  total_amount: apiData.TotalAmount,
-  status: "authorized",
-  billpay_reference: apiData.BillPayReference,
-  products: apiData.Products || [],
-  auth_data: apiData.AuthData || null,
-  requires_forex: apiData.Products?.some(p => p.RequiresForexPayment) || false,
-});
+    User->>Edge: AUTH { billerCode, accountNumber, amount }
+    Edge->>BP: POST /payment/process { Action:"AUTH", Reference:R }
+    BP-->>Edge: { Status:"Authorized", MemberName, TotalAmount, BillPayReference }
+    Edge->>DB: INSERT bill_payments (reference=R, status=authorized)
+    Edge-->>User: { holderName, total } — confirm screen
+
+    User->>Edge: PAY { reference: R }  (user clicked "Pay")
+    Edge->>DB: SELECT bill_payments WHERE reference=R AND status=authorized
+    Edge->>BP: POST /payment/process { Action:"PAY", Reference:R }
+    BP-->>Edge: { Status:"Paid"|"BeingProcessed"|"Flagged"|"Failed", Vouchers[], ReceiptSmses[] }
+    Edge->>DB: UPDATE bill_payments SET status=...
+    alt Status == Paid AND ReceiptSmses present
+        Edge->>Edge: send all ReceiptSmses to customer (spec-mandated)
+    end
+    Edge-->>User: { vouchers, narration }
 ```
 
-### 9.2 PAY — look up authorized row, reuse reference
+### 9.2 Why BillPay is the structural exemplar
 
-`supabase/functions/billpay/index.ts:415-431, 582-597`
+BillPay is the cleanest of the three Paynow products we ship — direct Supabase Edge → API, no relay, no IP whitelist, no KYC gate, sub-90-minute integration. It owes that ergonomics entirely to **subdomain separation**: `billpay.paynow.co.zw` does not share the bot wall that lives on `www.paynow.co.zw`. The Research Investigation argues this same pattern (a dedicated `api.paynow.co.zw` subdomain free of the bot wall) should be adopted for Paynow Core to remove the relay requirement industry-wide. BillPay is the proof that the pattern works inside Paynow's existing infrastructure.
 
-```ts
-// Look up the authorized payment by reference — SAME reference as AUTH
-const { data: authRow } = await svc
-  .from("bill_payments")
-  .select("*")
-  .eq("reference", reference)
-  .eq("user_id", user.id)
-  .single();
-
-if (!authRow) {
-  return json({ error: "No authorized payment found for this reference. Run AUTH first." }, 400);
-}
-if (authRow.status !== "authorized") {
-  return json({ error: `Payment in '${authRow.status}' state, not 'authorized'. Cannot pay.` }, 400);
-}
-
-const apiRequest = {
-  Action: "PAY",
-  BillerCode: billerCode,
-  MemberNumber: accountNumber,
-  Reference: reference,                          // ← same reference as AUTH (spec-mandated)
-  TotalAmount: totalAmount || amount,
-  Products: payProducts,
-  ...(payerDetails ? { PayerDetails: payerDetails } : {}),
-};
-```
-
-### 9.3 PAY status fan-out
-
-The PAY response can be **Paid / BeingProcessed / Flagged / Failed** — each maps to a distinct DB state and downstream action. Most importantly: **all `ReceiptSmses` returned by voucher billers MUST be delivered to the customer** (BillPay v1.33 spec requirement).
-
-`supabase/functions/billpay/index.ts:668-725`
-
-```ts
-if (apiData.Status === "Paid") {
-  await svc.from("bill_payments").update({
-    status: "paid",
-    amount,
-    total_amount: apiData.TotalAmount || amount,
-    currency: apiData.Currency || "USD",
-    account_holder: apiData.MemberName,
-    billpay_reference: apiData.BillPayReference,
-    biller_payment_reference: apiData.BillerPaymentReference,
-    wallet_debit_reference: apiData.WalletDebitReference,
-    vendor_commission: vendorCommission,
-    vouchers: allVouchers,
-    receipt_smses: receiptSmses,
-    receipt_html: receiptHtml,
-    display_data: displayData,
-    products: apiData.Products || [],
-  }).eq("reference", reference);
-
-  // ZETDC/voucher billers: MUST send all ReceiptSmses to customer (spec requirement)
-  if (receiptSmses.length > 0) {
-    const { data: profile } = await svc.from("profiles").select("phone").eq("id", user.id).single();
-    if (profile?.phone) {
-      for (const sms of receiptSmses) {
-        sendReceiptSms(supabaseUrl, serviceRoleKey, profile.phone, sms, user.id);
-      }
-    }
-  }
-}
-```
-
-Network-error handling on PAY is deliberately conservative — we mark `being_processed` rather than `failed`, because the biller may have committed even if we didn't see the response. A reconciliation worker (`billpay-reconcile`) calls Paynow's status endpoint to resolve.
-
-`supabase/functions/billpay/index.ts:613-631`
-
-```ts
-} catch (fetchErr) {
-  // Network failure during PAY — mark for RETRY reconciliation
-  await svc.from("bill_payments").update({
-    status: "being_processed",
-    amount,
-    total_amount: totalAmount || amount,
-    narration: "Network error during payment — will retry automatically",
-  }).eq("reference", reference);
-
-  return json({
-    status: "processing",
-    action: "pay",
-    reference,
-    message: "Payment request sent but response not received. We will check the status automatically.",
-  });
-}
-```
+For full code paths, schema, RLS, reconciliation cron, simulation mode, and operational findings see the [BillPay × Supabase Integration](billpay-supabase-integration.md) deliverable.
 
 ---
 
@@ -748,7 +746,49 @@ else if (result?.provider === 'paynow' && result?.formFields) { /* browser-submi
 
 ---
 
-## 12. Environment variables
+## 12. Shortcomings & areas of improvement
+
+This section is candid: it documents the gaps we found in the Paynow Merchant Services APIs and our own integration. Items marked **(Paynow)** are upstream concerns; items marked **(ZimLivestock)** are open items in our codebase.
+
+### 12.1 Paynow API shortcomings
+
+| # | Area | Issue | Impact | Suggested improvement |
+|---|---|---|---|---|
+| P1 | **Cloudflare bot wall on `www.paynow.co.zw`** | All cloud egress IPs (Supabase, Vercel, Netlify, AWS Lambda, GCP Cloud Run) are blocked or rate-limited. Symptom is TCP RST or HTTP 1020. | Every modern integrator must build relay infrastructure (Worker, residential static IP, browser-relay). Adds 1–2 weeks of unplanned work and a permanent failure surface. | Move the merchant API to a dedicated subdomain (e.g. `api.paynow.co.zw`) with the bot wall disabled, mirroring the `billpay.paynow.co.zw` pattern. The bot wall stays useful on the merchant-portal UI; integrators get a clean machine-to-machine endpoint. |
+| P2 | **Webhook hash uses *received* field order, not insertion order** | `verifyPaynowHash` cannot iterate `Object.values()` of a parsed object — Paynow's callback ordering does not match initiation. Undocumented in the official spec. | Every integrator hits this on first deploy. We saw three intermittent webhook rejections in production before tracing it. | Document explicitly in the merchant-services PDF; or sort fields alphabetically before hashing on both sides. |
+| P3 | **`AwaitingDelivery` status semantics are ambiguous** | The spec lists it as a status but does not declare it terminal-success. Some integrators (us included on first pass) treat it as non-terminal and rely on a follow-up `Paid` callback that may never arrive for digital goods. | Settled-but-undelivered orders sit as `pending` indefinitely until poll-sync clears them. | State explicitly that `AwaitingDelivery` means **funds settled to merchant wallet** and is terminal-success for non-physical goods. |
+| P4 | **No idempotency-key header** | The merchant API accepts a free-form `reference` as the only deduplication primitive. If a network retry sends the same reference twice, behavior depends on Paynow's internal state, not on a contract. | Integrators must build their own idempotency table on top (we did — unique index on `(user_id, idempotency_key)`). | Adopt the Stripe / IETF `Idempotency-Key` header pattern (24h replay window, exact-response replay). |
+| P5 | **Express Checkout error strings are unstructured** | Terminal-vs-retryable errors (insufficient balance, suspended subscriber, bad PIN, network timeout) come back as freeform strings. We classify by substring match (`insufficient`, `subscriber`, `suspended`). | Brittle — any wording change at Paynow breaks our short-circuit and users get an infinite Web Checkout fallback loop. | Add a stable `errorCode` field alongside the human message: `WALLET_INSUFFICIENT`, `SUBSCRIBER_SUSPENDED`, `PIN_INVALID`, etc. |
+| P6 | **`pollurl` reuses `paynowreference` semantically across products** | `payments.paynow_reference` ends up holding *either* the pollurl OR the actual `paynowreference` depending on flow. Confusing for new engineers reading the schema. | Cosmetic but real — three distinct hires asked "is this column the URL or the ID?" | Spec the difference explicitly; or rename the response field to `pollUrl` (camelCase) and `paynowTransactionId`. |
+| P7 | **No webhook replay endpoint** | If our webhook returns 5xx, Paynow does not auto-retry. Recovery is the integrator's responsibility (we built poll-sync). | Means the integrator carries reconciliation logic that should arguably be platform-side. | Provide a 3-attempt retry on 5xx with exponential backoff, plus a manual replay endpoint keyed on `paynowreference`. |
+| P8 | **BillPay status polling cadence is hard-coded by spec** | 120s first check, 180s subsequent, 600s for Flagged. No webhook option for state transitions. | Forces every BillPay integrator to run a cron worker. Increases infrastructure cost; latency on resolution can be 3+ minutes. | Add an optional webhook on biller-side completion (the data is already known to Paynow when the biller responds). |
+| P9 | **No sandbox parity for Web Checkout** | Express Checkout has documented test phone numbers (`0771111111` etc.); Web Checkout has no test card numbers in the public docs. | Card-rail testing requires real cards or a Paynow internal contact. | Publish Visa/Mastercard test PANs in the merchant docs. |
+| P10 | **`hash` field name collision** | If a merchant's `additionalinfo` contains a literal `hash` substring, integrators occasionally write naive parsers that strip the wrong thing. | Found it in two third-party libraries. | Rename to `signature` in v2 of the protocol; alias `hash` for back-compat. |
+
+### 12.2 ZimLivestock integration shortcomings
+
+| # | Area | Issue | Resolution path |
+|---|---|---|---|
+| Z1 | `awaiting delivery` is currently no-op'd in `payment-webhook` | Spec calls for terminal-success treatment; our handler treats it as non-terminal. Poll-sync masks the bug for now. | One-line fix: add `status === "awaiting delivery"` to the terminal-success branch. Tracked in §6.2. |
+| Z2 | No exponential backoff on poll-sync | We poll every 20s for the lifetime of `pending`. After 5 minutes that's 15 wasted calls. | Switch to 20s × 5, then 60s × 5, then 180s × ∞ — same outcome, ~70% fewer calls. |
+| Z3 | Browser-relay branch leaks `formFields` over `postMessage` | If the React PWA were ever embedded in a malicious iframe, the signed form could be exfiltrated and replayed. | Add `targetOrigin` lockdown on the relay submission; verify referrer on the receiving page. |
+| Z4 | Stripe fallback path exists but is feature-flagged off | Diaspora users see "card payments coming soon" while the code is live. | Decision deferred until merchant agreement is finalized. |
+| Z5 | No structured logging on hash-verification failures | `log.error("Paynow hash verification failed", { reference })` — but we don't capture which fields, in which order, were hashed. Forensics are guesswork. | Log the SHA-512 input (without the integration key) and the received hash. |
+| Z6 | Reconciliation worker for `payments` (not BillPay) is missing | If both webhook and poll-sync fail (e.g. user closes the tab and the webhook is dropped), the row stays `pending` forever. | Add a hourly cron that polls all `pending` payments older than 30 minutes and calls the pollurl one final time. |
+
+### 12.3 Roadmap summary
+
+If we had two more weeks:
+
+1. Fix Z1 (one line, high value) — 15 minutes.
+2. Add the reconciliation cron Z6 — 2 hours.
+3. Implement P4-style idempotency key on our integration as a defense-in-depth layer — 4 hours.
+4. Co-author with Paynow product the spec clarifications for P3 and P10 — async.
+5. Pilot the `api.paynow.co.zw` subdomain pattern (P1) on a single test merchant — depends on Paynow infra.
+
+---
+
+## 13. Environment variables
 
 ```bash
 # Paynow Web/Mobile (Express Checkout + Web Checkout)
@@ -777,7 +817,7 @@ All values live in Supabase Function secrets (`supabase secrets set`) — never 
 
 ---
 
-## 13. File index for senior engineers
+## 14. File index for senior engineers
 
 | File                                                  | What it is                                       |
 |-------------------------------------------------------|--------------------------------------------------|
