@@ -70,6 +70,13 @@ export default defineConfig(({ command, mode }) => {
         ],
       },
       workbox: {
+        // Force the new SW to activate immediately on deploy, take control of
+        // all open tabs, and purge old precache entries. main.tsx pairs this
+        // with a controllerchange listener that reloads the page so users
+        // always see the latest bundle without having to clear PWA data.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // Serve offline fallback for navigations when the network is unavailable
         navigateFallback: '/offline.html',
         navigateFallbackDenylist: [/^\/api/, /^\/auth/],
