@@ -77,9 +77,13 @@ export default defineConfig(({ command, mode }) => {
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,
-        // Serve offline fallback for navigations when the network is unavailable
-        navigateFallback: '/offline.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/auth/],
+        // SPA fallback: every navigation that isn't /api or /auth or an
+        // /assets/* file should resolve to the precached index.html shell so
+        // React Router can handle the client-side route. Earlier this was
+        // pointing at /offline.html which made every dynamic route (e.g.
+        // /item/<id>) render the offline page even on a healthy network.
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/assets\//],
         // Cache strategies for different resource types
         runtimeCaching: [
           {
