@@ -1,7 +1,7 @@
 import { Fragment, useState, useCallback, useDeferredValue } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, GraduationCap, Droplet, Plus, TrendingUp } from "lucide-react";
+import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, Droplet, Plus, TrendingUp, FlaskConical } from "lucide-react";
 import { categories } from "../data/mockData";
 import { useLivestockList, usePrefetchLivestockItem, useMyListings } from "../../hooks/useLivestock";
 import { useFavorites, useToggleFavorite } from "../../hooks/useFavorites";
@@ -245,7 +245,7 @@ export function HomeFeed() {
         <div className="flex gap-3 overflow-x-auto pb-2">
           {[
             { label: 'ZESA',        code: 'zesa',    icon: <Zap className="w-5 h-5" />,             color: 'bg-amber-100 text-amber-600' },
-            { label: 'School Fees', code: 'fees',    icon: <GraduationCap className="w-5 h-5" />,   color: 'bg-purple-100 text-purple-600' },
+            { label: 'Test Biller', code: 'test',    icon: <FlaskConical className="w-5 h-5" />,    color: 'bg-slate-100 text-slate-600' },
             { label: 'Water',       code: 'water',   icon: <Droplet className="w-5 h-5" />,         color: 'bg-cyan-100 text-cyan-600' },
           ].map((svc) => (
             <button

@@ -45,6 +45,7 @@ const SERVICE_MAP: Record<string, { biller?: string; category?: string[]; label?
   airtime: { biller: 'AIRTIME' },
   fees:    { category: ['UZ', 'NUST', 'MSU', 'GZU'], label: 'School Fees' },
   water:   { category: ['COH', 'BCC', 'MAS', 'GWE'], label: 'Council / Water' },
+  test:    { biller: 'Test' },
 };
 
 export function BillPayFlow() {
