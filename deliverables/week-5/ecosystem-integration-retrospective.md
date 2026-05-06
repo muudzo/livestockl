@@ -140,6 +140,57 @@ Right now, two internal products meet that bar. Core does not.
 
 ---
 
+## Update — 2026-05-06 (3 weeks after original publication)
+
+Three findings emerged after the April 14 cut-off that materially update this retrospective. Two reinforce the central thesis; one is a new class of issue.
+
+### TXT cloud-reachability is conditional, not absolute
+
+The April 14 table marked TXT *"Cloud-reachable: ✅"* and *"Time to first success: ~30 min"*. Both are technically accurate **for first-200-against-the-public-API**. They are misleading for **time-to-deliver-an-actual-SMS from a serverless backend**.
+
+Reality after live integration:
+
+| Gate | Documented? | Resolved by |
+|---|---|---|
+| REMOTE-API user provisioning (separate from portal user) | ❌ | Paynow staff request |
+| Account-level IP whitelist enforcement | ❌ | Cannot be lifted — must whitelist a static IP |
+| KYC verification before first send | ❌ | Manual customer flow at `usd.txt.co.zw/customer/verifykyc` |
+| Static IP from cloud egress | ❌ | **Mac mini residential ISP + Cloudflare Quick Tunnel** |
+
+Real time-to-live-SMS-from-Supabase-Edge: **~2 weeks elapsed**, ~6 hours coding. The public-doc ergonomics are excellent; the operational provisioning surface has the same shape as Core's bot-wall problem, just at a different layer. **This reinforces — not contradicts — Recommendation #1.** The architectural fix (`api.paynow.co.zw` without bot protection, static-IP whitelisting moved to a separate provisioned tier instead of a permanent gate) generalizes beyond Core to every Paynow product that gates infrastructure on egress topology.
+
+### `AwaitingDelivery` is undocumented terminal-success
+
+Caught during a Paynow-internal spec review on 2026-05-05 and shipped as a 3-line fix the next morning. The webhook-status table in the official Web spec lists `AwaitingDelivery` but does not declare it terminal-success. Most integrators (this one included on first pass) treat it as non-terminal and rely on a follow-up `Paid` callback that for digital/auction goods may never arrive. Settled-but-undelivered orders sit as `pending` indefinitely until poll-sync clears them.
+
+This is a documentation-clarity issue, not a code defect on Paynow's side, but it belongs alongside *"webhook hash ordering"* in Recommendation #6 — both are spec-implicit conventions that bite every new integrator.
+
+**Suggested addition to the recommendations table:**
+
+| # | Change | Effort | Pattern source |
+|---|---|---|---|
+| 8 | State explicitly which webhook statuses are terminal-success vs non-terminal (`AwaitingDelivery` ambiguity) | ~1 hour | — |
+
+### BillPay simulation prefixes are case-sensitive (undocumented)
+
+Spec examples are uppercase (`AT12345`, `AF12345`); behaviour appears to require uppercase. Lowercase `attimeout` returned a successful PAY in live testing on 2026-05-06 instead of the expected 120-second timeout. Either the prefixes are case-sensitive in production (and the spec should say so) or production silently ignores prefixes that don't exact-match (which would be a regression versus the documented contract). Worth a one-line addition to BillPay v1.34.
+
+### What this update does NOT change
+
+- The DX comparison table conclusions stand. BillPay and TXT are still materially easier to integrate than Core in the first-attempt sense.
+- The Cloudflare Worker relay validation (April 16 live test) is unaffected.
+- The forum cross-check (three unresolved threads, paid-VPS workarounds) is more relevant now, not less — the txt.co.zw IP-whitelist finding shows Paynow integrators are already silently routing live traffic through residential relays.
+- The Recommended Changes ranking (Effort × Impact) holds; #1 and #2 are unchanged. Add #8 above to the list.
+
+### What changed in the demo timeline
+
+- Live TXT-driven SMS chain now fires end-of-auction notifications from the Mac mini relay, demoed alongside Core via the Cloudflare Worker.
+- ZimLivestock's senior-engineer integration doc (`paynow-supabase-integration.md`) now contains a §12 *Shortcomings & Areas of Improvement* with P1–P10 explicitly mapping to the recommendations in this retrospective.
+
+The thesis hasn't moved. Two products in this ecosystem are agent-ready by default. A third is agent-ready only with engineered workarounds. The recommendations are unchanged in shape and gain one more entry.
+
+---
+
 ## One-line presentation summary
 
 > *Paynow Core's DX gaps are not innovation problems — they are internal pattern adoption problems.*
