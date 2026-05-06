@@ -98,9 +98,6 @@ export function ItemDetail() {
   const imageUrl = item.imageUrl ?? (item as any).image_urls?.[0] ?? '';
   const imageUrls: string[] = (item as any).image_urls ?? (item.imageUrl ? [item.imageUrl] : []);
   const status = item.status ?? 'active';
-  // Minimum bid is one cent above current (or starting price if no bids yet).
-  // Backend place_bid RPC enforces "must be higher than current_bid" anyway.
-  const minBid = currentBid > 0 ? currentBid + 0.01 : (startingPrice || 0.01);
 
   const getSellerInfo = () => {
     if (item.seller) return item.seller;
@@ -165,7 +162,7 @@ export function ItemDetail() {
 
   const handlePlaceBid = async () => {
     const amount = Number(bidAmount);
-    if (amount < minBid) return;
+    if (!amount || amount <= 0) return;
 
     if (!user) {
       navigate('/auth');
@@ -345,14 +342,13 @@ export function ItemDetail() {
 
       <div className="fixed bottom-16 left-0 right-0 bg-card border-t shadow-lg max-w-[480px] mx-auto">
         {status === 'active' && getTimeLeft() !== 'Ended' && !isOwnListing ? (
-          <div className="p-4 space-y-2">
-            <p className="text-sm text-muted-foreground">Minimum bid: US${minBid.toLocaleString()}</p>
+          <div className="p-4">
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">US$</span>
                 <Input
                   type="number"
-                  placeholder={minBid.toString()}
+                  placeholder="0.00"
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
                   className="pl-14 h-14 text-xl font-semibold tracking-wide"
@@ -366,7 +362,7 @@ export function ItemDetail() {
                       if (!user) { navigate('/auth'); return; }
                       setShowBidConfirm(true);
                     }}
-                    disabled={!bidAmount || Number(bidAmount) < minBid || placeBid.isPending}
+                    disabled={!bidAmount || Number(bidAmount) <= 0 || placeBid.isPending}
                     className="px-8 h-12 bg-emerald-600 hover:bg-emerald-700 font-semibold active:scale-[0.98] transition-all duration-150"
                   >
                     {placeBid.isPending ? 'Bidding...' : 'Bid Now'}
