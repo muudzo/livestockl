@@ -211,7 +211,8 @@ Deno.serve(async (req) => {
 
     log.info("poll-sync paynow response", { reference, paynowStatus });
 
-    if (paynowStatus === "paid" || paynowStatus === "delivered") {
+    // Terminal-success per Paynow spec: Paid, AwaitingDelivery, Delivered.
+    if (paynowStatus === "paid" || paynowStatus === "awaiting delivery" || paynowStatus === "delivered") {
       await completePayment(reference, paynowRef, log);
       return jsonResponse({ status: "paid", source: "poll" });
     }
@@ -221,7 +222,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ status: "failed", source: "poll" });
     }
 
-    // Non-terminal (sent / awaiting delivery / created) — still pending
+    // Non-terminal (sent / created) — still pending
     return jsonResponse({ status: "pending", source: "poll", paynowStatus });
   } catch (err) {
     log.error("poll-sync error", { error: (err as Error).message });

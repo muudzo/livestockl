@@ -150,14 +150,17 @@ Deno.serve(async (req) => {
         return new Response("Missing reference", { status: 400 });
       }
 
-      if (status === "paid" || status === "delivered") {
+      // Terminal-success per Paynow spec: Paid, AwaitingDelivery, Delivered.
+      // AwaitingDelivery means funds settled to merchant wallet — buyer paid, no
+      // further user action. For digital/auction goods we treat it as paid.
+      if (status === "paid" || status === "awaiting delivery" || status === "delivered") {
         await completePayment(reference, paynowRef, log);
       } else if (status === "cancelled" || status === "failed" || status === "disputed") {
         await failPayment(reference, log);
       } else {
         log.info("Paynow callback non-terminal status, no action", { reference, status });
       }
-      // "awaiting delivery", "sent", "created" — no action, still pending
+      // "sent", "created" — no action, still pending
 
       return new Response("OK", { status: 200 });
     }
