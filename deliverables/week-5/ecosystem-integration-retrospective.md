@@ -30,7 +30,7 @@ The organization already knows how to build good API DX — Core has simply not 
 |---|---|---|
 | Paynow Core | Shipped (`main`) | 835 LOC · DX score 4.2/10 |
 | BillPay v1.33 | Full integration (`main`) | 6 edge functions · 15 billers · simulation mode · ~240 LOC per flow |
-| TXT SMS API v1.12 | Feature branch | ~60 LOC per flow |
+| TXT SMS API v1.12 | Shipped (`main`, 2026-05-04) | ~60 LOC per flow · live SMS via Mac mini static-IP relay |
 
 ---
 
@@ -39,30 +39,34 @@ The organization already knows how to build good API DX — Core has simply not 
 | Dimension | Paynow Core | BillPay | TXT |
 |---|---|---|---|
 | Dedicated API subdomain | ❌ Shared with website | ✅ `billpay.paynow.co.zw` | ✅ `txt.co.zw` |
-| Cloud infra reachable | ❌ Blocked by CF bot protection | ✅ | ✅ |
-| Authentication | SHA-512 concatenated hash | HTTP Basic Auth | HTTP Basic Auth / IP whitelist |
-| Auth complexity | ~7 LOC + ordering risk | 1 header | 1 header |
+| Cloud infra reachable | ❌ Blocked by CF bot protection | ✅ | ⚠️ Conditional ¹ |
+| Authentication | SHA-512 concatenated hash | HTTP Basic Auth | HTTP Basic Auth + IP whitelist |
+| Auth complexity | ~7 LOC + ordering risk | 1 header | 1 header + IP gate |
 | Format | Form-encoded both ways | JSON | Form-encoded req, simple text resp |
 | Versioned docs | ❌ | ✅ v1.33 (dated) | ✅ v1.12 (dated) |
-| Test identifiers | ❌ | ✅ 6 simulation prefixes | ✅ Sandbox redirect |
+| Test identifiers | ❌ | ✅ 6 simulation prefixes ² | ✅ Sandbox redirect |
 | Postman collection | ❌ | ❌ | ✅ Published |
 | Structured errors | ❌ | 🟡 Partial (reversal only) | ❌ |
 | State machine documented | ❌ | ✅ Explicit states + polling intervals | N/A |
-| Time to first success | ~3.5h (then blocked) | ~1.5h | ~30 min |
+| Time to first success | ~3.5h to TCP RST diagnosis (only succeeded once relay shipped) | ~1.5h | ~30 min to first 200 ¹ |
+
+*¹ TXT's "cloud-reachable" and "30 min" claims are accurate against the public docs but understate operational reality — full live SMS from Supabase Edge required a 2-week provisioning chain (REMOTE user → IP whitelist → KYC) plus a residential static-IP relay. See the May 6 update section.*
+
+*² BillPay prefix-based simulation appears case-sensitive in production — see the May 6 update.*
 
 ---
 
 ## The structural insight
 
-Every major weakness in Paynow Core is already solved elsewhere inside Paynow:
+Most major weaknesses in Paynow Core are already solved elsewhere inside Paynow. Where a sibling product still has friction (TXT's IP-whitelist gate), the friction is at least documented and provisioning-bounded — not a silent infrastructure block:
 
-1. **Reachability** — BillPay and TXT use dedicated API subdomains without bot protection. Core does not.
+1. **Reachability** — BillPay and TXT use dedicated API subdomains without bot protection. Core does not. (TXT's IP whitelist is a *separate* gate above the network layer; the subdomain itself is reachable.)
 2. **Authentication simplicity** — BillPay/TXT use HTTP Basic Auth. Core uses a custom SHA-512 concatenation pattern.
 3. **Testability** — BillPay provides deterministic failure simulation prefixes (`AT`, `PF`, `PFF`, etc.). Core provides no structured test identifiers.
 4. **State clarity** — BillPay documents polling intervals (120s / 180s / 600s). Core requires inference.
 5. **Documentation hygiene** — BillPay and TXT publish version numbers and dates. Core does not.
 
-**This is not a capability gap. It is an internal consistency gap.**
+**This is not a capability gap. It is an internal consistency gap.** The patterns Paynow needs are already running in production on its own products.
 
 ---
 
@@ -97,11 +101,11 @@ The workaround proves the architectural diagnosis: **Paynow Core needs a reachab
 
 The Paynow developer forum ([forums.paynow.co.zw](https://forums.paynow.co.zw/)) has three open threads reporting this exact symptom across 7 months. None are marked resolved, no official fix is posted, and Cloudflare is not identified as the cause in any of them.
 
-| Thread | Opened | Last activity | Status |
-|---|---|---|---|
-| [Paynow failing on supabase (#8759)](https://forums.paynow.co.zw/t/paynow-failing-on-supabase/8759/5) | 2026-02-03 | 2026-04-04 | Community-posted DigitalOcean VPS proxy eventually reported as working. No staff fix. |
-| [Connection Reset Error from Supabase Edge Functions (#8022)](https://forums.paynow.co.zw/t/connection-reset-error-from-supabase-edge-functions/8022) | 2025-09-03 | 2025-09-11 | Paynow staff requested IP address. No follow-up. |
-| [Technical Details — Connection Reset (os error 104) (#9095)](https://forums.paynow.co.zw/t/technical-details-for-integration-connection-reset-os-error-104/9095) | 2026-04-01 | 2026-04-10 | Paynow staff requested logs. Thread stalled. |
+| Thread | Opened | Last activity | Age at this writing | Status |
+|---|---|---|---|---|
+| [Paynow failing on supabase (#8759)](https://forums.paynow.co.zw/t/paynow-failing-on-supabase/8759/5) | 2026-02-03 | 2026-04-04 | 3 months | Community-posted DigitalOcean VPS proxy eventually reported as working. No staff fix. |
+| [Connection Reset Error from Supabase Edge Functions (#8022)](https://forums.paynow.co.zw/t/connection-reset-error-from-supabase-edge-functions/8022) | 2025-09-03 | 2025-09-11 | **7 months stale** | Paynow staff requested IP address. No follow-up. |
+| [Technical Details — Connection Reset (os error 104) (#9095)](https://forums.paynow.co.zw/t/technical-details-for-integration-connection-reset-os-error-104/9095) | 2026-04-01 | 2026-04-10 | 2 weeks | Paynow staff requested logs. Thread stalled. |
 
 **What this confirms:**
 - The block is not isolated to our project — at least three integrators independently reproduced it.
@@ -159,7 +163,9 @@ Reality after live integration:
 | KYC verification before first send | ❌ | Manual customer flow at `usd.txt.co.zw/customer/verifykyc` |
 | Static IP from cloud egress | ❌ | **Mac mini residential ISP + Cloudflare Quick Tunnel** |
 
-Real time-to-live-SMS-from-Supabase-Edge: **~2 weeks elapsed**, ~6 hours coding. The public-doc ergonomics are excellent; the operational provisioning surface has the same shape as Core's bot-wall problem, just at a different layer. **This reinforces — not contradicts — Recommendation #1.** The architectural fix (`api.paynow.co.zw` without bot protection, static-IP whitelisting moved to a separate provisioned tier instead of a permanent gate) generalizes beyond Core to every Paynow product that gates infrastructure on egress topology.
+Real time-to-live-SMS-from-Supabase-Edge: **~2 weeks elapsed**, ~6 hours coding. The public-doc ergonomics are excellent; the operational provisioning surface has the same *shape* as Core's bot-wall problem — an undocumented infrastructure gate that blocks cloud egress — just at a different layer (account-level IP whitelist vs CDN bot protection).
+
+**This reinforces the principle behind Recommendation #1**, even though that specific recommendation (subdomain split + bot-wall removal) doesn't directly fix TXT's IP-whitelist gate. The broader principle is: **gateway products should not require integrators to independently rediscover and engineer around infrastructure-level gates to achieve first-attempt success.** Core's fix is `api.paynow.co.zw` without bot protection; TXT's parallel fix would be a default-allow egress posture for verified vendors with rate-limiting instead of permanent IP whitelisting. Different mechanism, same architectural principle.
 
 ### `AwaitingDelivery` is undocumented terminal-success
 
