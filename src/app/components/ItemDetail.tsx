@@ -98,7 +98,9 @@ export function ItemDetail() {
   const imageUrl = item.imageUrl ?? (item as any).image_urls?.[0] ?? '';
   const imageUrls: string[] = (item as any).image_urls ?? (item.imageUrl ? [item.imageUrl] : []);
   const status = item.status ?? 'active';
-  const minBid = currentBid + 50;
+  // Minimum bid is one cent above current (or starting price if no bids yet).
+  // Backend place_bid RPC enforces "must be higher than current_bid" anyway.
+  const minBid = currentBid > 0 ? currentBid + 0.01 : (startingPrice || 0.01);
 
   const getSellerInfo = () => {
     if (item.seller) return item.seller;
