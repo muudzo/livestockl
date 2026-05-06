@@ -119,8 +119,12 @@ export function CheckoutScreen() {
 
   const currentBid = item.currentBid ?? (item as any).current_bid ?? 0;
   const imageUrl = item.imageUrl ?? (item as any).image_urls?.[0] ?? '';
-  const platformFee = Math.round(currentBid * 0.05);
-  const total = currentBid + platformFee;
+  // Cent-accurate math (matches supabase/functions/_shared/money.ts platformTotal).
+  // Math.round on dollars zeroed out the fee for any bid under $10 and over-charged
+  // for some midrange bids; toFixed(2) keeps both client and server in agreement.
+  const platformFee = Number((currentBid * 0.05).toFixed(2));
+  const total = Number((currentBid + platformFee).toFixed(2));
+  const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const methodMap: Record<PaymentMethod, 'EcoCash' | 'OneMoney' | 'Card'> = {
     ecocash: 'EcoCash',
@@ -231,16 +235,16 @@ export function CheckoutScreen() {
         <div className="space-y-3">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Winning Bid</span>
-            <span className="font-semibold">US${currentBid.toLocaleString()}</span>
+            <span className="font-semibold">US${fmt(currentBid)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Platform Fee (5%)</span>
-            <span className="font-semibold">US${platformFee.toLocaleString()}</span>
+            <span className="font-semibold">US${fmt(platformFee)}</span>
           </div>
           <Separator />
           <div className="flex justify-between text-lg">
             <span className="font-semibold">Total</span>
-            <span className="font-bold text-emerald-700">US${total.toLocaleString()}</span>
+            <span className="font-bold text-emerald-700">US${fmt(total)}</span>
           </div>
         </div>
 
@@ -361,7 +365,7 @@ export function CheckoutScreen() {
           >
             {initiatePayment.isPending ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin text-white" />Processing...</>
-            ) : `Pay US$${total.toLocaleString()}`}
+            ) : `Pay US$${fmt(total)}`}
           </Button>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Lock className="w-3 h-3" />
