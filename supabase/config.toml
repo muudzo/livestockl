@@ -54,3 +54,8 @@ verify_jwt = false
 # in-function auth gate still rejects unauthorized SMS sends.
 [functions.send-sms]
 verify_jwt = false
+
+# Inbound BillPay biller API — called by Paynow when a buyer pays via
+# BillPay menu. Auth is HTTP Basic + IP allowlist inside the handler.
+[functions.billpay-biller-inbound]
+verify_jwt = false
