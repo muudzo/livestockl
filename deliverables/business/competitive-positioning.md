@@ -23,45 +23,37 @@ The two axes that matter to an auction-house owner are **"who runs it"** and **"
                                           constable workflow, Paynow)
                                   ▲
                                   │
-            DIY / self-serve      │       Run-it-for-you
                                   │
-                                  │             ┌──────────────────┐
-                                  │             │                  │
-                                  │             │   ZimLivestock   │
-                                  │             │    (SaPS)        │
-                                  │             │                  │
-                                  │             └──────────────────┘
+      ┌──────────────────────┐    │
+      │ Physical-only        │    │           ┌──────────────────┐
+      │ auction house        │    │           │                  │
+      │ (status quo)         │    │           │   ZimLivestock   │
+      └──────────────────────┘    │           │    (SaPS)        │
+                                  │           │                  │
+         ┌──────────────────┐     │           └──────────────────┘
+         │  WhatsApp groups │     │
+         └──────────────────┘     │
                                   │
-                                  │      ┌──────────────────────┐
-                                  │      │ Physical-only        │
-                                  │      │ auction house        │
-                                  │      │ (status quo)         │
-                                  │      └──────────────────────┘
-                                  │
-                                  │   ┌──────────────────┐
-                                  │   │  WhatsApp groups │
-                                  │   └──────────────────┘
         ◄─────────────────────────┼─────────────────────────────►
         OWNER OPERATES IT                       WE OPERATE IT
                                   │
-                                  │      ┌──────────────────┐
-                                  │      │ Facebook /       │
-                                  │      │ Classifieds      │
-                                  │      └──────────────────┘
+         ┌──────────────────┐     │
+         │ Facebook /       │     │
+         │ Classifieds      │     │
+         └──────────────────┘     │
                                   │
-                                  │
-            ┌──────────────────┐  │
-            │ Auctions Plus AU │  │
-            │ LMA NZ           │  │
-            │ (foreign SaaS)   │  │
-            └──────────────────┘  │
+      ┌──────────────────┐        │
+      │ Auctions Plus AU │        │
+      │ LMA NZ           │        │
+      │ (foreign SaaS)   │        │
+      └──────────────────┘        │
                                   ▼
                        NOT BUILT FOR ZIM
                        (card rails, AUD/NZD,
                         English-only, no constable)
 ```
 
-**Read it like this.** The owner already runs a physical floor (bottom-right cluster) and watches sub-US$500 trades leak to WhatsApp and Facebook (bottom-left). The foreign SaaS platforms sit far from him on both axes — wrong rails, wrong language, wrong workflow. The only piece of the map that doesn't yet exist for him is *digital-and-Zimbabwean-and-run-by-someone-else*. That's the quadrant we occupy alone.
+**Read it like this.** The status-quo cluster sits *left of the axis* — the owner runs the physical floor himself, watches sub-US$500 trades leak to WhatsApp groups (top-left) and Facebook (bottom-left), and the foreign SaaS platforms ask him to self-serve on a system not built for his rails (bottom-left). Every option to his left requires him to operate it. The only piece of the map that doesn't yet exist for him is *digital-and-Zimbabwean-and-run-by-someone-else*. That's the quadrant we occupy alone.
 
 ---
 
@@ -74,10 +66,10 @@ The two axes that matter to an auction-house owner are **"who runs it"** and **"
 | Police-clearance / constable workflow | Yes — digital chain of custody | No | Yes — on-site, paper | No | N/A (different jurisdiction) |
 | Branded under house's name | Yes — house's colours, logo, domain | N/A | Yes (their floor) | No — Facebook brand | No — Auctions Plus brand |
 | Who operates it | We do — managed service | Owner / admin | Owner | Owner | Owner self-serves on their platform |
-| Fees to the house | Engagement + retainer + 0.75% surcharge | Free | 12% combined (5% seller / 7% buyer) | Free / listing fees | Subscription + per-tx |
+| What it costs the house to use | Engagement + retainer + 0.75% surcharge *(our fees)* | Free | n/a — the house *charges* 12% combined (5% seller / 7% buyer) | Free / listing fees | Subscription + per-tx |
 | Reach beyond physical floor | Yes — 24/7 listings, remote bidders, diaspora | Group members only | Saturday attendees only | Wide but undifferentiated | Wide — but wrong audience for Zim |
 | EcoCash USSD integration | Yes — primary rail | No | N/A | No | No |
-| Shona / local language | Yes (planned for v1.1) | Yes (it's just chat) | Yes (it's a person) | Partial | No |
+| Shona / local language | Roadmap — UI strings Q3 2026; copy-deck workflow already supports both | Yes (it's just chat) | Yes (it's a person) | Partial | No |
 | Audit trail for inspectors | Yes — per-animal, timestamped | None | Paper | None | Yes (foreign jurisdiction) |
 | Time to start using | 4–6 weeks deployment | Minutes | Already running | Hours | Weeks + payment-rail blocker |
 | Real cost to owner | Layered, transparent | Zero direct cost, large indirect cost | Status-quo opex | Zero direct, large indirect | Multi-currency, FX exposure |
@@ -96,7 +88,7 @@ Foreign platforms were built for paddock-side cattle sales in NSW. They don't kn
 
 **2. Paynow is wired in, not promised.**
 Four Paynow products are already integrated and demoed end-to-end: Core Express Checkout, BillPay biller-inbound (coded this week), TXT.co.zw SMS, and the planned Bisafe escrow hook. Competitors talking about "EcoCash support" mean a roadmap line. We mean a webhook receipt.
-*Evidence: 8 May 2026 live demo to Paynow leadership; biller-inbound API merged 7 May 2026.*
+*Evidence: 8 May 2026 live demo to Paynow leadership; biller-inbound API merged on the same day.*
 
 **3. We run it. Nobody else offers to.**
 Every alternative — WhatsApp, Facebook, foreign SaaS — hands the owner a tool and walks away. We hand the owner a *team*. That moat exists because nobody else in this segment thinks the unit economics work for a managed service. We think they do, because our research shows a single Tier-A house yields ~$35k/year recurring, and a managed service is the only way to land that contract.
@@ -112,7 +104,7 @@ An auction-house owner trusts the founder he can call on a Saturday. He doesn't 
 
 Here's what the status quo costs you, written so your bookkeeper can underline it:
 
-- **12% combined house fees** (5% seller + 7% buyer) are *already* steep — and the marginal trade under US$500 is leaving the floor for WhatsApp because of it. You can't cut the fee without bleeding the operation; you can only widen the funnel.
+- **12% in combined house fees across buyer and seller** (5% from the seller, 7% from the buyer) are *already* steep — and the marginal trade under US$500 is leaving the floor for WhatsApp because of it. You can't cut the fee without bleeding the operation; you can only widen the funnel.
 - **Capped to weekend attendance.** The constable can clear what the constable can clear in one day. No amount of marketing changes that ceiling if there's no digital surface.
 - **Cash float and security risk every Saturday.** Bisafe and Paynow settlement aren't just convenient — they're an order-of-magnitude reduction in the risk you carry between the floor and the bank.
 - **No remarketing list.** Today, every buyer who walks out of your floor is anonymous to you next Saturday. WhatsApp groups capture them — but they're *the group admin's* customers, not yours.

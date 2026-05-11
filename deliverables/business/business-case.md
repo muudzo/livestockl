@@ -111,6 +111,22 @@ The competitive moat isn't technology. The moat is **local presence + Paynow par
 
 We do not sell a licence. We sell an **engagement**: deployment + training + ongoing operations of a digital marketplace branded as the auction house's own. Three layered revenue lines, each tied to a different unit of value we deliver.
 
+### 📌 Pricing reference — single source of truth
+
+**This table is the canonical price list. Every other document (GTM, pilot proposal, playbook, financial model, sales script) references these numbers. If a number disagrees with this table, this table wins — update the sibling doc.**
+
+| Tier | Engagement (one-off) | Retainer (monthly) | Sale-day GMV target | Sale days / mo |
+|---|---:|---:|---:|---:|
+| **A — Anchor house** | $10,000 – $12,000 | $2,000 – $2,500 | $80–200k | 4 (weekly) |
+| **B — Mid-market**   | $7,000 – $8,000   | $1,500           | $30–80k  | 3 (weekly–fortnightly) |
+| **C — Small / regional** | $5,000 | $1,200 | $10–30k | 2 (fortnightly) |
+| **Pilot (any tier)** | $5,000 *(discounted from list)* | $1,200 for 90 days, then converts to tier-appropriate rate | varies | varies |
+
+Plus, across all tiers:
+- **Transaction surcharge: 0.75%** of settled GMV, sits on top of Paynow's own fee.
+- **Pass-through costs:** Bisafe escrow, SMS, Paynow merchant-transfer — no markup.
+- **Commitment:** 12-month renewable from month-4 of pilot or day-one of standard engagement.
+
 ### Revenue streams
 
 **1. Deployment engagement (one-off, billed up front)**
@@ -135,12 +151,18 @@ A pure **subscription** model assumes the auction house can self-onboard. They c
 
 A **layered SaPS** model lets the engagement fee pay for the day-one work, the retainer pay for the steady-state operations, and the small per-tx surcharge align long-term incentives. Every revenue line is tied to a different unit of value we deliver.
 
-### Unit economics (illustrative — single auction house)
+### Unit economics (illustrative — non-pilot Tier B engagement)
+
+These numbers assume a **standard (non-pilot) Tier B house** signing at list pricing. The pilot customer's first-year economics are different — see [`pilot-proposal.md`](pilot-proposal.md) for that specific shape.
 
 | Year | Engagement | Retainer (×12) | Tx surcharge | Total |
 |---|---:|---:|---:|---:|
-| Year 1 | $8,000 | $18,000 ($1,500/mo) | $4,800 (30% pen. × $80k × 24 sales × 0.75%) | **~$30,800** |
-| Year 2 | — | $24,000 ($2,000/mo, tier up) | $11,200 (70% pen.) | **~$35,200** |
+| Year 1 | $8,000 *(top of Tier B list)* | $18,000 ($1,500/mo × 12) | $4,800 (30% pen. × $80k × 24 sales × 0.75%) | **~$30,800** |
+| Year 2 | — | $24,000 ($2,000/mo — bottom of Tier A as the house grows) | $11,200 (70% pen.) | **~$35,200** |
+
+For comparison — **pilot customer year 1** (90-day pilot at $1,200/mo retainer, converts to $1,500/mo Tier B for the remaining 9 months):
+- $5,000 discounted engagement + ($1,200 × 3) + ($1,500 × 9) + $4,800 tx surcharge ≈ **~$26,900**
+- ~$4k lower than the standard Year 1 figure above — the cost of pilot-customer reference value.
 
 At year 2 steady state, **~$35k revenue per auction house, recurring**. That's a very different shape from a SaaS price book — it's a high-revenue, low-volume consulting business with productised infrastructure.
 

@@ -102,6 +102,18 @@ Goal: understand scale, history, ownership shape.
 | 5 | "Who else is in the business with you — family, partners, employees on the books?" | *Tells us how the decision will be made. Family business → owner is the decision-maker. Partnership → there will be a second meeting.* |
 | 6 | "Are you part of the Livestock Producers Association? Do you see the other floors as peers or competitors?" | *Channel signal. ZLPA membership is our second-customer pipeline.* |
 
+#### 🎯 Tier sizing — pricing reference for the founder
+
+As they answer Q2–Q4, mentally map their answers onto this table. Don't share it on the call. (Numbers anchored in `business-case.md` § 6.)
+
+| Tier | Sale-day GMV | Sale days / mo | Engagement | Retainer |
+|---|---|---|---:|---:|
+| **A — Anchor** | $80–200k | 4 (weekly) | $10–12k | $2,000–2,500/mo |
+| **B — Mid** | $30–80k | 3 (weekly–fortnightly) | $7–8k | $1,500/mo |
+| **C — Small** | $10–30k | 2 (fortnightly) | $5k | $1,200/mo |
+
+Sale-day GMV below **US$10k** → walk away (see § 8 disqualification matrix).
+
 ### 3.2 Current workflow (10–12 minutes)
 
 Goal: understand the actual operational mechanics. This is where the platform finds its wedge.
@@ -238,7 +250,7 @@ Then summarise:
 - **Three pain points in his exact words** — read them from the notebook. Word for word.
 - **One observation from the floor** if you were there on a sale day.
 
-This is the most important 3 minutes of the call. He needs to feel **heard**, not analysed. The phrase "in his exact words" is non-negotiable — if he said "the bookkeeper gives me a headache at month-end", you say "the bookkeeper gives you a headache at month-end", not "you have reconciliation pain". The wording IS the signal that you listened.
+This is the most important 3 minutes of the call. He needs to feel **heard**, not analysed. The phrase "in his exact words" is non-negotiable — if he said "the bookkeeper gives me a headache at month-end", you say "the bookkeeper gives you a headache at month-end", not "you have reconciliation pain". Echoing his language is the proof that you were listening.
 
 ### Beat 2: Set the next step (4 minutes)
 

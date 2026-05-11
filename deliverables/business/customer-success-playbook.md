@@ -117,7 +117,7 @@ Move from daily to weekly check-ins by week 5 *only if* week 4 went well. Defini
 - Two consecutive sale days with no SEV-1 incidents
 - Owner answering calls within 24 hours
 - Bookkeeper confirms month-1 report matches her reconciliation
-- ≥10% of one sale day's GMV through the platform (we want 30% by month 3)
+- ≥10% of one sale day's GMV through the platform — internal ramp milestone, not a contractual one. The day-90 contractual target in [`pilot-proposal.md`](pilot-proposal.md) is 30%.
 
 Weekly cadence:
 
@@ -169,9 +169,9 @@ These are the response SLAs we commit to internally. Communicate them to the cus
 | **SEV-4 — feature request, minor bug, cosmetic** | < 24 h | next business day | next sprint |
 | **SEV-5 — owner asking a question** | < 30 min, always | < 1 h, always | same day |
 
-"Business hours" for us = Monday–Friday 8am–6pm Harare time. Saturday is on-call by default for everyone on the operations team.
+"Business hours" for us = Monday–Friday 8am–6pm Africa/Harare time. Saturday is on-call by default for everyone on the operations team.
 
-**SEV-5 is the unusual one.** The owner gets a faster response than a buyer with a stuck payment. That is intentional. He is the customer; everyone else is a user.
+**SEV-5 sits above the buyer-and-seller tickets.** When the owner reaches out, we respond before anyone except a SEV-1 (where we're already calling him anyway). That is intentional. He is the customer; everyone else is a user.
 
 ### When to escalate to the engineer
 
@@ -480,9 +480,9 @@ If you only have time to track one signal, track **#1 — does the owner return 
 
 Everything else has a technical or commercial explanation. A non-returning owner has *only* one explanation: he is mentally checking out. By the time the GMV signal flips, he has already decided. By the time the call-return signal flips, he is deciding.
 
-### The signal that *doesn't* matter as much as you think
+### NPS — treat as one input among several
 
-NPS surveys. We collect them quarterly because GTM-strategy.md says we do, but they tell us less than the call-return signal. Mr. Mawere will tell a survey he likes us and then not renew. The behavioural signals are stronger.
+Quarterly NPS surveys are a real metric in the GTM doc, and we run them. But weight them lightly against the behavioural signals above: Mr. Mawere will tell a survey he likes us and then not renew. The call-return signal and the GMV signal are stronger predictors. Use NPS to spot delight or distress that the other signals didn't catch, not as the primary thermometer.
 
 ---
 
@@ -614,7 +614,7 @@ The "what would you change" question is the one that matters. Mr. Mawere will an
 
 ### Renewal target
 
-Per the GTM doc, **~90% of pilot customers renew at month 12.** That's the target. The 10% we lose teaches us more than the 90% we keep — every non-renewal triggers a written internal postmortem (founder + you + engineer) within 30 days.
+The GTM doc targets **~90% renewal at month 12.** It's a forecast, not a measured rate. The 10% we lose teaches us more than the 90% we keep — every non-renewal triggers a written internal postmortem (founder + you + engineer) within 30 days.
 
 ---
 
@@ -706,7 +706,7 @@ A few things the role does not teach itself:
 
 **You will be tempted to take credit.** Resist. The auction house's success is the auction house's story. We are infrastructure. The case study credits Mr. Mawere first.
 
-**You will be tempted to skip Saturday morning once it's "running well."** Don't. Not in year one. Not in year two. The Saturday morning presence — even remote, even just "I'm awake, here's my number, call if anything happens" — is the operational tax that earns the retainer. The first Saturday you skip without telling the customer is the first Saturday they lose trust.
+**You will be tempted to skip Saturday morning once it's "running well."** Resist that for the first two years. The Saturday-morning presence — even remote, even just "I'm awake, here's my number, call if anything happens" — is the operational tax that earns the retainer, and the trust we accumulate by being there compounds in ways no one will write down.
 
 **When in doubt, write it down.** Memory degrades. The next ops lead — and there will be one — needs to be able to read your notes and pick up where you left off. The handover discipline starts the day you start, not the day you leave.
 
