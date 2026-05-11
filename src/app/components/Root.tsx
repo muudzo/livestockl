@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Plus, List, Bell, LogOut, ChevronRight, Zap, Settings } from "lucide-react";
+import { Plus, List, Bell, LogOut, ChevronRight, Zap, Settings, Inbox } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
 import { useTenant } from "../../hooks/useTenant";
+import { isSuperAdmin } from "../../lib/admin";
 import { TawkToChat } from "./TawkToChat";
 import { TenantProvider } from "./TenantProvider";
 import { TenantSwitcher } from "./TenantSwitcher";
@@ -33,6 +34,7 @@ function RootInner() {
 
   const { role: tenantRole, tenant } = useTenant();
   const canManageTenant = tenantRole === 'admin' || tenantRole === 'operator';
+  const canAdminLeads = isSuperAdmin(user);
   // Preserve the tenant prefix when navigating to settings so the form
   // edits the tenant that's currently in URL context, not the user's primary.
   const settingsPath = tenant && location.pathname.startsWith(`/t/${tenant.slug}`)
@@ -46,6 +48,9 @@ function RootInner() {
     { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount || 0 },
     ...(canManageTenant
       ? [{ icon: Settings, label: 'Tenant settings', path: settingsPath }]
+      : []),
+    ...(canAdminLeads
+      ? [{ icon: Inbox, label: 'Lead pipeline', path: '/admin/leads' }]
       : []),
   ];
 

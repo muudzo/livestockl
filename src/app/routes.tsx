@@ -45,6 +45,7 @@ const AgentSetup = lazyWithRetry(() => import('./components/AgentSetup').then(m 
 const BillPayFlow = lazyWithRetry(() => import('./components/BillPayFlow'));
 const TestBillPayPayment = lazyWithRetry(() => import('./components/TestBillPayPayment'));
 const TenantSettings = lazyWithRetry(() => import('./components/TenantSettings'));
+const LeadAdmin = lazyWithRetry(() => import('./components/admin/LeadAdmin'));
 
 // Operator marketing surface — public, no auth, no tenant. Mounted outside Root.
 const OperatorLayout = lazyWithRetry(() => import('./components/operators/OperatorLayout'));
@@ -152,6 +153,12 @@ export const router = createBrowserRouter([
     Component: Root,
     children: [
       ...pageRoutes,
+      // Global admin pages — outside the tenant-prefix mirror because they
+      // operate across all tenants, not within one.
+      {
+        path: "admin/leads",
+        element: <ProtectedRoute><LazyLoad><LeadAdmin /></LazyLoad></ProtectedRoute>,
+      },
       {
         path: "t/:tenantSlug",
         children: [...pageRoutes, notFound],
