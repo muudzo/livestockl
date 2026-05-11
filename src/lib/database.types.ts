@@ -305,6 +305,40 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['billers_cache']['Insert']>;
       };
+      tenants: {
+        Row: {
+          id: string;
+          slug: string;
+          name: string;
+          config: Record<string, unknown>;
+          status: 'active' | 'suspended' | 'archived';
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          name: string;
+          config?: Record<string, unknown>;
+          status?: 'active' | 'suspended' | 'archived';
+          created_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['tenants']['Insert']>;
+      };
+      tenant_members: {
+        Row: {
+          tenant_id: string;
+          user_id: string;
+          role: 'admin' | 'operator' | 'seller' | 'buyer';
+          joined_at: string;
+        };
+        Insert: {
+          tenant_id: string;
+          user_id: string;
+          role: 'admin' | 'operator' | 'seller' | 'buyer';
+          joined_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['tenant_members']['Insert']>;
+      };
     };
     Views: Record<string, never>;
     Functions: {

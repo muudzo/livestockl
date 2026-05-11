@@ -4,8 +4,18 @@ import { Plus, List, Bell, LogOut, ChevronRight, Zap } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
 import { TawkToChat } from "./TawkToChat";
+import { TenantProvider } from "./TenantProvider";
+import { TenantSwitcher } from "./TenantSwitcher";
 
 export function Root() {
+  return (
+    <TenantProvider>
+      <RootInner />
+    </TenantProvider>
+  );
+}
+
+function RootInner() {
   const location = useLocation();
   const navigate = useNavigate();
   const { data: unreadCount } = useUnreadCount();
@@ -115,6 +125,9 @@ export function Root() {
                   <p className="text-[11px] text-muted-foreground mt-1 font-mono">{user.email}</p>
                 </div>
               )}
+
+              {/* Tenant switcher — renders nothing for single-tenant users */}
+              <TenantSwitcher />
 
               <div className="h-px bg-foreground/5" />
 
