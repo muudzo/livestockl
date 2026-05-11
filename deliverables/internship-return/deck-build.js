@@ -343,24 +343,24 @@ function wishSlide(num, eyebrow, headline, body, pageNum) {
     color: COLOR.terracotta,
   });
 
-  // Giant number on left
+  // Giant number on left — wider box + smaller font so 2-digit numerals fit
   s.addText(num, {
-    x: 0.55, y: 1.1, w: 3.5, h: 3.7,
-    fontFace: FONT.header, fontSize: 220, bold: true,
+    x: 0.55, y: 1.1, w: 4.3, h: 3.7,
+    fontFace: FONT.header, fontSize: 180, bold: true,
     color: COLOR.gold, margin: 0,
-    valign: "top",
+    valign: "top", align: "left",
   });
 
-  // Headline + body on right
+  // Headline + body on right — shifted right to leave room for numerals
   s.addText(headline, {
-    x: 4.2, y: 1.7, w: 5.2, h: 1.5,
-    fontFace: FONT.header, fontSize: 28, bold: true,
+    x: 5.0, y: 1.7, w: 4.5, h: 1.5,
+    fontFace: FONT.header, fontSize: 26, bold: true,
     color: COLOR.body, margin: 0,
   });
 
   s.addText(body, {
-    x: 4.2, y: 3.2, w: 5.2, h: 1.7,
-    fontFace: FONT.body, fontSize: 15,
+    x: 5.0, y: 3.2, w: 4.5, h: 1.7,
+    fontFace: FONT.body, fontSize: 14,
     color: COLOR.muted, margin: 0,
   });
 
