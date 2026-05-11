@@ -51,7 +51,7 @@ const OperatorLayout = lazyWithRetry(() => import('./components/operators/Operat
 const OperatorLanding = lazyWithRetry(() => import('./components/operators/OperatorLanding'));
 const OperatorPricing = lazyWithRetry(() => import('./components/operators/OperatorPricing'));
 const OperatorCaseStudy = lazyWithRetry(() => import('./components/operators/OperatorCaseStudy'));
-const RequestAccessStub = lazyWithRetry(() => import('./components/operators/RequestAccessStub'));
+const LeadForm = lazyWithRetry(() => import('./components/operators/LeadForm'));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   // Once a lazy route renders successfully, clear the chunk-reload guard so
@@ -170,7 +170,7 @@ export const router = createBrowserRouter([
       { index: true, element: <LazyLoad><OperatorLanding /></LazyLoad> },
       { path: "pricing", element: <LazyLoad><OperatorPricing /></LazyLoad> },
       { path: "case-studies/harare", element: <LazyLoad><OperatorCaseStudy /></LazyLoad> },
-      { path: "request-access", element: <LazyLoad><RequestAccessStub /></LazyLoad> },
+      { path: "request-access", element: <LazyLoad><LeadForm /></LazyLoad> },
     ],
   },
 ]);
