@@ -476,27 +476,139 @@ Currently the only path to test the SendMessage endpoint is to fully provision a
 
 ---
 
-## 11. Source Material and Evidence Index
+## 11. Proposed Solution for the ZimLivestock Use Case
 
-### 11.1 Primary code
+Sections 1–10 cover what is built and what we would file upstream with the txt.co.zw product team. This section pivots from technical reference to **product commitment** — why SMS is not a notification channel in this architecture but a first-class trust transport, and why txt.co.zw is the right rail for it.
+
+### 11.1 The accessibility constraint the architecture must absorb
+
+The May 2026 demo panel pressed on accessibility: **roughly 30% of Zimbabwean livestock buyers and sellers transact from feature phones**, not smartphones. Field research at a physical auction in Mt Hampden confirmed this — the auctioneer's phone is the only smart device on the lot, and bidders shout, wave, and pay in cash because they cannot install an app.
+
+Any payments architecture that assumes app-first reach fails this 30%. The proposed solution treats SMS as the **trust transport for the non-smartphone segment** — they cannot install the PWA, so SMS is how they receive bid confirmations, outbid alerts, payment receipts, and BillPay voucher codes.
+
+### 11.2 The recommendation
+
+**txt.co.zw via a self-hosted Cloudflare Tunnel relay, fronted by the `send-sms` Supabase Edge Function, called from every state transition in the auction lifecycle.**
+
+```
+                ┌──────────────────────────────────────────────┐
+                │  ZimLivestock event emitters                 │
+                │   • place_bid trigger → outbid SMS           │
+                │   • auction end → winner/loser SMS           │
+                │   • payment-webhook → receipt SMS            │
+                │   • billpay PAY → voucher SMS                │
+                │   • auction-ending cron → "ends in <1hr"     │
+                └──────────────────────┬───────────────────────┘
+                                       │
+                ┌──────────────────────▼───────────────────────┐
+                │  send-sms Edge Function                      │
+                │   • single template + audit log              │
+                │   • sms_log table for delivery state         │
+                │   • opt-out check (roadmap §9.4)             │
+                └──────────────────────┬───────────────────────┘
+                                       │
+                ┌──────────────────────▼───────────────────────┐
+                │  Cloudflare Tunnel → Mac mini relay          │
+                │   • bypasses IP-whitelist requirement        │
+                │   • Basic Auth at the txt.co.zw boundary     │
+                └──────────────────────┬───────────────────────┘
+                                       │
+                                       ▼
+                              txt.co.zw → SIM
+```
+
+### 11.3 Why txt.co.zw over Twilio, AfricasTalking, or carrier SMPP
+
+The benchmark in [benchmark-report.md](../week-1-2/02-dx-benchmark/benchmark-report.md) ranked payment providers, not SMS providers. For SMS specifically:
+
+| Provider | Why not |
+|---|---|
+| Twilio | Zimbabwe sender-ID registration requires NetOne/Econet partnership ZimLivestock does not have; pricing is in USD and unfavourable for the volume profile |
+| AfricasTalking | Works in Zimbabwe but routes through a third aggregator → adds latency, fragments the trust surface, and requires a second vendor relationship |
+| Carrier SMPP direct | Requires bulk-SMS aggregator contracts and a 90-day onboarding; out of scope for a 9-week internship |
+| **txt.co.zw** | Paynow ecosystem (same wallet, same audit trail), direct EcoCash/NetOne reach, USD-billable, already in scope for the broader Paynow integration |
+
+The choice is not "best SMS API" — it is "best SMS rail that completes the Paynow ecosystem story." txt.co.zw wins on coverage, settlement, and ecosystem coherence.
+
+### 11.4 Why the relay is permanent, not a workaround
+
+§9.1 lists "move relay off Mac mini onto paid static-IP host" as the first hardening item. The relay itself is **not** a temporary workaround — it is a permanent architectural choice. The IP-whitelist gate at the txt.co.zw boundary is not removable for a non-Paynow employee, and the proposed solution treats this as a feature, not a bug:
+
+- The relay is the only IP that knows the txt.co.zw credentials → tightest possible blast radius
+- The Supabase Edge Function never sees the password → secrets never enter the cloud-egress perimeter
+- The Cloudflare Tunnel provides a stable public URL that can rotate without the upstream rail noticing
+
+The proposed Phase 2 hardening is to replace the Mac mini with a paid static-IP VPS in Zimbabwe, but the **relay pattern stays.** It is the SMS analogue of the browser-relay pattern documented in [paynow-supabase-integration.md §9](paynow-supabase-integration.md).
+
+### 11.5 SMS as transactional, not promotional
+
+The proposed solution explicitly **rejects** using the SMS rail for promotion (welcome blasts, "new auction tomorrow", marketing). Three reasons:
+
+1. **Cost.** Per-message economics scale linearly. A blast to 10,000 users costs more than a month of Supabase.
+2. **Trust.** The first promotional SMS makes every future transactional SMS feel like spam. Opt-out rates compound.
+3. **Compliance.** Subscriber-preference rules apply differently for transactional vs promotional in Zimbabwe; conflating them creates legal exposure.
+
+SMS triggers are restricted to the auction state machine and BillPay vouchers. Marketing happens in-app or via email.
+
+### 11.6 Phase 2 — Delivery-status closeback
+
+`/Remote/CheckMessage/{id}` returns delivery status (sent → delivered → read). The current architecture writes `sent` and stops. The proposed Phase 2 adds a poll cron that updates `sms_log.status` to `delivered` when carrier confirms, and `failed` when carrier rejects. This closes the loop on the trust transport and enables future features:
+
+- Resend logic when delivery fails (carrier outages, dead SIMs)
+- Bid-confirmation dependency on receipt (don't release auction state until SMS confirms)
+- SLA reporting per carrier (NetOne vs Econet delivery rates)
+
+§9.5 captures the effort estimate — 4 hours when prioritised.
+
+### 11.7 What ships today, what's next, what we reject
+
+**Production today:**
+- `send-sms` Edge Function with single-template + audit log
+- Mac mini relay over Cloudflare Tunnel
+- Bid-placed, outbid, auction-won, payment-receipt SMS triggers
+- Voucher SMS dispatch for BillPay (§7 in [billpay-supabase-integration.md](billpay-supabase-integration.md))
+- Health probe endpoint with live balance check
+- First live `status: sent` row in `sms_log` 2026-05-05
+
+**Next (scoped, not in production):**
+- Auction-ending-soon cron (Phase 1b)
+- Delivery-status closeback (§11.6 above, §9.5 roadmap)
+- Opt-out (§9.4)
+- Cost-cap circuit breaker (§9.3)
+- Migration from Quick Tunnel to named Cloudflare Tunnel (§9.2)
+
+**Rejected:**
+- Twilio / AfricasTalking — wrong rail for this ecosystem (§11.3)
+- Promotional / marketing SMS — trust and cost reasons (§11.5)
+- WhatsApp Business as a substitute — does not reach the feature-phone segment that justifies SMS in the first place
+
+### 11.8 The commitment, in one paragraph
+
+SMS via txt.co.zw is the **accessibility floor** of the ZimLivestock architecture. It is the rail that lets a feature-phone user receive a bid confirmation without installing an app, a voucher code without a smartphone, and a payment receipt without WhatsApp. It completes the Paynow ecosystem story (Paynow Core for payments, BillPay for biller payments, txt.co.zw for transactional messaging — three rails, one settlement perimeter). The relay pattern is permanent; the production hardening is incremental; the rejection of promotional use is a load-bearing decision. **SMS is not a notification channel in this architecture — it is the third trust transport, on par with the app and the wallet.**
+
+---
+
+## 12. Source Material and Evidence Index
+
+### 12.1 Primary code
 
 - [`supabase/functions/send-sms/index.ts`](../../supabase/functions/send-sms/index.ts) — Edge function (240 LOC)
 - [`paynow-txt-relay/`](../../paynow-txt-relay/) — Self-hosted relay
 - [`src/app/components/TestSmsNotification.tsx`](../../src/app/components/TestSmsNotification.tsx) — Browser test harness
 
-### 11.2 Companion documentation
+### 12.2 Companion documentation
 
 - [`docs/sms-integration-plan.md`](../../docs/sms-integration-plan.md) — Original plan + appended journey log with timeline
 - [Research Investigation](research-investigation.md) — Parallel finding: Paynow Core CF bot wall, BillPay subdomain pattern, structural recommendations
 - [Paynow × Supabase Integration](paynow-supabase-integration.md) — Sibling integration doc covering Paynow Core + BillPay
 
-### 11.3 Live verification artifacts
+### 12.3 Live verification artifacts
 
 - `sms_log` table (Supabase project `hmeieslclzycyjjjflfh`) — first live `status: "sent"` row 2026-05-05
 - Health probe endpoint — currently returns `{ ok: true, status: "live", balance: "<amount>", via: "relay" }`
 - Subscriber phone `+263781497764` — received "youre the greatest of all time" smoke test 2026-05-05
 
-### 11.4 Supabase secrets (names only — values write-only)
+### 12.4 Supabase secrets (names only — values write-only)
 
 | Name | Purpose |
 |---|---|
@@ -505,13 +617,13 @@ Currently the only path to test the SendMessage endpoint is to fully provision a
 | `TXT_RELAY_URL` | Public Cloudflare Tunnel URL pointing at the relay |
 | `TXT_RELAY_SECRET` | Shared secret matching relay's local `RELAY_SECRET` |
 
-### 11.5 Mac mini local environment (gitignored)
+### 12.5 Mac mini local environment (gitignored)
 
 `paynow-txt-relay/.env` contains `TXT_USERNAME`, `TXT_PASSWORD`, `RELAY_SECRET`, `PORT=8787`. Permissions `0600`. Never committed.
 
 ---
 
-## 12. Status
+## 13. Status
 
 ✅ **Live.** Full chain proven end-to-end. Demo-ready.
 

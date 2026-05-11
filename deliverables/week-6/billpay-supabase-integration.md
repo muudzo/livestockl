@@ -509,9 +509,83 @@ These are all *additive documentation* recommendations — none require BillPay 
 
 ---
 
-## 10. Source Material and Evidence Index
+## 10. Proposed Solution for the ZimLivestock Use Case
 
-### 10.1 Live verification artifacts
+The preceding nine sections describe what is built: a BillPay consumer integration that is live in production against real billers. This section pivots from the technical reference to the **product commitment** — how BillPay fits into the ZimLivestock architecture, why we propose it as a permanent capability (not a one-off demo), and how it sets up the Phase 2 biller-inbound story.
+
+### 10.1 The two BillPay roles for ZimLivestock
+
+BillPay sits at a unique seam: it lets ZimLivestock act both as a **consumer of billers** and, in Phase 2, as a **registered biller** itself. The proposed solution commits to both directions:
+
+| Role | What it means | Who benefits |
+|---|---|---|
+| **BillPay consumer** (today, in production) | ZimLivestock's app can pay any Paynow-catalog biller — airtime, ZESA, council rates, school fees — on behalf of a logged-in user | Sellers paying farm bills from auction proceeds; buyers topping up airtime to receive SMS receipts |
+| **BillPay biller** (Phase 2, spec'd in [week-7](../week-7/billpay-biller-api-spec.md)) | ZimLivestock registers as a biller. Any buyer pays "ZimLivestock" inside any Paynow-integrated wallet | Buyers gain a trusted-biller signal; ZimLivestock distributes through every Paynow surface |
+
+Both roles speak the same vendor-API protocol. The consumer integration is the technical rehearsal for the biller integration — the AUTH/PAY discipline, idempotency, status-machine, and reconciliation all carry over.
+
+### 10.2 Why BillPay is the right consumer rail for the post-auction moment
+
+Auction-day sellers walk out with cleared funds in their wallet and immediate spending pressure — fuel, feed, transport, school fees due that week. The proposed solution makes ZimLivestock the **app where that spending happens** rather than where the seller exits to USSD:
+
+1. **No context switch.** The seller has just authenticated for the auction. BillPay reuses the same session, the same idempotency primitives, the same `payment-poll-sync` infrastructure documented in [paynow-supabase-integration.md](paynow-supabase-integration.md).
+2. **The same trust surface.** Buyers/sellers already trust ZimLivestock with auction funds. Routing bill payments through the same wallet preserves trust without re-onboarding.
+3. **Sticky engagement loop.** A seller who paid ZESA inside the app on auction day returns the following week — even outside auction season.
+4. **Post-Sale CTA pattern.** `PostSaleBillPayPrompt.tsx` (§7) is the productized form of this thesis — a single tap from "you won the auction" to "pay this bill."
+
+### 10.3 Why BillPay over rolling our own biller catalog
+
+Three providers in the broader Zimbabwean fintech space offer biller payments. BillPay is the proposed solution because:
+
+1. **No CF bot wall.** Unlike Paynow Core (§12.1.P1 in [paynow-supabase-integration.md](paynow-supabase-integration.md#121-paynow-api-shortcomings)), the BillPay API on `billpay.paynow.co.zw` is reachable from Supabase Edge Functions, Cloudflare Workers, and any serverless platform — no relay required. This is the **only Paynow product that worked first-attempt from a serverless platform** (§11).
+2. **Deepest biller catalog in Zimbabwe.** ZESA, ZINWA, council rates, DStv, NetOne, Telecel, school-fees aggregators — covered. A rolled-own integration would chase each biller individually.
+3. **Funds settle in the same Paynow merchant wallet** as auction proceeds (§2.2 schema). One reconciliation surface for the seller, one settlement currency, one regulatory perimeter.
+4. **Same RLS model** as the core `payments` table. Service-role-only writes, RLS audit applies once, holds for both.
+
+### 10.4 Phase 2 — ZimLivestock as a registered biller
+
+The May 2026 demo panel asked whether buyers could pay ZimLivestock the way they pay ZESA. The biller-inbound API spec in [week-7](../week-7/billpay-biller-api-spec.md) is the contract that lands ZimLivestock in the Paynow catalog. The technical pre-requisite is **vendor-API literacy in both directions**, which this integration proves.
+
+Phase 2 work that becomes cheap because of this integration:
+
+- AUTH/PAY semantics, idempotency on `Reference`, hash verification → already implemented, already audited
+- Postman collection format → already reverse-engineered (§9.1)
+- BillerCode case-sensitivity, sandbox/production hostname split → already documented (§9.2, §9.3)
+- Voucher SMS dispatch pattern → already in production (§7, voucher SMS via `send-sms`)
+
+The biller-inbound endpoint reuses these. The Phase 2 work is mostly *renaming* — AUTH/PAY receivers instead of senders, voucher emitters instead of consumers.
+
+### 10.5 What ships today, what's next, what we reject
+
+**Production today:**
+- BillPay AUTH + PAY round-trip against real Paynow billers (live AIRTIME rows verified 2026-04-16, 2026-05-04)
+- Sandbox parity against the TEST biller on `billpay-staging.paynow.co.zw`
+- Status polling at 120s/180s/600s cadences per v1.33 spec
+- BillPay reconciliation cron (`billpay-reconcile`)
+- BillPay reversal flow (`billpay-reverse`)
+- Voucher SMS dispatch via `send-sms`
+- `PostSaleBillPayPrompt` post-auction CTA
+
+**Next (branch-ready or scoped):**
+- Biller-inbound API ([week-7 spec](../week-7/billpay-biller-api-spec.md)) — Phase 2 of the proposed architecture
+- Wallet-balance alerting cron (§8.7)
+- Production top-up runbook (§8.8)
+- PostHog funnel instrumentation on state transitions (§8.10)
+
+**Rejected:**
+- Rolling our own biller catalog — fragmented settlement, no panel ask supports it
+- Routing BillPay through a third-party aggregator — second hop, second trust surface, no benefit
+- Treating BillPay as a demo-only feature — the post-auction spending moment is a permanent product seam, not a showcase
+
+### 10.6 The commitment, in one paragraph
+
+BillPay is not a side-quest in the ZimLivestock architecture — it is the **post-auction product surface**, and it is the **Phase 2 biller-inbound rehearsal**. The integration is in production, it works first-attempt from serverless, and it sets up the panel's most repeated ask (ZimLivestock-as-biller) with a working protocol implementation. We propose keeping BillPay in the production architecture indefinitely, and pushing biller-inbound (week-7 spec) as the next deliverable that this integration unlocks.
+
+---
+
+## 11. Source Material and Evidence Index
+
+### 11.1 Live verification artifacts
 
 - `bill_payments` table (Supabase project `hmeieslclzycyjjjflfh`):
   - **Production AIRTIME** rows from 2026-04-16 (`PMRG-260416120508-O77AF`, USD, status `paid`)
@@ -519,19 +593,19 @@ These are all *additive documentation* recommendations — none require BillPay 
   - **Staging TEST** rows from 2026-05-04 (`TEST-260504120111-G6W2R`, ZIG, status `paid`)
 - Both environments live-verified — production for real billers, staging for Test biller dry-runs.
 
-### 10.2 Reference documents
+### 11.2 Reference documents
 
 - [v1.33 spec annotations](../../docs/paynow-billpay-vendor-api.md)
 - [Implementation plan](../../docs/billpay-integration-plan.md)
 - [Postman collection (runnable)](../../docs/paynow-billpay.postman_collection.json)
 
-### 10.3 Companion deliverables
+### 11.3 Companion deliverables
 
 - [Paynow Core × Supabase Integration](paynow-supabase-integration.md) — covers Express Checkout, Web Checkout, hash signing, CF Worker relay (for the harder Paynow product)
 - [txt × Supabase Integration](txt-supabase-integration.md) — sibling SMS integration, also through Paynow ecosystem
 - [Research Investigation](research-investigation.md) — argues that BillPay's subdomain pattern should be adopted by Paynow Core to unblock serverless callers
 
-### 10.4 Supabase secrets (names only — values write-only)
+### 11.4 Supabase secrets (names only — values write-only)
 
 | Name | Purpose |
 |---|---|
@@ -542,7 +616,7 @@ These are all *additive documentation* recommendations — none require BillPay 
 
 ---
 
-## 11. Status
+## 12. Status
 
 ✅ **Live in production** — AUTH+PAY round-trip verified on staging (2026-05-04, reference `ZL-BP-MOR14OMK-LQFZ`) and production AIRTIME confirmed against live wallet (2026-04-16 and 2026-05-04).
 

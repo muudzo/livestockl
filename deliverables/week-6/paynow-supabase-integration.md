@@ -788,7 +788,133 @@ If we had two more weeks:
 
 ---
 
-## 13. Environment variables
+## 13. Proposed Solution for the ZimLivestock Use Case
+
+Sections 1–12 are reference and critique: how the integration is built, where it falls short, what we would file with the Paynow product team. This section pivots from observation to **commitment** — the architecture we propose for ZimLivestock as a production system, justified by the evidence in the rest of the document.
+
+### 13.1 The use case the architecture must serve
+
+ZimLivestock is a livestock auction marketplace. Its payment surface has six properties that any deployable architecture must absorb:
+
+1. **95%+ of buyers transact via EcoCash or OneMoney** on a Zimbabwean SIM — confirmed in the May 2026 auction field visit. Card rails reach a single-digit minority.
+2. **Ticket sizes span US$50 (goat) to US$3,000 (in-calf cow).** Idempotency under double-tap and intermittent connectivity matters more for the $3,000 transaction than for the $50 one.
+3. **Bids are racing.** The final 30 seconds of an auction concentrate the highest-value bidding events. Idempotency on `place_bid` is non-negotiable.
+4. **Diaspora buyers are a long-tail high-ticket minority** — small share of count, meaningful share of GMV. A card fallback is justified, but only as a fallback.
+5. **30%+ of users have feature phones.** SMS is the trust transport for that segment — not a notification channel.
+6. **Rural connectivity is intermittent.** Webhook-only architectures fail when the buyer's device is offline at settlement. Poll-sync is mandatory.
+
+The architecture in §1 was designed against these constraints. The shortcomings in §12 are real but bounded — none of them invalidate the constraints.
+
+### 13.2 The recommendation
+
+**Paynow Web Checkout + Express Checkout as the primary rail, with a Stripe Checkout fallback for diaspora cards, both wrapped in the ZimLivestock orchestration layer defined in §1.**
+
+```
+                ┌──────────────────────────────────────────────┐
+                │  ZimLivestock orchestration layer (§1)       │
+                │   • place_bid RPC (atomic, idempotent)       │
+                │   • payments.idempotency_key unique index    │
+                │   • browser-relay CF-bypass (§9)             │
+                │   • payment-poll-sync 20s fallback (§5)      │
+                │   • state machine pending→paid|failed (§6)   │
+                │   • SMS receipts via send-sms (§10)          │
+                └──────────────────────┬───────────────────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              ▼                                                 ▼
+     ┌────────────────────┐                          ┌────────────────────┐
+     │  PRIMARY           │                          │  FALLBACK          │
+     │  Paynow            │                          │  Stripe Checkout   │
+     │  Web + Express     │                          │  (diaspora cards)  │
+     │  EcoCash/OneMoney  │                          │  Feature-flagged   │
+     │  ~95% of GMV       │                          │  ~5% of GMV        │
+     └────────────────────┘                          └────────────────────┘
+```
+
+### 13.3 Why Paynow as the primary, despite the shortcomings in §12
+
+The shortcomings catalogued in §12.1 (P1–P10) are upstream concerns that affect every Paynow integrator. They are real DX costs. The orchestration layer absorbs each of them once, behind a stable internal contract, so application code never re-pays the cost.
+
+| Paynow shortcoming (§12.1) | How the orchestration layer absorbs it |
+|---|---|
+| **P1** — Cloudflare bot wall blocks cloud egress | Browser-relay fallback (§9.2) + CF Worker relay (§9.3). Application code calls `supabase.functions.invoke('initiate-payment', …)` and is unaware of the relay. |
+| **P2** — Webhook hash uses received order, not insertion order | `verifyPaynowHash()` in `_shared/` strips and rehashes in received order (§6.1). Webhook handlers never recompute. |
+| **P3** — `AwaitingDelivery` ambiguity | Treated as terminal-success in `payment-webhook` (§6.2) and `payment-poll-sync` (§5). Single source of truth, easy to audit. |
+| **P4** — No idempotency-key header | Enforced at the database with a unique index on `(user_id, idempotency_key)` (§2.1). Defense-in-depth — survives rail swaps. |
+| **P5** — Unstructured Express Checkout error strings | Substring classifier maps to a stable enum (§4.3). Application receives `WALLET_INSUFFICIENT`, not a freeform sentence. |
+| **P7** — No webhook replay endpoint | Poll-sync (§5) is the replay endpoint. It runs client-side and from a cron (Z6 roadmap) for tabs-closed recovery. |
+
+The orchestration layer is the **product**. Paynow is a swappable rail underneath it. The Stripe fallback path slotted in over a weekend because the orchestration contract already exists.
+
+### 13.4 Why not switch primary rails to compensate for Paynow's DX
+
+The benchmark report ([benchmark-report.md §8](../week-1-2/02-dx-benchmark/benchmark-report.md#8-proposed-solution-for-the-zimlivestock-use-case)) covers this in full. Summary for this document:
+
+- **Stripe (DX 9.7)** — zero EcoCash/OneMoney coverage. Best DX, zero addressable buyers.
+- **Paystack (DX 8.0)** — does not settle to Zimbabwe.
+- **Flutterwave (DX 7.2)** — does not settle to Zimbabwe.
+- **Pesepay (DX 3.8)** — malformed HTTP headers crash Deno. Blocked from any serverless integrator until Pesepay fixes the response-header bug.
+- **DPOpay (DX N/A)** — sandbox requires KYC; ruled out at evaluation.
+
+Paynow is the only rail that simultaneously: (a) reaches >95% of Zimbabwean buyers via EcoCash/OneMoney, (b) settles to a Zimbabwean wallet without a third-party banking partner, (c) has a working sandbox and live merchant onboarding inside the internship window. The DX score is 4.2. The addressable-buyer score is 95%. The architecture optimises for the second.
+
+### 13.5 Why Stripe as the fallback, not "card via Paynow Web Checkout"
+
+Paynow Web Checkout *can* take a card, but in practice the Zimbabwean card-rail is restricted:
+
+- Most Zimbabwean issuers do not authorise 3DS challenges for international BIN ranges → diaspora cards fail intermittently
+- Foreign-issued cards on Paynow Web Checkout settle to a Zimbabwean wallet that the seller may not be able to externalise easily
+
+Stripe Checkout, by contrast, is the global card rail with predictable 3DS UX and standard Connect-style settlement. For the diaspora cohort, the Stripe path is the **lower-friction** option even though Stripe has zero coverage of the primary buyer segment. The two-rail design is intentional: **one rail per cohort**.
+
+### 13.6 Phase 2 — ZimLivestock as a registered Paynow biller
+
+The May 2026 demo panel asked whether ZimLivestock could register as a Paynow biller, so buyers see "ZimLivestock" in the same catalog as ZESA, council rates, and DStv. This is the natural Phase 2 of the proposed architecture:
+
+- The **BillPay consumer integration** ([billpay-supabase-integration.md](billpay-supabase-integration.md)) is the technical proof that ZimLivestock can speak the Paynow biller protocol fluently
+- The **biller-inbound API spec** ([week-7/billpay-biller-api-spec.md](../week-7/billpay-biller-api-spec.md)) is the contract Paynow would call on us once we are in the catalog
+- Catalog presence is itself the strongest trust signal in the Zimbabwean payments market
+
+Phase 2 does not change the primary rail. It changes the buyer's mental model of who they are paying — from "a marketplace" to "a known biller." Same architecture, larger trust surface.
+
+### 13.7 Phase 3 — Bisafe escrow for high-ticket livestock
+
+The same panel asked whether a $3,000 cow purchase should release funds before delivery. The escrow answer is Paynow's Bisafe product. The proposed architecture treats Bisafe as a **conditional rail**:
+
+- Below US$500 threshold: direct settlement to seller wallet (current behaviour)
+- Above threshold: Bisafe holds funds; release on `delivery_confirmed` event signed by the buyer
+- Dispute path: Paynow mediation, same as any other Bisafe transaction
+
+Bisafe is not in production yet. It is the next integration scoped after the biller-inbound API.
+
+### 13.8 What ships today, what's next, what we reject
+
+**Production today:**
+- Paynow Web Checkout (`initiate-payment` → `interface/initiatetransaction`)
+- Paynow Express Checkout (`initiate-payment` → `interface/remotetransaction`)
+- Cloudflare-bypass via browser-relay + CF Worker
+- Poll-sync 20s fallback (`payment-poll-sync`)
+- Hash verification in received-field order (`verifyPaynowHash`)
+- Atomic `place_bid` RPC + idempotency key on `payments`
+- SMS receipts via `txt.co.zw` (`send-sms`)
+
+**Next (branch-ready):**
+- Stripe Checkout diaspora fallback (`benchmark/stripe` → `feature/stripe-diaspora`)
+- BillPay biller-inbound API ([week-7 spec](../week-7/billpay-biller-api-spec.md))
+- Reconciliation cron Z6 — closes the tabs-closed gap
+
+**Rejected:**
+- Pesepay as primary or secondary (P1.5 in benchmark — blocked by HTTP header bug)
+- Stripe as primary (no mobile-money reach)
+- Server-to-server Paynow without browser-relay (CF wall makes this brittle by design)
+
+### 13.9 The commitment, in one paragraph
+
+The integration documented in §1–§12 is not a prototype — it is the proposed production payments architecture for ZimLivestock. The DX cost of Paynow is real and is paid once, inside the orchestration layer, so application code never re-pays it. The rail is the right primary because the buyer is Zimbabwean and the buyer uses mobile money. The Stripe fallback exists for the diaspora cohort. Phase 2 (biller registration) and Phase 3 (Bisafe escrow) extend the same architecture without contesting it. **The benchmark's lowest-DX rail is the right primary, because the benchmark and the buyer answer different questions.**
+
+---
+
+## 14. Environment variables
 
 ```bash
 # Paynow Web/Mobile (Express Checkout + Web Checkout)
@@ -817,7 +943,7 @@ All values live in Supabase Function secrets (`supabase secrets set`) — never 
 
 ---
 
-## 14. File index for senior engineers
+## 15. File index for senior engineers
 
 | File                                                  | What it is                                       |
 |-------------------------------------------------------|--------------------------------------------------|

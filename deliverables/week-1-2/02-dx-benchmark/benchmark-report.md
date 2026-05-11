@@ -523,3 +523,156 @@ For each provider, we attempted the **minimum viable integration** — the faste
 | 6 | **DPOpay** | N/A | 0 (blocked at signup) | Annoyed — can't even start |
 
 **Key observation:** The emotional journey matters. Paystack leaves you feeling competent. Paynow leaves you questioning whether you did something wrong — when in reality the API is unreachable. That uncertainty is the worst possible DX outcome.
+
+---
+
+## 8. Proposed Solution for the ZimLivestock Use Case
+
+The preceding seven chapters are a **consultancy** — six providers ranked on developer experience, with Stripe at 9.7 and Paynow at 4.2. That ranking answers "which API is easiest to integrate?". It does **not** answer the question we actually had to answer in March 2026: *"Which payments architecture should ZimLivestock ship to production?"*
+
+This chapter pivots from the consultancy to the commitment. The ranking is the evidence; the architecture below is the recommendation.
+
+### 8.1 The use-case constraints the benchmark cannot see
+
+The DX score is a property of the **API**. The right architecture is a property of the **buyer**. ZimLivestock's buyer is:
+
+| Constraint | Source | Implication |
+|---|---|---|
+| 95%+ of buyers transact via EcoCash / OneMoney on a Zimbabwean mobile number | [Auction field research](../01-field-research/auction-field-visit.md) | Card rails (Stripe/Paystack/Flutterwave) reach <5% of the market. The "best DX" provider has 0% addressable buyers. |
+| Ticket sizes range US$50 (goat) to US$3,000 (in-calf cow) | Field research | Card-fee tolerance varies wildly. A 2.9% Stripe fee on $3,000 is $87 — small fraction. Mobile-money fees are flat-cap. |
+| Bidding is the price-discovery primitive — multiple buyers race to outbid each other in the final 30s of an auction | `place_bid` RPC, atomic `(auction_id, amount)` constraint | Idempotency on **bids** matters as much as idempotency on payments. Provider-level idempotency keys are insufficient. |
+| Diaspora buyers exist but are a long-tail high-ticket minority | Field research + demo feedback | A second card rail makes sense, but only as a fallback — not as the primary. |
+| 30%+ of sellers/buyers have feature phones, not smartphones | Field research + panel feedback (May 2026) | SMS is the trust-and-receipt transport. Any architecture that assumes app-first is missing a third of the market. |
+| Rural connectivity is intermittent; auctions happen weekly and on schedule | Field research | The integration must degrade gracefully — webhook-only architectures fail when the buyer's phone is offline at settlement time. Poll-sync is required, not optional. |
+
+The benchmark scored providers as if a generic Zimbabwean fintech were the buyer. ZimLivestock is not generic — it is a livestock auction with a long tail of high-ticket diaspora buyers and a SMS-dependent base.
+
+### 8.2 The recommendation
+
+**Recommended architecture: Paynow Web/Express Checkout as the primary rail, with a Stripe Checkout fallback for diaspora cards, wrapped in a ZimLivestock-side orchestration layer.**
+
+```
+                ┌──────────────────────────────────────────────┐
+                │  ZimLivestock orchestration layer            │
+                │   • place_bid (atomic RPC, idempotent)       │
+                │   • idempotency_key on payments              │
+                │   • browser-relay fallback (Cloudflare)      │
+                │   • poll-sync 20s (webhook fallback)         │
+                │   • state machine: pending → paid|failed     │
+                │   • SMS receipts via txt.co.zw               │
+                └──────────────────────┬───────────────────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              ▼                                                 ▼
+     ┌────────────────────┐                          ┌────────────────────┐
+     │  PRIMARY RAIL      │                          │  FALLBACK RAIL     │
+     │  Paynow            │                          │  Stripe Checkout   │
+     │  • EcoCash         │                          │  • Card (3DS)      │
+     │  • OneMoney        │                          │  • For diaspora    │
+     │  • Web Checkout    │                          │  • <5% volume      │
+     │  • DX score: 4.2   │                          │  • DX score: 9.7   │
+     │  • Reach: 95%      │                          │  • Reach: ~5%      │
+     └────────────────────┘                          └────────────────────┘
+```
+
+### 8.3 Why this is the right answer despite Paynow's 4.2 DX score
+
+The benchmark is a DX-of-the-API measurement. The proposed solution adds a **second layer** the benchmark cannot measure: an orchestration layer that absorbs Paynow's DX gaps so they never reach the production code path.
+
+| Paynow gap (per benchmark) | Orchestration-layer absorption |
+|---|---|
+| 835 lines of code (60% more than competitors) | Once. Written behind a Supabase Edge Function boundary. Application code calls `supabase.functions.invoke('initiate-payment', …)` — one line. |
+| 3 hash strategies for webhook verification | Centralized in `verifyPaynowHash()` in `_shared/`. Application code never sees a hash. |
+| API unreachable from cloud egress (Cloudflare block) | Browser-relay pattern + Cloudflare Worker proxy. Documented, tested, in production since 2026-04-07. |
+| No structured error codes | Substring classifier maps Paynow's freeform errors to a stable enum (`WALLET_INSUFFICIENT`, `SUBSCRIBER_SUSPENDED`, …). Application code receives the enum. |
+| No idempotency-key header | Unique index on `(user_id, idempotency_key)` enforces idempotency at the database, not at the rail. Works for every rail. |
+| Webhook delivery is unreliable | Poll-sync every 20s while `pending`. Webhook becomes an optimization, not a dependency. |
+
+The orchestration layer is the actual product. Paynow is a swappable rail underneath it. Stripe slotted in as the diaspora fallback in <2 hours because the orchestration layer already enforces the contract every rail must conform to.
+
+### 8.4 Why not Stripe-primary?
+
+Stripe wins the benchmark with a 9.7. It would also reduce the integration to ~150 lines of code. But:
+
+1. **Zero EcoCash/OneMoney coverage.** A Zimbabwean cattle farmer cannot complete a Stripe Checkout. The 9.7 DX score is meaningless if no buyer can pay.
+2. **Card penetration in Zimbabwe is <10%** (RBZ 2024 payment-systems report). Even buyers who *have* cards prefer mobile money for transaction-cost reasons.
+3. **Settlement to a Zimbabwean seller via Stripe requires Stripe Connect + Zimbabwean banking partner.** No such partner exists at the scale ZimLivestock needs.
+
+Stripe is the correct fallback. It is not a viable primary.
+
+### 8.5 Why not Paystack or Flutterwave?
+
+Paystack and Flutterwave both score higher on DX than Paynow and have African coverage. But:
+
+1. **Neither supports Zimbabwe as a settlement market.** Paystack covers Nigeria, Ghana, South Africa, Kenya, Côte d'Ivoire. Flutterwave's coverage matrix excludes Zimbabwe for direct settlement.
+2. **Even if they did, neither integrates EcoCash or OneMoney natively.** They route through bank cards — same problem as Stripe.
+3. **The benchmark proves their value as a comparison baseline, not as a deployment option.** They are the "what good DX looks like" reference.
+
+### 8.6 Why not Pesepay (the other Zimbabwean rail)?
+
+Pesepay does cover EcoCash/OneMoney/Zimswitch and would, in theory, be a viable alternative primary. In practice:
+
+1. **CRITICAL: Pesepay's API returns malformed HTTP response headers** that Deno's strict parser rejects. The integration is unblockable from Supabase Edge Functions, Cloudflare Workers, or any strict-HTTP runtime. (See §6 score: 3.8, lower than Paynow.)
+2. AES-encryption of every request/response adds ~50 LOC per Edge Function — a maintenance tax that compounds across `initiate-payment`, `payment-webhook`, `payment-poll-sync`.
+3. **Pesepay has not been adopted by the largest billers in Zimbabwe.** Paynow's biller catalog is the deepest in-market — relevant when ZimLivestock itself becomes a biller (§8.8).
+
+The Pesepay HTTP-header bug is fixable upstream and we have flagged it. Until it is fixed, Pesepay is not a deployable rail for any serverless integrator.
+
+### 8.7 What the diaspora fallback actually buys us
+
+Stripe Checkout is feature-flagged on the diaspora user agent (IP geolocation + currency preference at signup). It captures:
+
+- Cattle gifted to family back home — observed in field research as a meaningful auction motivator
+- High-ticket purchases ($1,500+) where the buyer prefers card protection over mobile-money speed
+- International agribusiness buyers (early-stage, but the use case Stanford SEED flagged)
+
+The Stripe code path is **~150 LOC**. The diaspora share of GMV does not have to be large to justify it — even 5% of GMV at a 2.9% take-rate covers Stripe's monthly Connect fee.
+
+### 8.8 Phase 2: ZimLivestock as a Paynow biller (panel ask)
+
+The May 2026 demo panel asked: *"Could ZimLivestock register as a Paynow biller, so buyers pay 'ZimLivestock' the way they pay ZESA or council rates?"*
+
+This is the natural evolution of the proposed architecture. As a biller:
+
+- Buyers see ZimLivestock in the trusted-biller catalog inside every Paynow-integrated wallet (EcoCash app, OneMoney USSD, every Paynow merchant site)
+- The trust signal is the catalog presence itself — a known-biller name is the strongest fraud-prevention primitive in the Zimbabwean payments market
+- ZimLivestock becomes consumable by other apps, not just its own PWA
+
+The BillPay integration ([billpay-supabase-integration.md](../../week-6/billpay-supabase-integration.md)) is the **technical proof** that ZimLivestock can speak the Paynow biller protocol fluently in both directions — as a consumer today, as a registered biller in Phase 2. The biller-inbound API spec ([week-7/billpay-biller-api-spec.md](../../week-7/billpay-biller-api-spec.md)) is the contract that would land us in the catalog.
+
+### 8.9 Phase 3: Bisafe escrow for high-ticket livestock (panel ask)
+
+The same panel asked: *"For a $3,000 cow, is it safe for the buyer to release funds before the cattle arrive?"*
+
+The answer for a marketplace is escrow. Paynow's Bisafe product is the in-ecosystem solution. The proposed solution treats Bisafe as a **conditional rail** for transactions above a threshold (recommend $500):
+
+- Below threshold: direct settlement (current architecture)
+- Above threshold: Bisafe holds funds; release on `delivery_confirmed` event from buyer
+- Dispute path: standard Paynow mediation
+
+Bisafe is not in production yet. It is the next integration on the roadmap once the biller-inbound API is live.
+
+### 8.10 What ships, what's next, what we reject
+
+**Ships today (in production):**
+- Paynow Web Checkout + Express Checkout (EcoCash/OneMoney)
+- Browser-relay + Cloudflare Worker proxy (CF bypass)
+- Poll-sync 20s fallback
+- Atomic `place_bid` RPC with idempotency
+- Supabase RLS service-role-only writes
+- SMS receipts via txt.co.zw
+
+**Next (in branches, ready to merge):**
+- Stripe Checkout diaspora fallback (`benchmark/stripe` → `feature/stripe-diaspora`)
+- BillPay biller-inbound API (`feature/billpay-inbound`) — first step toward Phase 2
+
+**Rejected (with reasons documented in this benchmark):**
+- Pesepay as primary — HTTP header bug, blocked
+- Paystack as primary — no Zimbabwe settlement
+- Flutterwave as primary — no Zimbabwe settlement
+- Stripe as primary — no mobile-money coverage
+- DPOpay as primary — KYC gates sandbox access
+
+### 8.11 The thesis in one paragraph
+
+The benchmark proves Paynow has the worst DX of any rail we tested. The proposed solution **does not contest the benchmark** — it accepts the finding and routes around it. By moving Paynow's DX cost into a one-time orchestration-layer investment, the application code never pays the cost twice. By keeping the primary rail on Paynow, every Zimbabwean buyer can transact. By adding Stripe as a feature-flagged diaspora fallback, the long tail is captured. By staging BillPay and Bisafe as Phase 2 and Phase 3, the architecture has a credible path to the panel's asks. The benchmark is the evidence; the orchestration layer is the product; the rail is replaceable. **Paynow is the right primary for ZimLivestock today. It will still be the right primary in 2027 — because the buyer hasn't changed.**
