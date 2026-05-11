@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
           // Notification
           await svc.from("notifications").insert({
             user_id: payment.user_id,
+            tenant_id: payment.tenant_id,
             type: "payment",
             title: "Bill Payment Successful",
             message: `Your US$${payment.amount} payment to ${payment.biller_code} has been confirmed.`,
@@ -221,6 +222,7 @@ Deno.serve(async (req) => {
 
           await svc.from("notifications").insert({
             user_id: payment.user_id,
+            tenant_id: payment.tenant_id,
             type: "payment",
             title: "Bill Payment Successful",
             message: `Your US$${payment.amount} payment to ${payment.biller_code} has been confirmed.`,
@@ -253,6 +255,7 @@ Deno.serve(async (req) => {
 
           await svc.from("notifications").insert({
             user_id: payment.user_id,
+            tenant_id: payment.tenant_id,
             type: "payment",
             title: "Bill Payment Failed",
             message: `Your US$${payment.amount} payment to ${payment.biller_code} has failed. ${apiData.Narration || ""}`,

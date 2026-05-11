@@ -156,6 +156,7 @@ Deno.serve(async (req) => {
       // Notification
       await svc.from("notifications").insert({
         user_id: user.id,
+        tenant_id: payment.tenant_id,
         type: "payment",
         title: "Bill Payment Reversed",
         message: `US$${payment.amount} payment to ${payment.biller_code} for account ${payment.account_number} has been reversed.`,

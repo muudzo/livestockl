@@ -51,6 +51,22 @@ serve(async (req: Request) => {
     const user1 = users?.[0];
     const user2 = users?.[1];
 
+    // Constraint-enforcement tests below want to PROVE that a CHECK constraint
+    // rejects bad values (e.g. status='hacked'). Without a valid tenant_id
+    // the NOT NULL would reject the row for the wrong reason and the test
+    // would pass for a misleading reason. Look up user1's primary tenant
+    // and stamp it on the synthetic inserts.
+    let testTenantId: string | null = null;
+    if (user1?.id) {
+      const { data: member } = await adminClient
+        .from("tenant_members")
+        .select("tenant_id")
+        .eq("user_id", user1.id)
+        .limit(1)
+        .maybeSingle();
+      testTenantId = (member as { tenant_id: string } | null)?.tenant_id ?? null;
+    }
+
     // =========================================
     // TEST 1: Anon cannot read agents (RLS)
     // =========================================
@@ -171,13 +187,14 @@ serve(async (req: Request) => {
       {
         name: "invalid_agent_status",
         query: () => adminClient.from("agents").insert({
-          user_id: user1?.id, agent_type: "buyer", name: "Test", status: "hacked"
+          user_id: user1?.id, tenant_id: testTenantId, agent_type: "buyer", name: "Test", status: "hacked"
         }),
       },
       {
         name: "invalid_payment_status",
         query: () => adminClient.from("agent_payment_orders").insert({
           agent_id: "00000000-0000-0000-0000-000000000000",
+          tenant_id: testTenantId,
           livestock_id: "00000000-0000-0000-0000-000000000000",
           user_id: user1?.id, amount: 100, status: "stolen"
         }),

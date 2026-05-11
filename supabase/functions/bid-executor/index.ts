@@ -59,7 +59,7 @@ serve(async (req: Request) => {
     // could skip auction rules that place_bid() enforces.
     const { data: listing, error: listingErr } = await supabase
       .from("livestock_items")
-      .select("id, status, end_time, seller_id, current_bid, starting_price, title, bid_count")
+      .select("id, status, end_time, seller_id, current_bid, starting_price, title, bid_count, tenant_id")
       .eq("id", livestockId)
       .single();
 
@@ -108,7 +108,7 @@ serve(async (req: Request) => {
     // ── Insert bid + update listing atomically ──
     const { data: bidRecord, error: bidError } = await supabase
       .from("bids")
-      .insert({ livestock_id: livestockId, user_id: agent.user_id, amount })
+      .insert({ livestock_id: livestockId, user_id: agent.user_id, amount, tenant_id: listing.tenant_id })
       .select("id")
       .single();
 
@@ -123,6 +123,7 @@ serve(async (req: Request) => {
     // Notify seller
     await supabase.from("notifications").insert({
       user_id: listing.seller_id,
+      tenant_id: listing.tenant_id,
       type: "bid",
       title: "New bid on your listing",
       message: `Agent bid US$${amount} on ${listing.title}`,

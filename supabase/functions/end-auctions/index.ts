@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createLogger } from "../_shared/logger.ts";
+import { getLivestockTenant } from "../_shared/tenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") || "https://zimlivestock.co.zw",
@@ -76,10 +77,17 @@ async function tryAutoPayWinner(args: {
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+    const tenantId = await getLivestockTenant(supabase, args.livestockId);
+    if (!tenantId) {
+      dbg("skipped: could not resolve tenant for livestock");
+      return;
+    }
+
     // Insert payments row (state-machine entry point). idempotency_key keeps
     // the unique index happy if cron retries fire the same auction twice.
     const insertResult = await supabase.from("payments").insert({
       user_id: args.userId,
+      tenant_id: tenantId,
       livestock_id: args.livestockId,
       reference: args.reference,
       amount: args.amount,

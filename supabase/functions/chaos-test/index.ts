@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { getUserPrimaryTenant } from "../_shared/tenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,6 +59,12 @@ serve(async (req: Request) => {
           const sellerId = users[0].id;
           const bidderIds = users.slice(1);
 
+          const testTenantId = await getUserPrimaryTenant(supabase, sellerId);
+          if (!testTenantId) {
+            results.push({ test: "concurrent_bids", status: "warn", message: "Seller has no tenant membership", duration_ms: Date.now() - start });
+            // fall through to the next scenario; remaining setup below is skipped via the listing-null guard
+          }
+
           // Create a temporary test listing (expires in 1 hour)
           const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
           const { data: listing, error: listingErr } = await supabase
@@ -77,11 +84,12 @@ serve(async (req: Request) => {
               view_count: 0,
               image_urls: [],
               seller_id: sellerId,
+              tenant_id: testTenantId,
               status: "active",
               duration_days: 1,
               end_time: endTime,
             })
-            .select("id, current_bid, starting_price, seller_id")
+            .select("id, current_bid, starting_price, seller_id, tenant_id")
             .single();
 
           if (listingErr || !listing) {
@@ -95,6 +103,7 @@ serve(async (req: Request) => {
               supabase.from("bids").insert({
                 livestock_id: listing.id,
                 user_id: bidderIds[i % bidderIds.length].id,
+                tenant_id: listing.tenant_id,
                 amount: baseBid + i * 5,
               }).select("id").single()
             );

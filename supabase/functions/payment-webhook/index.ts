@@ -20,7 +20,7 @@ async function completePayment(reference: string, providerRef: string, log: impo
     })
     .eq("reference", reference)
     .eq("status", "pending")
-    .select("livestock_id, user_id, amount")
+    .select("livestock_id, user_id, amount, tenant_id")
     .maybeSingle();
 
   if (error) {
@@ -41,6 +41,7 @@ async function completePayment(reference: string, providerRef: string, log: impo
       : Promise.resolve(),
     supabase.from("notifications").insert({
       user_id: updated.user_id,
+      tenant_id: updated.tenant_id,
       type: "payment",
       title: "Payment Confirmed",
       message: `Your payment of US$${updated.amount} has been confirmed.`,
@@ -56,6 +57,7 @@ async function completePayment(reference: string, providerRef: string, log: impo
   if (item) {
     await supabase.from("notifications").insert({
       user_id: item.seller_id,
+      tenant_id: updated.tenant_id,
       type: "payment",
       title: "Payment Received",
       message: `Payment of US$${updated.amount} received for ${item.title}.`,
