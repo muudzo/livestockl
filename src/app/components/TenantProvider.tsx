@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/authStore';
 import { fetchUserMemberships, type Tenant, type TenantMembership } from '../../lib/tenant';
 import { TenantContext, type TenantContextValue } from './TenantContext';
@@ -9,9 +10,9 @@ import { TenantContext, type TenantContextValue } from './TenantContext';
  *   1. URL — when the route matches /t/:tenantSlug/* the slug param drives selection
  *   2. User's first membership — fallback when on a root path (e.g. /, /payments)
  *
- * Memberships are fetched once per user. The provider exposes a switchTenant(slug)
- * callback that rewrites the URL to /t/<slug>/<currentSubpath>, which causes the
- * provider to re-resolve.
+ * Memberships are fetched via React Query so useTenantUpdate's
+ * invalidateQueries(['tenant-memberships']) propagates the new config into
+ * every consumer without a manual refetch.
  */
 export function TenantProvider({ children }: { children: ReactNode }) {
   const user = useAuthStore((s) => s.user);
@@ -19,26 +20,11 @@ export function TenantProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [memberships, setMemberships] = useState<TenantMembership[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!user) {
-      setMemberships([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    fetchUserMemberships(user.id).then((rows) => {
-      if (cancelled) return;
-      setMemberships(rows);
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
+  const { data: memberships = [], isLoading } = useQuery<TenantMembership[]>({
+    queryKey: ['tenant-memberships', user?.id ?? null],
+    enabled: !!user,
+    queryFn: () => (user ? fetchUserMemberships(user.id) : Promise.resolve([])),
+  });
 
   const { tenant, role } = useMemo<{ tenant: Tenant | null; role: TenantContextValue['role'] }>(() => {
     if (memberships.length === 0) return { tenant: null, role: null };
@@ -62,7 +48,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
     tenant,
     memberships,
     role,
-    loading,
+    loading: isLoading,
     switchTenant,
   };
 

@@ -44,6 +44,7 @@ const AgentDashboard = lazyWithRetry(() => import('./components/AgentDashboard')
 const AgentSetup = lazyWithRetry(() => import('./components/AgentSetup').then(m => ({ default: m.AgentSetup })));
 const BillPayFlow = lazyWithRetry(() => import('./components/BillPayFlow'));
 const TestBillPayPayment = lazyWithRetry(() => import('./components/TestBillPayPayment'));
+const TenantSettings = lazyWithRetry(() => import('./components/TenantSettings'));
 
 function LazyLoad({ children }: { children: React.ReactNode }) {
   // Once a lazy route renders successfully, clear the chunk-reload guard so
@@ -120,6 +121,10 @@ const pageRoutes = [
   {
     path: "test-billpay",
     element: <ProtectedRoute><LazyLoad><TestBillPayPayment /></LazyLoad></ProtectedRoute>,
+  },
+  {
+    path: "settings",
+    element: <ProtectedRoute><LazyLoad><TenantSettings /></LazyLoad></ProtectedRoute>,
   },
 ];
 
