@@ -228,6 +228,21 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Resolve the caller's primary tenant once. Every bill_payments /
+    // notifications insert below stamps this so the rows clear the
+    // multi-tenancy NOT NULL + RLS isolation introduced 2026-05-11.
+    const { data: membership } = await svc
+      .from("tenant_members")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .order("joined_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const tenantId = membership?.tenant_id as string | undefined;
+    if (!tenantId) {
+      return json({ error: "User has no tenant membership" }, 403);
+    }
+
     const billpayUser = Deno.env.get("BILLPAY_USERNAME");
     const billpayPass = Deno.env.get("BILLPAY_PASSWORD");
     const isSimulation = !billpayUser || !billpayPass;
@@ -288,6 +303,7 @@ Deno.serve(async (req) => {
         // Insert authorized row in DB
         await svc.from("bill_payments").insert({
           user_id: user.id,
+          tenant_id: tenantId,
           reference: ref,
           biller_code: billerCode,
           biller_name: sim.name,
@@ -379,6 +395,7 @@ Deno.serve(async (req) => {
       // Store authorized payment in DB
       await svc.from("bill_payments").insert({
         user_id: user.id,
+        tenant_id: tenantId,
         reference: ref,
         biller_code: billerCode,
         biller_name: billerCode,
@@ -557,6 +574,7 @@ Deno.serve(async (req) => {
       // Notification
       await svc.from("notifications").insert({
         user_id: user.id,
+        tenant_id: tenantId,
         type: "payment",
         title: "Bill Payment Successful",
         message: `Paid US$${amount} to ${SIM_BILLERS[billerCode]?.name || billerCode} for account ${accountNumber}.`,
@@ -688,6 +706,7 @@ Deno.serve(async (req) => {
       // Notification
       await svc.from("notifications").insert({
         user_id: user.id,
+        tenant_id: tenantId,
         type: "payment",
         title: "Bill Payment Successful",
         message: `Paid US$${amount} to ${billerCode} for account ${accountNumber}.`,
