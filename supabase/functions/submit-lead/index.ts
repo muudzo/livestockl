@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
 
   if (error || !data) {
     log.error("lead insert failed", { error: error?.message });
-    return jsonResponse(req, { error: "Failed to record lead. Please email dev@paynow.co.zw directly." }, 500);
+    return jsonResponse(req, { error: "Failed to record lead. Please email tatenda@paynow.co.zw directly." }, 500);
   }
 
   log.info("lead recorded", { id: data.id, house: v.data.auction_house_name });

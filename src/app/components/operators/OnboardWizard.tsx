@@ -171,7 +171,7 @@ function VerifyFailure({ error }: { error: VerifyError }) {
         </p>
         <div className="mt-10 flex justify-center gap-4">
           <a
-            href="mailto:dev@paynow.co.zw?subject=Onboarding%20link%20issue"
+            href="mailto:tatenda@paynow.co.zw?subject=Onboarding%20link%20issue"
             className="inline-flex items-center gap-2 bg-ink-900 px-5 py-3 font-mono text-[12px] uppercase tracking-[0.18em] text-kraft-50 transition-colors hover:bg-ring-red"
           >
             Email us

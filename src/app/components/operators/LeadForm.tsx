@@ -268,10 +268,10 @@ function Confirmation() {
         <p className="mt-10 max-w-[58ch] text-[15px] leading-[1.7] text-ink-700">
           If you don't hear from us in two working days, email{' '}
           <a
-            href="mailto:dev@paynow.co.zw"
+            href="mailto:tatenda@paynow.co.zw"
             className="text-ink-900 underline decoration-ring-red/60 decoration-1 underline-offset-3 hover:decoration-ring-red"
           >
-            dev@paynow.co.zw
+            tatenda@paynow.co.zw
           </a>{' '}
           directly. The form is new — bugs are possible.
         </p>

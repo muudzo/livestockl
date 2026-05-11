@@ -68,7 +68,7 @@ async function emailOperator(args: {
         ``,
         `Best,`,
         `Tatenda Nyemudzo`,
-        `ZimLivestock · dev@paynow.co.zw`,
+        `ZimLivestock · tatenda@paynow.co.zw`,
       ].join("\n"),
     }),
   });

@@ -109,10 +109,10 @@ function OperatorFooter() {
             </li>
             <li>
               <a
-                href="mailto:dev@paynow.co.zw"
+                href="mailto:tatenda@paynow.co.zw"
                 className="text-[12px] leading-relaxed text-ink-700 underline decoration-ink-500/40 underline-offset-2 hover:text-ring-red hover:decoration-ring-red"
               >
-                dev@paynow.co.zw
+                tatenda@paynow.co.zw
               </a>
             </li>
           </FootCol>
