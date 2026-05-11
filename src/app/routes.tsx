@@ -46,6 +46,13 @@ const BillPayFlow = lazyWithRetry(() => import('./components/BillPayFlow'));
 const TestBillPayPayment = lazyWithRetry(() => import('./components/TestBillPayPayment'));
 const TenantSettings = lazyWithRetry(() => import('./components/TenantSettings'));
 
+// Operator marketing surface — public, no auth, no tenant. Mounted outside Root.
+const OperatorLayout = lazyWithRetry(() => import('./components/operators/OperatorLayout'));
+const OperatorLanding = lazyWithRetry(() => import('./components/operators/OperatorLanding'));
+const OperatorPricing = lazyWithRetry(() => import('./components/operators/OperatorPricing'));
+const OperatorCaseStudy = lazyWithRetry(() => import('./components/operators/OperatorCaseStudy'));
+const RequestAccessStub = lazyWithRetry(() => import('./components/operators/RequestAccessStub'));
+
 function LazyLoad({ children }: { children: React.ReactNode }) {
   // Once a lazy route renders successfully, clear the chunk-reload guard so
   // the next stale-chunk failure is allowed to trigger a fresh reload.
@@ -155,5 +162,15 @@ export const router = createBrowserRouter([
   {
     path: "/auth",
     element: <LazyLoad><AuthScreen /></LazyLoad>,
+  },
+  {
+    path: "/operators",
+    element: <LazyLoad><OperatorLayout /></LazyLoad>,
+    children: [
+      { index: true, element: <LazyLoad><OperatorLanding /></LazyLoad> },
+      { path: "pricing", element: <LazyLoad><OperatorPricing /></LazyLoad> },
+      { path: "case-studies/harare", element: <LazyLoad><OperatorCaseStudy /></LazyLoad> },
+      { path: "request-access", element: <LazyLoad><RequestAccessStub /></LazyLoad> },
+    ],
   },
 ]);
