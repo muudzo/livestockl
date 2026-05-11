@@ -224,15 +224,15 @@ const TOTAL = 10;
   });
 
   s.addText("I built ZimLivestock —", {
-    x: 0.7, y: 0.95, w: 8.6, h: 0.7,
+    x: 0.7, y: 0.95, w: 8.6, h: 0.65,
     fontFace: FONT.header, fontSize: 32, bold: true, color: COLOR.body, margin: 0,
   });
-  s.addText("a marketplace for cattle, goats, and sheep, running on every product in Paynow's ecosystem.", {
-    x: 0.7, y: 1.55, w: 8.6, h: 0.8,
+  s.addText("software built to be sold to Zimbabwean auction houses, running on every product in Paynow's ecosystem.", {
+    x: 0.7, y: 1.5, w: 8.6, h: 0.75,
     fontFace: FONT.body, fontSize: 16, color: COLOR.muted,
   });
 
-  // Two outputs (parallel work)
+  // Two outputs (parallel work) — cards slightly shorter to make room for MD quote
   const outputs = [
     {
       tag: "OUTPUT 1",
@@ -249,28 +249,39 @@ const TOTAL = 10;
   outputs.forEach((o, i) => {
     const x = startX + i * (w + 0.25);
     s.addShape(pres.shapes.RECTANGLE, {
-      x, y: 2.9, w, h: 2.0,
+      x, y: 2.7, w, h: 1.75,
       fill: { color: COLOR.dark }, line: { type: "none" },
     });
     s.addShape(pres.shapes.RECTANGLE, {
-      x, y: 2.9, w: 0.08, h: 2.0,
+      x, y: 2.7, w: 0.08, h: 1.75,
       fill: { color: COLOR.gold }, line: { type: "none" },
     });
     s.addText(o.tag, {
-      x: x + 0.25, y: 3.05, w: w - 0.3, h: 0.3,
+      x: x + 0.25, y: 2.82, w: w - 0.3, h: 0.3,
       fontFace: FONT.body, fontSize: 10, bold: true, charSpacing: 3,
       color: COLOR.gold, margin: 0,
     });
     s.addText(o.title, {
-      x: x + 0.25, y: 3.4, w: w - 0.3, h: 0.5,
+      x: x + 0.25, y: 3.15, w: w - 0.3, h: 0.45,
       fontFace: FONT.header, fontSize: 22, bold: true,
       color: COLOR.cream, margin: 0,
     });
     s.addText(o.body, {
-      x: x + 0.25, y: 3.95, w: w - 0.3, h: 0.85,
+      x: x + 0.25, y: 3.65, w: w - 0.3, h: 0.78,
       fontFace: FONT.body, fontSize: 13,
       color: COLOR.mutedDark, margin: 0,
     });
+  });
+
+  // MD quote — pulls the commercial framing forward as the WHY of the project
+  s.addText([
+    { text: "“", options: { color: COLOR.terracotta, fontSize: 22, bold: true } },
+    { text: "Don't build a thesis. Build software you can sell.", options: { color: COLOR.body, italic: true } },
+    { text: "”", options: { color: COLOR.terracotta, fontSize: 22, bold: true } },
+    { text: "   — my Paynow MD, on why this project exists.", options: { color: COLOR.muted, fontSize: 13 } },
+  ], {
+    x: 0.7, y: 4.7, w: 8.6, h: 0.4,
+    fontFace: FONT.header, fontSize: 14, margin: 0, valign: "middle",
   });
 
   addFooter(s, 4, TOTAL);

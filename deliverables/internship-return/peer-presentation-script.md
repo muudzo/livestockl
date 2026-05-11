@@ -48,16 +48,22 @@ If you only remember one thing on stage: **the four "wish I'd known" slides are 
 
 ---
 
-## Slide 4 — What I'm doing  ·  ~45 seconds
+## Slide 4 — What I'm doing  ·  ~55 seconds
 
 **Spoken:**
-> "What I actually built was something called ZimLivestock — a marketplace for buying and selling cattle, goats, and sheep, running on top of Paynow's stack.
+> "What I built was something called ZimLivestock. It's a marketplace for cattle, goats, and sheep — running on every product in Paynow's stack.
 >
-> Two outputs ran in parallel the whole time. **First** — the production app. A real one. Real users, real Paynow integration, real money. Tiny amounts of real money, but real. **Second** — a 42-page benchmark of Paynow's developer experience compared to Stripe, Paystack, Flutterwave, two others. First-attempt evidence — I integrated each one as if I were a new developer, and wrote down everything that got in my way.
+> But before I tell you what it does, I want to tell you *why* it exists. Because early in the internship, the Paynow MD told me something that completely reframed the project for me — "
+
+> *click — the MD quote highlights*
+
+> "He said, 'Don't build a thesis. Build software you can sell.' And so I picked a project I could actually *sell* — a piece of software you could deploy at a Zimbabwean auction house, so they could run their physical floor as a digital marketplace. That commercial framing changed everything about how I approached the work.
+>
+> Two outputs ran in parallel from there. **First** — the production app. A real one. Real users, real Paynow integration, real money — tiny amounts, but real. **Second** — a 42-page benchmark of Paynow's developer experience compared to Stripe, Paystack, Flutterwave, two others. First-attempt evidence — I integrated each one as if I were a new developer, and wrote down everything that got in my way.
 >
 > That benchmark, by the way, was the first external one Paynow had ever received."
 
-**Don't oversell.** The audience can read "42-page benchmark." Just land it and move on.
+**Don't oversell the benchmark.** The audience can read "42-page" on screen — just land it. The MD quote is the load-bearing line on this slide. Let it breathe before you move on.
 
 ---
 
