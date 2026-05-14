@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router";
-import { ArrowLeft, Plus, X, Loader2, FileText, Upload } from "lucide-react";
+import { useNavigate, useSearchParams, Link } from "react-router";
+import { ArrowLeft, Plus, X, Loader2, FileText, Upload, Wallet } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { categories, locations, healthStatuses, durations } from "../data/mockData";
 import { useCreateListing, useUploadImage, useLivestockItem, useUpdateListing } from "../../hooks/useLivestock";
 import { useAuthStore } from "../../stores/authStore";
-import { isSupabaseConfigured } from "../../lib/supabase";
+import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { toast } from "sonner";
 
 export function PostListing() {
@@ -23,6 +24,24 @@ export function PostListing() {
   const updateListing = useUpdateListing();
   const uploadImage = useUploadImage();
   const { data: existingItem, isLoading: loadingItem } = useLivestockItem(editId);
+
+  // Soft guard for panel ask #4: sellers should register a Paynow merchant ID
+  // so settlement can route via Paynow merchant-transfer. Not blocking — the
+  // banner just points them to /account.
+  const { data: payoutProfile } = useQuery({
+    queryKey: ['profile-payout', user?.id],
+    enabled: !!user?.id && isSupabaseConfigured,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('paynow_merchant_id')
+        .eq('id', user!.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const missingPayoutId = !!user && isSupabaseConfigured && !payoutProfile?.paynow_merchant_id;
 
   const hasBids = useMemo(() => {
     if (!existingItem) return false;
@@ -265,6 +284,26 @@ export function PostListing() {
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-8">
+        {missingPayoutId && (
+          <div
+            role="status"
+            className="flex items-start gap-3 p-3 rounded-lg border border-amber-300 bg-amber-50"
+          >
+            <Wallet className="w-4 h-4 mt-0.5 text-amber-700 shrink-0" />
+            <div className="text-[12px] text-amber-900 leading-relaxed">
+              <strong className="font-semibold">No Paynow merchant ID on file.</strong>{' '}
+              You can post this listing, but payouts won't reach you until you
+              add your Paynow merchant ID.{' '}
+              <Link
+                to="/account"
+                className="underline font-semibold hover:text-amber-700"
+              >
+                Set it now
+              </Link>
+              .
+            </div>
+          </div>
+        )}
         <div>
           <Label className={`mb-3 block text-xs font-semibold uppercase tracking-wider ${fieldErrors.photos ? 'text-red-500' : 'text-slate-500'}`}>PHOTOS {fieldErrors.photos && `— ${fieldErrors.photos}`}</Label>
           <div className={`grid grid-cols-4 gap-2 ${fieldErrors.photos ? 'ring-2 ring-red-500 rounded-xl p-1' : ''}`}>

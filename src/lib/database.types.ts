@@ -14,6 +14,7 @@ export interface Database {
           verified: boolean;
           rating: number;
           sales_count: number;
+          paynow_merchant_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -26,6 +27,7 @@ export interface Database {
           verified?: boolean;
           rating?: number;
           sales_count?: number;
+          paynow_merchant_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;

@@ -45,6 +45,7 @@ const AgentSetup = lazyWithRetry(() => import('./components/AgentSetup').then(m 
 const BillPayFlow = lazyWithRetry(() => import('./components/BillPayFlow'));
 const TestBillPayPayment = lazyWithRetry(() => import('./components/TestBillPayPayment'));
 const TenantSettings = lazyWithRetry(() => import('./components/TenantSettings'));
+const AccountSettings = lazyWithRetry(() => import('./components/AccountSettings'));
 const LeadAdmin = lazyWithRetry(() => import('./components/admin/LeadAdmin'));
 
 // Operator marketing surface — public, no auth, no tenant. Mounted outside Root.
@@ -134,6 +135,10 @@ const pageRoutes = [
   {
     path: "settings",
     element: <ProtectedRoute><LazyLoad><TenantSettings /></LazyLoad></ProtectedRoute>,
+  },
+  {
+    path: "account",
+    element: <ProtectedRoute><LazyLoad><AccountSettings /></LazyLoad></ProtectedRoute>,
   },
 ];
 

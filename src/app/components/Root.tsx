@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
-import { Plus, List, Bell, LogOut, ChevronRight, Zap, Settings, Inbox } from "lucide-react";
+import { Plus, List, Bell, LogOut, ChevronRight, Zap, Settings, Inbox, UserCog } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
 import { useAuthStore } from "../../stores/authStore";
 import { useTenant } from "../../hooks/useTenant";
@@ -46,6 +46,7 @@ function RootInner() {
     { icon: List, label: 'My listings', path: '/my-listings' },
     { icon: Zap, label: 'Pay Bills', path: '/pay-bill' },
     { icon: Bell, label: 'Notifications', path: '/notifications', badge: unreadCount || 0 },
+    { icon: UserCog, label: 'Account', path: '/account' },
     ...(canManageTenant
       ? [{ icon: Settings, label: 'Tenant settings', path: settingsPath }]
       : []),
