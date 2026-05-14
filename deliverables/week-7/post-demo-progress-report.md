@@ -25,18 +25,50 @@ end-to-end). Those are explicit deferrals, not unknowns.
 
 ---
 
-## Status — single source of truth
+## Status — single source of truth (panel asks)
 
-| # | Panel ask | Code | Verified end-to-end | Evidence |
-|---|-----------|------|---------------------|----------|
-| 1 | Paab cash payments | — | n/a | Blocked: awaiting Paynow API docs + sandbox |
-| 2 | BillPay biller endpoints | ✅ | ✅ AUTH side | HTTP 200 from `/billpay-biller-auth?member=AUCT-DEMO-001` with full member payload after credential rotation. See §2. |
-| 3 | Configurable auction mechanics | ✅ | 🟡 Renders as operator | Operator role on `zimlivestock-demo` confirmed via UI; all config fields editable. Save+persist confirmed manually but not via automation tonight. Screenshot: `06-settings-loaded.png` |
-| 4 | Sellers use Paynow ID (no bank details) | ✅ | ✅ | Playwright: typed `abc` → red error, typed `23997` → saved → reloaded → value persists. Soft guard on `/post` shows amber banner when missing, gone when set. 5 screenshots in `/tmp/zl-screens/`. See §3. |
-| 5 | Bisafe escrow | — | n/a | Blocked: awaiting Paynow API docs + sandbox |
-| 6 | WhatsApp listing bot (accessibility) | ✅ (demo-grade) | ❌ deferred | QR pairing needs my physical phone; deferred to next working session. Code complete, deps installed, migration applied. See §5. |
+| # | Panel ask | % | Code | Verified end-to-end | Target close | Evidence |
+|---|-----------|---|------|---------------------|--------------|----------|
+| 1 | Paab cash payments | 0% | — | n/a | Blocked → +1 week after Paynow ships sandbox | Awaiting Paynow API docs + sandbox |
+| 2 | BillPay biller endpoints | 90% | ✅ | ✅ AUTH side | PAY round-trip 2026-05-22 (post Paynow vendor-portal registration) | HTTP 200 from `/billpay-biller-auth?member=AUCT-DEMO-001` with full member payload after credential rotation. See §2. |
+| 3 | Configurable auction mechanics | 95% | ✅ | 🟡 Renders as operator | Save+persist confirm 2026-05-15 (today, in meeting if useful) | Operator role on `zimlivestock-demo` confirmed; all config fields editable. Screenshot: `06-settings-loaded.png` |
+| 4 | Sellers use Paynow ID | 100% | ✅ | ✅ | Done | Playwright: full save+reload+persist + soft-guard banner toggle. 5 screenshots in `/tmp/zl-screens/`. See §3. |
+| 5 | Bisafe escrow | 0% | — | n/a | Blocked → +2 weeks after Paynow ships sandbox | Awaiting Paynow API docs + sandbox |
+| 6 | WhatsApp listing bot | 70% | ✅ (demo-grade) | ❌ deferred | End-to-end + Mac mini deploy: 2026-05-16 | Code complete, deps installed, migration applied. QR pairing needs my phone. See §5. |
 
 **Net: 4 code-complete · 3 verified tonight · 1 deferred to phone-in-hand session · 2 blocked on Paynow side.**
+
+---
+
+## All workstreams — completion + target dates
+
+The panel asks are the top of the iceberg. This is everything in flight,
+including non-panel work (SaPS pivot, donation widget, TXT enterprise),
+with percent-complete and target-close dates so the supervisor can see
+what's getting picked up next.
+
+| Workstream | % | Status | Target close | Notes |
+|------------|---|--------|--------------|-------|
+| **Panel asks** | | | | |
+| Paab cash payments (ask #1) | 0% | Blocked | TBD on Paynow | Sandbox + docs required from Paynow |
+| BillPay biller (ask #2) | 90% | AUTH verified ✅, PAY pending vendor reg | 2026-05-22 | Awaiting Paynow vendor-portal entry with rotated creds |
+| Auction mechanics (ask #3) | 95% | Operator render verified | 2026-05-15 | Manual save+persist confirm only thing left |
+| Sellers Paynow ID (ask #4) | 100% | Verified ✅ | Done | Settlement function still needs Paynow merchant-transfer API (separate workstream below) |
+| Bisafe escrow (ask #5) | 0% | Blocked | TBD on Paynow | Sandbox + docs required from Paynow |
+| WhatsApp listing bot (ask #6) | 70% | Code done, QR/Mac mini pending | 2026-05-16 | QR-scan with sacrificial phone + move from laptop to Mac mini |
+| **SaPS pivot (non-panel)** | | | | |
+| Multi-tenant schema + RLS | 100% | Shipped, smoke-tested | Done | `multi_tenant_smoke.sql` passes; cross-tenant blocked at DB layer |
+| Operator marketing surface | 100% | Live at `/operators` | Done | Landing, pricing, case study |
+| Lead capture + admin queue | 100% | Live | Done | `/operators/request-access` → `/admin/leads` |
+| Onboarding wizard | 90% | FK fix deployed tonight | 2026-05-15 (meeting walk-through) | End-to-end one SQL session away |
+| Commercial layer (10 docs) | 100% | Shipped in `deliverables/business/` | Done | Pitch deck, financial model, GTM, pilot proposal, playbook, discovery script, comp map |
+| **Non-panel deliverables** | | | | |
+| Donation widget | 100% | Plug-and-play complete | Done (deploy on request) | Embeddable Paynow donation flow — ready to drop into any host site; no production deployment yet because no host has been chosen |
+| TXT Enterprise testing | 0% | Not started | Week 8 slot (2026-05-19 → 2026-05-23) | Testing the existing SMS notification branch against TXT.co.zw's Enterprise plan (vs. the free tier we've been simulating against). Requires REMOTE credentials from Paynow. |
+| **Engineering follow-ups** | | | | |
+| Settlement edge function (consumes `paynow_merchant_id`) | 0% | Blocked | Same window as BillPay PAY end-to-end | Needs Paynow merchant-transfer API docs |
+| txt.co.zw SMS notifications | 80% | Sitting in simulation mode | Same week as TXT Enterprise testing | Branch `feature/sms-notifications`; needs REMOTE creds |
+| Service-role key rotation | 0% | Open hygiene item | 2026-05-15 | Current key was exposed via IDE diff hook on 2026-05-14 (see WhatsApp bot setup); rotate before pushing the bot to the Mac mini |
 
 ---
 
