@@ -8,9 +8,22 @@
 
 ## TL;DR
 
-In the six working days since the demo, **three of the six panel asks are code-complete and deployed to production** (BillPay biller, auction mechanics, Paynow ID for sellers), and **three are blocked on external credentials** (Paab, Bisafe, txt.co.zw). On top of the panel list, the product framing pivoted from "ZimLivestock the marketplace" to "ZimLivestock the SaPS platform" — multi-tenant infrastructure so any auction house in Zimbabwe can run their own branded marketplace on the stack.
+In the six working days since the demo, **four of the six panel asks are code-complete** (BillPay biller, auction mechanics, Paynow ID for sellers, and a first-cut WhatsApp listing bot for the accessibility ask) and **two remain blocked on external credentials** (Paab, Bisafe). On top of the panel list, the product framing pivoted from "ZimLivestock the marketplace" to "ZimLivestock the SaPS platform" — multi-tenant infrastructure so any auction house in Zimbabwe can run their own branded marketplace on the stack — and a full set of business-side artifacts was authored to support the SaPS commercial direction (pitch deck, financial model, GTM strategy, customer-success playbook, discovery script, competitive positioning).
 
-> **Important caveat — verification gap.** Everything below is shipped to production at the build / migration / deploy level. **None of the three shipped items has been validated end-to-end against real users or a clean smoke flow.** Build passes, migrations apply cleanly, units of code load — but I have not personally walked the full happy path of any feature in a browser since deployment. The lead → admin → onboarding wizard flow hit an edge function `non-2xx` error during my last verification attempt on 2026-05-14 and that loop is not yet closed. Read the "Verification status" column in the table below before treating anything as production-ready.
+> **⚠ Important caveat — NONE of these features has been end-to-end tested.**
+>
+> Everything below is shipped to production at the build / migration / deploy
+> level. **None of the four shipped items has been validated end-to-end against
+> a real user or a clean smoke flow.** Build passes, migrations apply cleanly,
+> units of code load — but I have not personally walked the full happy path
+> of any feature in a browser since deployment. The lead → admin → onboarding
+> wizard flow hit an edge function `non-2xx` error during my last verification
+> attempt on 2026-05-14 and that loop is not yet closed. The WhatsApp bot is
+> mid-smoke-test on the dev laptop and has not yet seen a successful end-to-end
+> "list" → live-URL flow. Read the "Verification status" column in the table
+> below and the "Verification status" section further down before treating
+> anything as production-ready. **Until that verification pass closes, treat
+> every ✅ in this report as "built and deployed" — not "working".**
 
 ---
 
@@ -25,9 +38,9 @@ The six asks were captured verbatim from the demo panel. Status as of 2026-05-14
 | 3 | Figure out auction mechanics | **Code-complete, deployed** | ⚠ **Partially verified.** Migration + schema applied cleanly, smoke SQL written, but **no end-to-end user walk-through** since deploy. The "edit tenant config → save → reload → value persists" loop has not been manually exercised by a real operator account. | Per-tenant settings UI — commission split, reserve required, dispute window, lot fee. No SQL needed. |
 | 4 | Sellers register Paynow ID, not bank details | **Code-complete, deployed** | ⚠ **Not yet verified.** Migration applied; build passes; **/account page has never been opened in a browser**. Soft-guard banner logic exists but unverified. | Schema + form + soft guard. See section 4 below. |
 | 5 | Bisafe escrow for settlement | Not started | n/a | Awaiting Bisafe API docs / sandbox access from Paynow |
-| 6 | Maximise accessibility (USSD reach) | Partial | n/a | Ask #2 indirectly enables USSD payment via Paynow's BillPay menu. Full USSD bidding flow not yet built. |
+| 6 | Maximise accessibility (WhatsApp + USSD reach) | **Code-complete (demo-grade)** | ⚠ **Local smoke test in progress.** Bot env loaded, deps installed, migration applied; QR-scan happy path not yet completed; not yet hosted on the Mac mini target. | WhatsApp list-my-animal bot via `whatsapp-web.js` (free, ToS-violating but fine for demo). Bound to sacrificial 0773819300. See section 5 below. USSD bidding flow still out of scope. |
 
-**Net: 3 code-complete and deployed, 0 end-to-end-verified, 2 blocked on Paynow-supplied credentials, 1 partial via #2.**
+**Net: 4 code-complete, 0 end-to-end-verified, 2 blocked on Paynow-supplied credentials.**
 
 > The honest assessment: I have been shipping fast (15+ commits in six days) and the build + migration discipline has held. What has NOT held is the verify step — CLAUDE.md says "UI changes require browser verification, typecheck is not proof" and I have not been doing that consistently. Closing that gap is the top priority for the next session before scoping any new asks.
 
@@ -158,7 +171,65 @@ hand-tested. Item 2 on the next-session verification list.
 
 ---
 
-## 4. Bonus delivery: SaPS pivot (not on panel list)
+## 4. Ask #6 (accessibility — WhatsApp listing bot) — shipped (demo-grade)
+
+The panel's sixth ask was reach: get the product in front of more people via
+the channels they already live in. The biggest of those in Zimbabwe is
+WhatsApp. A first capability — **list-my-animal** — went from spec to running
+local service this session.
+
+**Path chosen and why.** Two production-grade options exist (Meta Cloud API
+for an official-and-paid path; `whatsapp-web.js` for a free path that
+technically violates WhatsApp's ToS). For the next demo, where the
+question is *"can a WhatsApp seller list without leaving WhatsApp?"* and the
+answer needs to be visible on stage, the free path wins on speed. The
+migration to Meta Cloud API is documented in `whatsapp-bot/README.md` —
+same state machine, different transport.
+
+**What shipped (commit pending push):**
+
+- New `whatsapp-bot/` Node service at the repo root — 454-line `bot.js`
+  with the full 5-step state machine, photo upload to Supabase Storage,
+  service-role inserts into `livestock_items`, and an audit log of every
+  message inbound and outbound.
+- Migration `20260514120000_wa_sessions.sql` applied to prod — adds
+  `wa_sessions` (per-phone conversation state with a JSONB draft) and
+  `wa_message_log` (audit). Both RLS-locked to service role.
+- 5-step conversation: photo → breed → weight → price → confirm. Send
+  `cancel` at any point to reset. State persists across bot restarts.
+- Bound to **0773819300** (the sacrificial number that already receives
+  auction-sold SMS in our demo seed) — `whatsapp-web.js` requires QR-scan
+  pairing, which is acceptable risk for demo use.
+- Designed to run on the Mac mini alongside the TXT relay, so the same
+  host carries every Zim-egress integration. Currently in local smoke test
+  on the dev laptop.
+
+**End-to-end (when verification closes):** a registered seller messages
+"list" to 0773819300 → the bot walks them through 5 questions → on confirm
+the listing is live at `/item/<id>` and the seller gets back a shareable
+URL. No app install, no signup beyond the existing phone-OTP flow.
+
+**Outstanding verification:**
+
+1. QR-scan happy path on the dev laptop (currently mid-test — env loaded,
+   migration applied, Chromium downloaded; QR-render confirmation pending).
+2. Move the bot folder to the Mac mini and re-pair the WhatsApp session
+   there for demo-day uptime.
+3. Walk the full 5-step list flow with a registered seller and confirm the
+   listing renders on the live app.
+4. Rotate the Supabase service-role key one more time before the bot leaves
+   the laptop — the current key was exposed via an IDE diff hook during
+   setup. (See engineering-detail appendix.)
+
+**What this does NOT yet do (deliberately scoped out for v1):** receive
+bids, send notifications, accept payments via WhatsApp. Bidding stays on
+the web app; SMS notifications stay on TXT.co.zw; BillPay biller covers
+the USSD payment angle. The state machine code ports cleanly to a Meta
+Cloud API webhook when we productionise — only the transport changes.
+
+---
+
+## 5. Bonus delivery: SaPS pivot (not on panel list)
 
 The framing shift that wasn't on the demo list but came out of post-demo
 strategic reading (Fingent custom-enterprise-software framework, five
@@ -225,14 +296,15 @@ This is the gap I need to close in the next session before scoping new asks.
 
 | Item | Build | Migration | Deploy | End-to-end browser/curl | Notes |
 |------|-------|-----------|--------|-------------------------|-------|
-| BillPay biller AUTH + PAY endpoints | ✅ | n/a | ✅ | ❌ | Last live test returned `401 Unauthorized`, root cause not confirmed |
-| Tenant settings UI | ✅ | ✅ | ✅ | ❌ | No operator account has edited a config since deploy |
-| `/account` + Paynow merchant ID | ✅ | ✅ | (Vercel auto-deploy on push) | ❌ | Built and committed; never opened in a browser |
-| `/post` soft-guard banner | ✅ | n/a | (Vercel auto-deploy on push) | ❌ | Logic unverified |
-| Multi-tenant schema + RLS | ✅ | ✅ | ✅ | ⚠ partial (smoke SQL passes, but no live user walk-through) |
-| Lead form / admin queue / onboarding wizard | ✅ | ✅ | ✅ | ❌ | **Returned non-2xx on last attempt — biggest open issue** |
+| BillPay biller AUTH + PAY endpoints | ✅ | n/a | ✅ | ❌ NOT TESTED | Last live test returned `401 Unauthorized`, root cause not confirmed |
+| Tenant settings UI | ✅ | ✅ | ✅ | ❌ NOT TESTED | No operator account has edited a config since deploy |
+| `/account` + Paynow merchant ID | ✅ | ✅ | (Vercel auto-deploy on push) | ❌ NOT TESTED | Built and committed; never opened in a browser |
+| `/post` soft-guard banner | ✅ | n/a | (Vercel auto-deploy on push) | ❌ NOT TESTED | Logic unverified |
+| Multi-tenant schema + RLS | ✅ | ✅ | ✅ | ⚠ NOT TESTED (smoke SQL passes, but no live user walk-through) |
+| Lead form / admin queue / onboarding wizard | ✅ | ✅ | ✅ | ❌ NOT TESTED — **returned non-2xx on last attempt — biggest open issue** |
+| WhatsApp bot — list-my-animal flow | ✅ | ✅ | not yet on Mac mini | ❌ NOT TESTED — mid-smoke-test on laptop; QR-scan + full 5-step flow + live listing render all unconfirmed |
 
-**The pattern:** code-complete and deployed is not the same as verified. I have been over-indexing on shipping volume and under-indexing on closing the verification loop. Per CLAUDE.md guidance ("UI changes require browser verification — typecheck passing is not proof"), the right thing is to **pause new feature work and walk every shipped item end-to-end** before treating any of this as production-ready.
+**The pattern:** code-complete and deployed is not the same as verified. **As of 2026-05-14, no shipped feature in this report has been observed working end-to-end.** I have been over-indexing on shipping volume and under-indexing on closing the verification loop. Per CLAUDE.md guidance ("UI changes require browser verification — typecheck passing is not proof"), the right thing is to **pause new feature work and walk every shipped item end-to-end** before treating any of this as production-ready.
 
 ---
 
@@ -252,13 +324,16 @@ asks:
 
 ## What I'd like to land next — supervisor call
 
-- **Top priority: verification pass.** Before scoping any new asks, walk
-  every shipped item end-to-end (BillPay biller curls returning `200 Paid`,
-  `/account` form opens and saves, lead → wizard chain completes
-  successfully, tenant settings save and reload). Diagnose the
-  `non-2xx` edge function error from the demo flow. ~half-day if nothing
-  unexpected falls out; longer if the edge function error reveals a real
-  bug.
+- **Top priority: verification pass — nothing in this report has been seen working end-to-end.** Before scoping any new asks, walk every shipped item end-to-end:
+  - BillPay biller curls returning `200 Paid` from the AUTH + PAY endpoints
+  - `/account` form opens, saves a merchant ID, persists across reload
+  - `/post` soft-guard banner shows up for a seller without a merchant ID
+  - Tenant settings change → save → reload → value persists, by a real operator account
+  - Lead → admin → onboarding wizard chain completes without the `non-2xx` edge function error (this is the biggest open issue)
+  - WhatsApp bot QR-scans cleanly with the 0773819300 phone, accepts "list", walks 5 steps, publishes a live listing, returns a working `/item/<id>` URL
+  - Move the WhatsApp bot from the dev laptop to the Mac mini for demo-day uptime
+  - Rotate the Supabase service-role key (the current one was exposed via an IDE-on-save diff hook during WhatsApp bot setup on 2026-05-14 — see engineering-detail appendix)
+  - Estimated effort: half-day if nothing unexpected falls out; longer if any of the open issues reveal a real bug.
 - **Documentation refresh**: update
   `deliverables/week-6/billpay-supabase-integration.md` to reflect the new
   two-URL structure so Paynow's engineering team has a single source of truth
@@ -277,6 +352,12 @@ Items that may interest reviewers wanting to audit the work:
 
 **Commits since the demo (newest first):**
 
+- `(pending push)` — feat(whatsapp): demo-grade WhatsApp bot — list-my-animal flow (ask #6)
+- `(pending push)` — docs(business): verification + fixes — 4 blockers, 8 issues, nits (two-pass agent review of subagent docs)
+- `(pending push)` — docs(business): MD pitch deck, financial model, playbook, discovery script, competitive map
+- `(pending push)` — docs(business): SaPS business case + GTM strategy + pilot proposal
+- `(pending push)` — docs(internship): peer presentation deck + speaker script (NHL Stenden return-day)
+- `(pending push)` — docs(internship): final-return deliverables — report, video script, checklist
 - `4203319` — feat(profile): seller Paynow merchant ID — panel ask #4
 - `6596ce9` — docs(progress): post-demo progress report (2026-05-08 → 2026-05-14)
 - `5d2c781` — docs(session-log): 2026-05-14 — post-demo status against panel asks
@@ -301,6 +382,7 @@ Items that may interest reviewers wanting to audit the work:
 - `supabase/migrations/20260511100000_multi_tenancy.sql` — foundation
 - `supabase/migrations/20260513000000_provision_tenant.sql` — atomic provisioning RPC
 - `supabase/migrations/20260514100000_seller_paynow_id.sql` — ask #4 schema
+- `supabase/migrations/20260514120000_wa_sessions.sql` — ask #6 schema (WhatsApp bot state + audit)
 - `supabase/functions/billpay-biller-auth/index.ts` + `billpay-biller-pay/index.ts` — the two new endpoints
 - `supabase/functions/_shared/billpay.ts` — Basic auth + IP allowlist + inbound logging
 - `supabase/tests/multi_tenancy_verify.sql` — prod-safe verification (run in Supabase SQL editor)
@@ -308,6 +390,10 @@ Items that may interest reviewers wanting to audit the work:
 - `src/app/components/operators/` — marketing surface + lead form + wizard
 - `src/app/components/admin/LeadAdmin.tsx` — admin review queue
 - `billpay-biller.postman_collection.json` — ready for Paynow engineering to import
+- `whatsapp-bot/bot.js` — Node service running the WhatsApp list-my-animal flow
+- `whatsapp-bot/README.md` — setup, failure modes, production-path notes
+- `deliverables/business/` — SaPS pitch deck, financial model, business case, GTM, pilot proposal, playbook, discovery script, competitive map (10 files; two-pass agent verification applied)
+- `deliverables/internship-return/` — NHL Stenden CMD final report + 1-min video script + peer deck
 
 **Production URLs:**
 
@@ -320,3 +406,4 @@ Items that may interest reviewers wanting to audit the work:
 - Tenant route family: `/t/<slug>/...`
 - BillPay AUTH: https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/billpay-biller-auth
 - BillPay PAY: https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/billpay-biller-pay
+- WhatsApp bot phone (sacrificial): **0773819300** — send "list" to start the listing flow once the bot is hosted on the Mac mini
