@@ -125,6 +125,28 @@ Deno.serve(async (req) => {
 
   const newUserId = createRes.data.user.id;
 
+  // Guarantee the FK target for tenant_members.user_id → profiles(id).
+  // The on_auth_user_created trigger normally creates this row; this upsert
+  // is a belt-and-braces in case the trigger silently fails in any edge case.
+  const { error: profileErr } = await admin
+    .from("profiles")
+    .upsert(
+      {
+        id: newUserId,
+        email: body.admin_email!.toLowerCase(),
+        first_name: body.admin_first_name!,
+        last_name: body.admin_last_name!,
+        phone: body.admin_phone!,
+      },
+      { onConflict: "id" },
+    );
+
+  if (profileErr) {
+    log.error("profile upsert failed — attempting auth user cleanup", { error: profileErr.message, user_id: newUserId });
+    await admin.auth.admin.deleteUser(newUserId);
+    return jsonResponse({ error: "profile_setup_failed" }, 500);
+  }
+
   // ── Atomic provisioning via RPC ──
   const { data: tenantId, error: rpcErr } = await admin.rpc("provision_tenant", {
     p_lead_id: lead.id,
