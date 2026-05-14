@@ -435,7 +435,7 @@ Deno.serve(async (req) => {
 });
 ```
 
-> **Code-vs-spec note.** As of this write-up the deployed handler does not yet include `awaiting delivery` in the terminal-success branch — it falls through to no-op. This is logged in §13 *Shortcomings* and is a one-line fix.
+> **Code-vs-spec note.** As of this write-up the deployed handler does not yet include `awaiting delivery` in the terminal-success branch — it falls through to no-op. This is logged in §12 *Shortcomings* and is a one-line fix.
 
 ### 6.1 Idempotent state transition
 
