@@ -1,0 +1,229 @@
+{
+  "info": {
+    "name": "ZimLivestock BillPay Biller",
+    "description": "Paynow → ZimLivestock biller-inbound endpoints. Paynow calls these when a buyer settles an auction reference via BillPay (USSD / EcoCash app / etc.).\n\n**Auth**: HTTP Basic — set `username` and `password` collection variables to BILLPAY_BILLER_USERNAME and BILLPAY_BILLER_PASSWORD.\n\n**Idempotency**: PAY is anchored on `paynowReference`. Same reference → byte-identical 200 Paid response. Different reference on settled member → 409 AlreadyPaid.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{username}}", "type": "string" },
+      { "key": "password", "value": "{{password}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://hmeieslclzycyjjjflfh.supabase.co/functions/v1" },
+    { "key": "username", "value": "paynow-billpay" },
+    { "key": "password", "value": "REPLACE_ME" },
+    { "key": "member", "value": "AUCT-DEMO-001" },
+    { "key": "amount", "value": "1150.00" },
+    { "key": "paynowReference", "value": "PNW-9381" }
+  ],
+  "item": [
+    {
+      "name": "AUTH — member lookup (GET)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/billpay-biller-auth?member={{member}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["billpay-biller-auth"],
+          "query": [{ "key": "member", "value": "{{member}}" }]
+        },
+        "description": "Verify an auction reference and return buyer/lot details. Use GET when you have only a member ID; POST when you want a JSON body."
+      },
+      "response": [
+        {
+          "name": "200 Authorized",
+          "originalRequest": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-auth?member={{member}}" }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"Authorized\",\n  \"member\": \"AUCT-DEMO-001\",\n  \"name\": \"Tendai Moyo\",\n  \"description\": \"Brahman bull, 3yr, 450kg\",\n  \"amountDue\": 1150.00,\n  \"currency\": \"USD\",\n  \"phone\": \"0771234567\"\n}"
+        },
+        {
+          "name": "200 AlreadyPaid",
+          "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/billpay-biller-auth?member={{member}}" } },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"AlreadyPaid\",\n  \"member\": \"AUCT-DEMO-001\",\n  \"name\": \"Tendai Moyo\",\n  \"description\": \"Brahman bull, 3yr, 450kg\",\n  \"amountDue\": 0,\n  \"currency\": \"USD\"\n}"
+        },
+        {
+          "name": "404 NonExistent",
+          "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/billpay-biller-auth?member=AUCT-XXX-999" } },
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"NonExistent\",\n  \"member\": \"AUCT-XXX-999\",\n  \"error\": \"Reference not found\"\n}"
+        },
+        {
+          "name": "401 Unauthorized",
+          "originalRequest": { "method": "GET", "url": { "raw": "{{baseUrl}}/billpay-biller-auth?member={{member}}" } },
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "WWW-Authenticate", "value": "Basic realm=\"ZimLivestock BillPay\"" }
+          ],
+          "body": "{\n  \"status\": \"Failed\",\n  \"error\": \"Unauthorized\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "AUTH — member lookup (POST)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"member\": \"{{member}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/billpay-biller-auth",
+          "host": ["{{baseUrl}}"],
+          "path": ["billpay-biller-auth"]
+        },
+        "description": "Same as GET but JSON body — useful if Paynow's BillPay client only emits POST."
+      },
+      "response": [
+        {
+          "name": "200 Authorized",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-auth" },
+            "body": { "mode": "raw", "raw": "{\"member\": \"AUCT-DEMO-001\"}" }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"Authorized\",\n  \"member\": \"AUCT-DEMO-001\",\n  \"name\": \"Tendai Moyo\",\n  \"description\": \"Brahman bull, 3yr, 450kg\",\n  \"amountDue\": 1150.00,\n  \"currency\": \"USD\",\n  \"phone\": \"0771234567\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "PAY — settle (idempotent)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"member\": \"{{member}}\",\n  \"amount\": {{amount}},\n  \"currency\": \"USD\",\n  \"paynowReference\": \"{{paynowReference}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/billpay-biller-pay",
+          "host": ["{{baseUrl}}"],
+          "path": ["billpay-biller-pay"]
+        },
+        "description": "Settle an auction reference. Idempotent on `paynowReference`: re-hit with the same value → byte-identical 200 Paid response. Different `paynowReference` on a settled member → 409 AlreadyPaid."
+      },
+      "response": [
+        {
+          "name": "200 Paid",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-DEMO-001\",\"amount\":1150.00,\"currency\":\"USD\",\"paynowReference\":\"PNW-9381\"}" }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"Paid\",\n  \"reference\": \"AUCT-DEMO-001\",\n  \"billerReference\": \"PNW-9381\",\n  \"amountPaid\": 1150.00,\n  \"currency\": \"USD\"\n}"
+        },
+        {
+          "name": "200 Paid (idempotent retry)",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-DEMO-001\",\"amount\":1150.00,\"currency\":\"USD\",\"paynowReference\":\"PNW-9381\"}" }
+          },
+          "status": "OK",
+          "code": 200,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"Paid\",\n  \"reference\": \"AUCT-DEMO-001\",\n  \"billerReference\": \"PNW-9381\",\n  \"amountPaid\": 1150.00,\n  \"currency\": \"USD\"\n}"
+        },
+        {
+          "name": "400 Amount mismatch",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-DEMO-001\",\"amount\":1100.00,\"currency\":\"USD\",\"paynowReference\":\"PNW-WRONG\"}" }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"Failed\",\n  \"error\": \"Amount mismatch\",\n  \"expected\": 1150.00,\n  \"got\": 1100.00\n}"
+        },
+        {
+          "name": "400 Unsupported currency",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-DEMO-001\",\"amount\":1150.00,\"currency\":\"ZWL\",\"paynowReference\":\"PNW-9381\"}" }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"Failed\",\n  \"error\": \"Unsupported currency: ZWL. Only USD is accepted.\",\n  \"supported\": [\"USD\"]\n}"
+        },
+        {
+          "name": "400 Missing field",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-DEMO-001\"}" }
+          },
+          "status": "Bad Request",
+          "code": 400,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"Failed\",\n  \"error\": \"Missing required field(s): member, amount, paynowReference\"\n}"
+        },
+        {
+          "name": "404 NonExistent",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-XXX-999\",\"amount\":1150.00,\"currency\":\"USD\",\"paynowReference\":\"PNW-9381\"}" }
+          },
+          "status": "Not Found",
+          "code": 404,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"NonExistent\",\n  \"error\": \"Reference not found\"\n}"
+        },
+        {
+          "name": "409 AlreadyPaid (different paynowReference)",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-DEMO-001\",\"amount\":1150.00,\"currency\":\"USD\",\"paynowReference\":\"PNW-DIFFERENT\"}" }
+          },
+          "status": "Conflict",
+          "code": 409,
+          "header": [{ "key": "Content-Type", "value": "application/json" }],
+          "body": "{\n  \"status\": \"AlreadyPaid\",\n  \"error\": \"Reference already settled by a different transaction\"\n}"
+        },
+        {
+          "name": "401 Unauthorized",
+          "originalRequest": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/billpay-biller-pay" },
+            "body": { "mode": "raw", "raw": "{\"member\":\"AUCT-DEMO-001\",\"amount\":1150.00,\"currency\":\"USD\",\"paynowReference\":\"PNW-9381\"}" }
+          },
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "WWW-Authenticate", "value": "Basic realm=\"ZimLivestock BillPay\"" }
+          ],
+          "body": "{\n  \"status\": \"Failed\",\n  \"error\": \"Unauthorized\"\n}"
+        }
+      ]
+    }
+  ]
+}

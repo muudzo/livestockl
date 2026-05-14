@@ -57,5 +57,8 @@ verify_jwt = false
 
 # Inbound BillPay biller API — called by Paynow when a buyer pays via
 # BillPay menu. Auth is HTTP Basic + IP allowlist inside the handler.
-[functions.billpay-biller-inbound]
+[functions.billpay-biller-auth]
+verify_jwt = false
+
+[functions.billpay-biller-pay]
 verify_jwt = false
