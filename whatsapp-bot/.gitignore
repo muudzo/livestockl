@@ -1,0 +1,12 @@
+# whatsapp-web.js session storage — contains auth tokens, never commit
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Node
+node_modules/
+
+# Secrets
+.env
+
+# Logs
+*.log
