@@ -82,7 +82,7 @@ create table if not exists public.payments (
   livestock_id uuid not null references public.livestock_items(id),
   reference text unique not null,
   amount numeric not null check (amount > 0 and amount <= 100000),
-  method text not null check (method in ('EcoCash', 'OneMoney', 'Card')),
+  method text not null check (method in ('EcoCash', 'OneMoney', 'Card', 'BillPay')),
   status text default 'pending' check (status in ('pending', 'paid', 'failed')),
   paynow_reference text,
   phone text,
