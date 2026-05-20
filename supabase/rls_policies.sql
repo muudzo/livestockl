@@ -63,6 +63,9 @@ drop policy if exists "Authenticated users can place bids" on public.bids;
 -- Explicit grant so the place_bid RPC is callable by authenticated users.
 grant execute on function public.place_bid(uuid, uuid, numeric) to authenticated;
 
+-- USSD path: service_role calls this on behalf of a phone-verified bidder.
+grant execute on function public.place_bid_on_behalf(uuid, text, numeric) to service_role;
+
 -- No UPDATE / DELETE policy either — bids are immutable from the user side.
 
 -- PAYMENTS

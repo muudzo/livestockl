@@ -56,6 +56,7 @@ create table if not exists public.livestock_items (
   status text default 'active' check (status in ('active', 'ended', 'sold', 'cancelled')),
   duration_days integer not null check (duration_days in (1, 3, 7, 14)),
   end_time timestamptz not null,
+  reference text unique,
   created_at timestamptz default now()
 );
 
@@ -336,6 +337,24 @@ drop trigger if exists set_listing_end_time_trigger on public.livestock_items;
 create trigger set_listing_end_time_trigger
   before insert on public.livestock_items
   for each row execute function public.set_listing_end_time();
+
+-- Auto-generate AUCT-XXXX reference for each new livestock listing
+create or replace function public.set_listing_reference()
+returns trigger as $$
+begin
+  if new.reference is null then
+    new.reference := 'AUCT-' || lpad(nextval('public.listing_ref_seq')::text, 4, '0');
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create sequence if not exists public.listing_ref_seq start 1;
+
+drop trigger if exists set_listing_reference_trigger on public.livestock_items;
+create trigger set_listing_reference_trigger
+  before insert on public.livestock_items
+  for each row execute function public.set_listing_reference();
 
 -- Composite indexes for common queries
 create index if not exists idx_livestock_status_category on public.livestock_items(status, category);

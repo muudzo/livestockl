@@ -98,6 +98,7 @@ export function ItemDetail() {
   const imageUrl = item.imageUrl ?? (item as any).image_urls?.[0] ?? '';
   const imageUrls: string[] = (item as any).image_urls ?? (item.imageUrl ? [item.imageUrl] : []);
   const status = item.status ?? 'active';
+  const lotRef: string | null = (item as any).reference ?? null;
 
   const getSellerInfo = () => {
     if (item.seller) return item.seller;
@@ -297,6 +298,9 @@ export function ItemDetail() {
             </div>
             <p className="text-2xl font-bold text-emerald-700 mt-1" aria-label={`Current bid: ${currentBid} US dollars`}><span className="text-sm font-normal text-slate-500">Current Bid </span>US${currentBid.toLocaleString()}</p>
             <p className="text-sm text-slate-500 mt-1">Starting: US${startingPrice.toLocaleString()}</p>
+            {lotRef && (
+              <p className="text-xs text-slate-400 mt-1">Lot ref: <span className="font-mono font-semibold text-slate-600">{lotRef}</span> — dial *151*ZL# to bid</p>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-3">
