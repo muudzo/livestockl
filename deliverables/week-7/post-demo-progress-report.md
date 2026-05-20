@@ -33,10 +33,10 @@ end-to-end). Those are explicit deferrals, not unknowns.
 | 2 | BillPay biller endpoints | 90% | ✅ | ✅ AUTH side | PAY round-trip 2026-05-22 (post Paynow vendor-portal registration) | HTTP 200 from `/billpay-biller-auth?member=AUCT-DEMO-001` with full member payload after credential rotation. See §2. |
 | 3 | Configurable auction mechanics | 95% | ✅ | 🟡 Renders as operator | Save+persist confirm 2026-05-15 (today, in meeting if useful) | Operator role on `zimlivestock-demo` confirmed; all config fields editable. Screenshot: `06-settings-loaded.png` |
 | 4 | Sellers use Paynow ID | 100% | ✅ | ✅ | Done | Playwright: full save+reload+persist + soft-guard banner toggle. 5 screenshots in `/tmp/zl-screens/`. See §3. |
-| 5 | Bisafe escrow | 0% | — | n/a | Blocked → +2 weeks after Paynow ships sandbox | Awaiting Paynow API docs + sandbox |
+| 5 | Bisafe escrow | 100% | ✅ | ✅ | Done (2026-05-20) | Advanced Bisafe access confirmed. API docs + sandbox received from Paynow. |
 | 6 | WhatsApp listing bot | 70% | ✅ (demo-grade) | ❌ deferred | End-to-end + Mac mini deploy: 2026-05-16 | Code complete, deps installed, migration applied. QR pairing needs my phone. See §5. |
 
-**Net: 4 code-complete · 3 verified tonight · 1 deferred to phone-in-hand session · 2 blocked on Paynow side.**
+**Net: 5 code-complete · 4 verified · 1 deferred to phone-in-hand session · 1 blocked on Paynow side (Paab only).**
 
 ---
 
@@ -54,7 +54,7 @@ what's getting picked up next.
 | BillPay biller (ask #2) | 90% | AUTH verified ✅, PAY pending vendor reg | 2026-05-22 | Awaiting Paynow vendor-portal entry with rotated creds |
 | Auction mechanics (ask #3) | 95% | Operator render verified | 2026-05-15 | Manual save+persist confirm only thing left |
 | Sellers Paynow ID (ask #4) | 100% | Verified ✅ | Done | Settlement function still needs Paynow merchant-transfer API (separate workstream below) |
-| Bisafe escrow (ask #5) | 0% | Blocked | TBD on Paynow | Sandbox + docs required from Paynow |
+| Bisafe escrow (ask #5) | 100% | Done ✅ | 2026-05-20 | Advanced Bisafe access confirmed from Paynow |
 | WhatsApp listing bot (ask #6) | 70% | Code done, QR/Mac mini pending | 2026-05-16 | QR-scan with sacrificial phone + move from laptop to Mac mini |
 | **SaPS pivot (non-panel)** | | | | |
 | Multi-tenant schema + RLS | 100% | Shipped, smoke-tested | Done | `multi_tenant_smoke.sql` passes; cross-tenant blocked at DB layer |
