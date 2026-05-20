@@ -44,6 +44,7 @@ const AgentDashboard = lazyWithRetry(() => import('./components/AgentDashboard')
 const AgentSetup = lazyWithRetry(() => import('./components/AgentSetup').then(m => ({ default: m.AgentSetup })));
 const BillPayFlow = lazyWithRetry(() => import('./components/BillPayFlow'));
 const TestBillPayPayment = lazyWithRetry(() => import('./components/TestBillPayPayment'));
+const UssdSimulator = lazyWithRetry(() => import('./components/UssdSimulator'));
 const TenantSettings = lazyWithRetry(() => import('./components/TenantSettings'));
 const AccountSettings = lazyWithRetry(() => import('./components/AccountSettings'));
 const LeadAdmin = lazyWithRetry(() => import('./components/admin/LeadAdmin'));
@@ -131,6 +132,10 @@ const pageRoutes = [
   {
     path: "test-billpay",
     element: <ProtectedRoute><LazyLoad><TestBillPayPayment /></LazyLoad></ProtectedRoute>,
+  },
+  {
+    path: "ussd-simulator",
+    element: <ProtectedRoute><LazyLoad><UssdSimulator /></LazyLoad></ProtectedRoute>,
   },
   {
     path: "settings",
