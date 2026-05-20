@@ -34,10 +34,8 @@ export const PAYMENT_OPTIONS: Array<{ value: PaymentRail; label: string }> = [
   { value: 'mixed',         label: 'Mixed — depends on the buyer' },
 ];
 
-export async function submitLead(payload: LeadSubmission): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function submitLead(payload: LeadSubmission): Promise<{ ok: true; id?: string } | { ok: false; error: string }> {
   if (!isSupabaseConfigured) {
-    // Demo mode — pretend it worked. Local devs without Supabase still see
-    // the confirmation flow.
     await new Promise((r) => setTimeout(r, 400));
     return { ok: true };
   }
@@ -47,8 +45,6 @@ export async function submitLead(payload: LeadSubmission): Promise<{ ok: true } 
   });
 
   if (error) {
-    // supabase.functions.invoke wraps network/non-2xx errors. Surface the
-    // server's error message when possible, otherwise a generic fallback.
     const serverMsg = (data as { error?: string } | null)?.error;
     return { ok: false, error: serverMsg || error.message || 'Submission failed' };
   }
@@ -57,5 +53,5 @@ export async function submitLead(payload: LeadSubmission): Promise<{ ok: true } 
     return { ok: false, error: (data as { error: string }).error };
   }
 
-  return { ok: true };
+  return { ok: true, id: (data as { id?: string } | null)?.id };
 }

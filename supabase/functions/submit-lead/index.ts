@@ -97,37 +97,15 @@ function validate(p: LeadPayload): { ok: true; data: Required<Omit<LeadPayload, 
   };
 }
 
-async function notifyByEmail(lead: Record<string, unknown>) {
+async function sendEmail(args: { to: string; subject: string; text: string }): Promise<void> {
   const apiKey = Deno.env.get("RESEND_API_KEY");
-  const to = Deno.env.get("NOTIFY_LEADS_EMAIL");
-  if (!apiKey || !to) {
-    log.info("lead notification skipped — RESEND_API_KEY / NOTIFY_LEADS_EMAIL not set");
-    return;
-  }
-
+  if (!apiKey) return;
+  const from = Deno.env.get("NOTIFY_LEADS_FROM") || "ZimLivestock <onboarding@resend.dev>";
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: Deno.env.get("NOTIFY_LEADS_FROM") || "ZimLivestock <onboarding@resend.dev>",
-        to,
-        subject: `New SaPS lead — ${lead.auction_house_name}`,
-        text: [
-          `Auction house: ${lead.auction_house_name}`,
-          `Contact: ${lead.contact_name} <${lead.contact_email}>`,
-          `Phone: ${lead.contact_phone}`,
-          `Town: ${lead.town || "—"}`,
-          `Lots/week: ${lead.lots_per_week}`,
-          `Payment rail: ${lead.current_payment_rail}`,
-          ``,
-          `Biggest friction:`,
-          `${lead.biggest_friction}`,
-        ].join("\n"),
-      }),
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ from, ...args }),
     });
     if (!res.ok) {
       const txt = await res.text();
@@ -136,6 +114,53 @@ async function notifyByEmail(lead: Record<string, unknown>) {
   } catch (err) {
     log.error("Resend dispatch failed", { error: (err as Error).message });
   }
+}
+
+async function notifyByEmail(lead: Record<string, unknown>) {
+  const to = Deno.env.get("NOTIFY_LEADS_EMAIL");
+  if (!to) {
+    log.info("lead notification skipped — NOTIFY_LEADS_EMAIL not set");
+    return;
+  }
+  await sendEmail({
+    to,
+    subject: `New SaPS lead — ${lead.auction_house_name}`,
+    text: [
+      `Auction house: ${lead.auction_house_name}`,
+      `Contact: ${lead.contact_name} <${lead.contact_email}>`,
+      `Phone: ${lead.contact_phone}`,
+      `Town: ${lead.town || "—"}`,
+      `Lots/week: ${lead.lots_per_week}`,
+      `Payment rail: ${lead.current_payment_rail}`,
+      ``,
+      `Biggest friction:`,
+      `${lead.biggest_friction}`,
+    ].join("\n"),
+  });
+}
+
+async function confirmOperator(lead: Record<string, unknown>) {
+  const to = lead.contact_email as string;
+  const name = (lead.contact_name as string).split(" ")[0];
+  await sendEmail({
+    to,
+    subject: `We've received your ZimLivestock application — ${lead.auction_house_name}`,
+    text: [
+      `Hi ${name},`,
+      ``,
+      `We've received your application for ${lead.auction_house_name}.`,
+      ``,
+      `Here's what happens next:`,
+      ``,
+      `01  One of us reads your submission within one business day.`,
+      `02  We reach out by email or WhatsApp to set up a 30-minute discovery call.`,
+      `03  If we're a fit, we provision your tenant, waive setup fees, and walk your team through the first auction day.`,
+      ``,
+      `If you don't hear from us within two working days, reply to this email directly.`,
+      ``,
+      `— The ZimLivestock team`,
+    ].join("\n"),
+  });
 }
 
 Deno.serve(async (req) => {
@@ -185,8 +210,9 @@ Deno.serve(async (req) => {
 
   log.info("lead recorded", { id: data.id, house: v.data.auction_house_name });
 
-  // Fire-and-forget notification — don't make the form wait on it.
+  // Fire-and-forget — don't block the form response on email delivery.
   notifyByEmail(v.data).catch(() => {});
+  confirmOperator(v.data).catch(() => {});
 
   return jsonResponse(req, { ok: true, id: data.id });
 });

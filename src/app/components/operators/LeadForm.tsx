@@ -20,16 +20,16 @@ import {
  * but bots will fill it; the server silently 200s on those submissions.
  */
 export function LeadForm() {
-  const [submitted, setSubmitted] = useState(false);
+  const [confirmed, setConfirmed] = useState<{ name: string; email: string } | null>(null);
 
-  if (submitted) {
-    return <Confirmation />;
+  if (confirmed) {
+    return <Confirmation name={confirmed.name} email={confirmed.email} />;
   }
 
-  return <Form onSuccess={() => setSubmitted(true)} />;
+  return <Form onSuccess={(name, email) => setConfirmed({ name, email })} />;
 }
 
-function Form({ onSuccess }: { onSuccess: () => void }) {
+function Form({ onSuccess }: { onSuccess: (name: string, email: string) => void }) {
   const [auction_house_name, setHouseName] = useState('');
   const [town, setTown] = useState('');
   const [contact_name, setContactName] = useState('');
@@ -70,7 +70,7 @@ function Form({ onSuccess }: { onSuccess: () => void }) {
     setSubmitting(false);
 
     if (result.ok) {
-      onSuccess();
+      onSuccess(contact_name, contact_email);
     } else {
       setError(result.error);
     }
@@ -236,7 +236,8 @@ function Form({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
-function Confirmation() {
+function Confirmation({ name, email }: { name: string; email: string }) {
+  const firstName = name.split(' ')[0];
   return (
     <section className="bg-kraft-100">
       <div className="mx-auto max-w-3xl px-6 pt-24 pb-32 sm:pt-32">
@@ -247,11 +248,16 @@ function Confirmation() {
           className="mt-6 font-display text-[44px] leading-[1.02] tracking-[-0.015em] text-ink-900 sm:text-[64px]"
           style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 40" }}
         >
-          We'll be in touch{' '}
+          {firstName ? `${firstName}, we'll` : "We'll"} be in touch{' '}
           <span className="italic" style={{ fontVariationSettings: "'opsz' 144, 'SOFT' 90" }}>
             within two working days.
           </span>
         </h1>
+
+        <p className="mt-6 font-mono text-[12px] uppercase tracking-[0.18em] text-ink-500">
+          A confirmation has been sent to{' '}
+          <span className="text-ink-900">{email}</span>
+        </p>
 
         <div className="mt-12 space-y-6 border-y border-ink-900/15 py-12">
           <Step n="01" title="We read your submission">
@@ -260,8 +266,8 @@ function Confirmation() {
           <Step n="02" title="We reply, by email or WhatsApp">
             We propose a 30-minute discovery call. You pick the channel. Same outcome either way.
           </Step>
-          <Step n="03" title="If we're a fit, you become a pilot tenant">
-            We waive setup, configure your tenant in your name, and walk your operators through the first auction day.
+          <Step n="03" title="You receive an onboarding link">
+            Once we confirm the fit, we email you a one-time link. Click it, set up your tenant in five steps, and you're live — no engineering required.
           </Step>
         </div>
 
@@ -273,7 +279,7 @@ function Confirmation() {
           >
             tatenda@paynow.co.zw
           </a>{' '}
-          directly. The form is new — bugs are possible.
+          directly.
         </p>
       </div>
     </section>
