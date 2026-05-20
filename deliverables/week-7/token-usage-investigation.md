@@ -2,7 +2,7 @@
 
 **Author:** Tatenda Nyemudzo (Paynow Internship)
 **Date:** 2026-05-19
-**Scope:** 30-day Claude Code usage audit + remediation plan with cited sources
+**Scope:** 2-week Claude Code usage audit (ZimLivestock project) + remediation plan with cited sources
 **Audience:** Paynow Tech Ops
 
 ---
@@ -13,7 +13,7 @@ Tech Ops flagged my Claude Code token consumption as high. This document investi
 
 **Top-line findings:**
 
-1. **Gross volume (2.34B tokens / 30d) overstates real cost by ~25×.** 96% of those tokens are *cache reads*, which Anthropic bills at **0.1× base input price** — a 90% discount.
+1. **Gross volume (1.09B tokens / 14d) overstates real cost by ~25×.** 96% of those tokens are *cache reads*, which Anthropic bills at **0.1× base input price** — a 90% discount.
 2. **The dominant waste pattern is long-running sessions that never get `/clear`'d.** One ZimLivestock session ran **5,589 turns** in a single context window. By Anthropic's own guidance, quality starts degrading at 50% context fill — most of those tokens were spent on a degraded baseline.
 3. **Two structural drivers are addressable today:** repeated file reads inside one session (top file re-read 32 times), and unbounded Bash output dumps (DB queries, curl bodies, broad greps).
 4. **Two optimizations I had not been using:** subagent delegation for verbose ops, and moving stable instructions out of `CLAUDE.md` into on-demand skills.
@@ -22,41 +22,25 @@ Tech Ops flagged my Claude Code token consumption as high. This document investi
 
 ## 2. The Numbers (raw, from session logs)
 
-Source: `~/.claude/projects/*/*.jsonl` — Claude Code writes per-turn `message.usage` records I can sum.
+Source: `~/.claude/projects/-Users-tatendanyemudzo-Downloads-app/*.jsonl` — Claude Code writes per-turn `message.usage` records I can sum.
 
-### 30-day rollup (all projects)
+### 2-week rollup (ZimLivestock only)
 
 | Bucket | Tokens | Share | Billed rate¹ |
 |---|---:|---:|---:|
-| Cache reads | 2.25B | 96% | 0.1× base |
-| Output | ~75M | 3% | base output |
-| Cache writes | ~17M | 0.7% | 1.25× base |
+| Cache reads | 1.05B | 96% | 0.1× base |
+| Output | ~33M | 3% | base output |
+| Cache writes | ~8M | 0.7% | 1.25× base |
 | Fresh input | small | <1% | 1× base |
-| **Total** | **2.34B** | | |
-| **"Real work" (output + cache writes)** | **91.8M** | | |
+| **Total** | **1.09B** | | |
 
 ¹ Per [Anthropic prompt-caching pricing](https://platform.claude.com/docs/en/build-with-claude/prompt-caching): cache writes 1.25× base input, cache reads 0.1× base input.
 
-### Per-project (30d)
-
-| Project | Tokens | Notes |
-|---|---:|---|
-| ZimLivestock (`~/Downloads/app`) | 1.43B | Primary internship work |
-| Zippie Payment App | 192M | Side project |
-| youtube | 181M | |
-| widget | 173M | |
-| BIGMAMA$ | 136M | |
-| Others (~6) | <500M combined | |
-
-ZimLivestock alone is 61% of total — expected, since it's the actual internship work.
-
-### Last 7 days
-
-1.31B total / 60M real work / **ZL = 827M (63%)**. Distribution roughly matches 30d, no recent anomaly.
+This 14-day window covers the period from the panel demo (2026-05-08) through post-demo remediation and SaPS pivot (2026-05-12 to 2026-05-19) — the densest delivery period of the internship.
 
 ---
 
-## 3. Why "2.34B" Looks Scary But Isn't
+## 3. Why "1.09B" Looks Scary But Isn't
 
 A common dashboard artifact: gross token count counts cache reads at the same weight as fresh input, but **cache reads cost 10% of base input**. From Anthropic's docs:
 
@@ -64,8 +48,9 @@ A common dashboard artifact: gross token count counts cache reads at the same we
 
 Translated:
 
-- **Real billable equivalent** ≈ output (75M @ output rate) + cache writes (17M @ 1.25×) + cache reads (2.25B @ 0.1×) + fresh input.
-- The 2.25B cache-read line is the prior conversation being replayed each turn. It's **why long Claude Code sessions look enormous on a token meter** — every turn re-reads the full conversation from cache.
+- **Cache reads are not wasted tokens — they are the conversation history replayed cheaply.** Without caching, that same 1.05B would cost 10× more. Cache reads are the mechanism that makes long agentic sessions affordable, not a sign of inefficiency.
+- **The actual waste is excess cache reads from mega-sessions.** A session that ran 5,589 turns when it should have been cleared at 200 paid full cache-replay freight on 5,000 turns of stale context. That's the addressable problem — not the existence of cache reads.
+- **Real billable equivalent** ≈ output (33M @ output rate) + cache writes (8M @ 1.25×) + cache reads (1.05B @ 0.1×) + fresh input.
 - Anthropic's own published benchmark for enterprise Claude Code use: **$13/dev/active-day, $150–250/dev/month, with 90% of users under $30/active-day** ([Manage costs effectively](https://code.claude.com/docs/en/costs)).
 
 **Implication:** the right metric for Tech Ops is **cost-per-shipped-feature**, not gross tokens. A single session that produced the BillPay integration + diagnostic + tested fix is one billed unit of work, regardless of how many turns ran.
@@ -74,7 +59,7 @@ Translated:
 
 ## 4. What's Actually Driving High Usage (Root Causes)
 
-Audit of the 5 largest ZL session logs:
+Audit of the 5 largest session logs within the 14-day window:
 
 ### 4.1 Mega-sessions that should've been `/clear`'d
 
@@ -174,7 +159,7 @@ Shift+Tab into plan mode before any payment/RLS/schema edit. Prevents expensive 
 
 ## 6. Expected Impact
 
-Rough estimate using current 30d numbers as baseline:
+Rough estimate using current 14d numbers as baseline:
 
 | Lever | Mechanism | Estimated reduction |
 |---|---|---:|
@@ -184,7 +169,7 @@ Rough estimate using current 30d numbers as baseline:
 | Bounded Bash output | Smaller tool_result payloads | 5–10% |
 | **Combined target** | | **~40–50% lower billed cost** for same shipped output |
 
-Numbers are estimates, not guarantees. I'll re-measure 30 days from the date this report is filed.
+Numbers are estimates, not guarantees. I'll re-measure 2 weeks from the date this report is filed.
 
 ---
 
@@ -193,6 +178,7 @@ Numbers are estimates, not guarantees. I'll re-measure 30 days from the date thi
 - **I can't see Anthropic's actual billing dashboard.** All cost analysis here is derived from local jsonl session logs and the published Anthropic pricing tiers. Tech Ops has the authoritative number.
 - **Fintech work skews higher than average.** Payment-provider integration involves RLS audits, schema migrations, multi-file reads of edge functions, and compliance cross-checks. Anthropic's $13/dev/active-day average bundles all dev types — I'd expect to be above the median but below outlier.
 - **Cache reads inflating gross tokens is real but not a "free lunch."** They still count against rate limits and account-level token quotas even if billed cheap. Reducing them is still the right move — both for cost and for keeping the agent in the "<50% context" quality zone.
+- **The 14-day window covers an unusually dense delivery period** (post-demo remediation + SaPS pivot + BillPay debugging). Normal weeks will be lower; this is a ceiling, not a steady-state.
 - **The 5,589-turn session predates this audit.** I wasn't measuring at the time. Now I am, via the `/budget` skill.
 
 ---
@@ -201,7 +187,7 @@ Numbers are estimates, not guarantees. I'll re-measure 30 days from the date thi
 
 1. **Visibility into the actual billed line items** for my workspace (cache-read $ vs. output $ vs. cache-write $). The Anthropic Console Usage page exposes this — I have local estimates but not the authoritative split.
 2. **An agreed cost target** framed as $/active-day rather than gross tokens. Anthropic's published 90th-percentile is $30/active-day; I'd like to know where I sit and what the team considers acceptable.
-3. **30-day re-audit window.** Let me apply the levers in §5, then we re-measure. If consumption doesn't materially drop, I'll escalate to additional mitigations (Haiku for trivial tasks, stricter hook-based output filtering, etc.).
+3. **2-week re-audit window.** Let me apply the levers in §5, then we re-measure. If consumption doesn't materially drop, I'll escalate to additional mitigations (Haiku for trivial tasks, stricter hook-based output filtering, etc.).
 
 ---
 
@@ -222,4 +208,4 @@ Secondary (community syntheses, used for thresholds & framing):
 
 Local instrumentation:
 
-- `~/.claude/skills/budget/budget.py` — script I wrote to parse `~/.claude/projects/*/*.jsonl` and produce the rollup numbers in §2. Reproducible: `python3 ~/.claude/skills/budget/budget.py --range 30`.
+- `~/.claude/skills/budget/budget.py` — script I wrote to parse `~/.claude/projects/-Users-tatendanyemudzo-Downloads-app/*.jsonl` and produce the rollup numbers in §2. Reproducible: `python3 ~/.claude/skills/budget/budget.py --project zimlivestock --range 14`.
