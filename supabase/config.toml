@@ -62,3 +62,7 @@ verify_jwt = false
 
 [functions.billpay-biller-pay]
 verify_jwt = false
+
+# Africa's Talking posts without a JWT token — must be public.
+[functions.ussd-handler]
+verify_jwt = false
