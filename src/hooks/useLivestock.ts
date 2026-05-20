@@ -149,6 +149,9 @@ export function useCreateListing() {
       starting_price: number;
       duration_days: number;
       image_urls: string[];
+      auction_format?: 'live' | 'timed';
+      verified_bidders_only?: boolean;
+      is_demo?: boolean;
     }) => {
       if (!user) throw new Error('Not authenticated');
 

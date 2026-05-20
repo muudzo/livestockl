@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2, SearchX, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2, SearchX, AlertTriangle, ShieldCheck, FlaskConical, Clock, ShieldAlert, ExternalLink } from "lucide-react";
 import { useLivestockItem, useEndExpiredAuctions } from "../../hooks/useLivestock";
 import { useBids, usePlaceBid } from "../../hooks/useBids";
 import { getFullImageUrl } from "../../lib/imageUtils";
@@ -160,6 +160,12 @@ export function ItemDetail() {
     return b.userId === user.id && b.isWinner;
   }) : false;
 
+  const isDemo = !!(item as any).is_demo;
+  const auctionFormat: 'live' | 'timed' = (item as any).auction_format ?? 'timed';
+  const verifiedBiddersOnly = !!(item as any).verified_bidders_only;
+  const bidBlocked = verifiedBiddersOnly && !!user && !(user as any).verified;
+  const isHighValue = (currentBid || startingPrice) >= 500;
+
   const handlePlaceBid = async () => {
     const amount = Number(bidAmount);
     if (!amount || amount <= 0) return;
@@ -258,8 +264,37 @@ export function ItemDetail() {
         </div>
 
         <div className="p-4 space-y-5">
+          {isDemo && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <FlaskConical className="w-4 h-4 text-blue-600 shrink-0" />
+              <p className="text-sm text-blue-900">
+                <strong className="font-semibold">Practice auction — no real money.</strong>{' '}
+                Bid freely to learn the flow. No payment will be collected.
+              </p>
+            </div>
+          )}
+
+          {verifiedBiddersOnly && (
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-900">
+                <strong className="font-semibold">Verified bidders only.</strong>{' '}
+                {!(user as any)?.verified ? 'Your account must be verified to place a bid.' : 'Your account is verified — you can bid.'}
+              </p>
+            </div>
+          )}
+
           <div>
-            <h1 className="text-2xl font-bold">{item.title}</h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className="text-2xl font-bold">{item.title}</h1>
+              {isDemo && (
+                <Badge className="bg-blue-600 text-white border-0 text-xs">DEMO</Badge>
+              )}
+              <Badge variant="outline" className="text-xs flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                {auctionFormat === 'live' ? 'LIVE SESSION' : 'TIMED'}
+              </Badge>
+            </div>
             <p className="text-2xl font-bold text-emerald-700 mt-1" aria-label={`Current bid: ${currentBid} US dollars`}><span className="text-sm font-normal text-slate-500">Current Bid </span>US${currentBid.toLocaleString()}</p>
             <p className="text-sm text-slate-500 mt-1">Starting: US${startingPrice.toLocaleString()}</p>
           </div>
@@ -309,6 +344,26 @@ export function ItemDetail() {
             <p className="text-muted-foreground">{item.description}</p>
           </div>
 
+          {isHighValue && (
+            <a
+              href="https://www.zbinsurance.co.zw"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-between p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors duration-150 group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-4 h-4 text-emerald-700" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">Protect your livestock</p>
+                  <p className="text-xs text-muted-foreground">ZB Insurance — livestock cover from US$12/yr</p>
+                </div>
+              </div>
+              <ExternalLink className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors duration-150" />
+            </a>
+          )}
+
           <Separator />
 
           <div>
@@ -341,7 +396,13 @@ export function ItemDetail() {
       </div>
 
       <div className="fixed bottom-16 left-0 right-0 bg-card border-t shadow-lg max-w-[480px] mx-auto">
-        {status === 'active' && getTimeLeft() !== 'Ended' && !isOwnListing ? (
+        {status === 'active' && getTimeLeft() !== 'Ended' && (!isOwnListing || isDemo) ? (
+          bidBlocked ? (
+            <div className="p-4 flex items-center gap-3">
+              <ShieldCheck className="w-5 h-5 text-amber-600 shrink-0" />
+              <p className="text-sm text-muted-foreground">Verified account required to bid on this lot.</p>
+            </div>
+          ) : (
           <div className="p-4">
             <div className="flex gap-2">
               <div className="flex-1 relative">
@@ -385,6 +446,7 @@ export function ItemDetail() {
               </AlertDialog>
             </div>
           </div>
+          )
         ) : isWinner ? (
           <div className="p-4">
             <Button onClick={() => navigate(`/checkout/${item.id}`)} className="w-full bg-green-600 hover:bg-green-700 active:scale-[0.98] transition-all duration-150">

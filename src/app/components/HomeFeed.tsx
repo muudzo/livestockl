@@ -387,11 +387,21 @@ export function HomeFeed() {
               <div className="bg-card rounded-xl shadow-sm overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5" onMouseEnter={() => handlePrefetch(item.id)} onTouchStart={() => handlePrefetch(item.id)}>
                 <div role="link" tabIndex={0} aria-label={`View details for ${item.title}`} className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/item/${item.id}`); } }}>
                   <ImageWithFallback src={getThumbnailUrl(getImageUrl(item), 400)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
-                  {/* LIVE indicator — all listed items are active auctions */}
-                  <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1">
-                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-white text-xs font-semibold tracking-wide">LIVE</span>
-                  </div>
+                  {item.is_demo ? (
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-blue-600/90 backdrop-blur-sm rounded-full px-2.5 py-1">
+                      <span className="text-white text-xs font-semibold tracking-wide">DEMO</span>
+                    </div>
+                  ) : item.auction_format === 'live' ? (
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1">
+                      <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                      <span className="text-white text-xs font-semibold tracking-wide">LIVE</span>
+                    </div>
+                  ) : (
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1">
+                      <span className="w-2 h-2 rounded-full bg-blue-400" />
+                      <span className="text-white text-xs font-semibold tracking-wide">TIMED</span>
+                    </div>
+                  )}
                   <div className="absolute bottom-2 left-2">
                     <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
                   </div>

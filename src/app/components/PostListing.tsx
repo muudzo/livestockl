@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router";
-import { ArrowLeft, Plus, X, Loader2, FileText, Upload, Wallet } from "lucide-react";
+import { ArrowLeft, Plus, X, Loader2, FileText, Upload, Wallet, FlaskConical, ShieldCheck, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -64,6 +64,9 @@ export function PostListing() {
     health: '',
     startingPrice: '',
     duration: '',
+    auctionFormat: 'timed' as 'live' | 'timed',
+    verifiedBiddersOnly: false,
+    isDemo: false,
   });
   const [prefilled, setPrefilled] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -227,6 +230,9 @@ export function PostListing() {
           starting_price: parsedPrice,
           duration_days: durationMap[formData.duration] || 7,
           image_urls: imageUrls,
+          auction_format: formData.auctionFormat,
+          verified_bidders_only: formData.verifiedBiddersOnly,
+          is_demo: formData.isDemo,
           ...(stockCardUrl && { stock_card_url: stockCardUrl }),
         });
         toast.success('Listing submitted for review!');
@@ -458,6 +464,66 @@ export function PostListing() {
               </Select>
             </div>
           )}
+
+          {!isEditMode && (
+            <div className="space-y-2">
+              <Label>Auction Format</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['timed', 'live'] as const).map((fmt) => (
+                  <button
+                    key={fmt}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, auctionFormat: fmt })}
+                    className={`flex flex-col items-start gap-1 p-3 rounded-lg border-2 text-left transition-all duration-150 ${formData.auctionFormat === fmt ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Clock className={`w-3.5 h-3.5 ${formData.auctionFormat === fmt ? 'text-emerald-600' : 'text-slate-400'}`} />
+                      <span className="text-sm font-semibold capitalize">{fmt}</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground leading-tight">
+                      {fmt === 'timed' ? 'Open 24/7 — anyone bids any time until end date' : 'Real-time session — you run the room live'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <Label>Bidder Restrictions</Label>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, verifiedBiddersOnly: !formData.verifiedBiddersOnly })}
+              className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all duration-150 ${formData.verifiedBiddersOnly ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}
+            >
+              <ShieldCheck className={`w-4 h-4 mt-0.5 shrink-0 ${formData.verifiedBiddersOnly ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <div>
+                <p className="text-sm font-semibold">Verified bidders only</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Only platform-verified accounts can bid. Recommended for high-value lots.</p>
+              </div>
+              <div className={`ml-auto w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center ${formData.verifiedBiddersOnly ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                {formData.verifiedBiddersOnly && <span className="text-white text-xs">✓</span>}
+              </div>
+            </button>
+
+            {!isEditMode && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, isDemo: !formData.isDemo })}
+                className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all duration-150 ${formData.isDemo ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}
+              >
+                <FlaskConical className={`w-4 h-4 mt-0.5 shrink-0 ${formData.isDemo ? 'text-blue-600' : 'text-slate-400'}`} />
+                <div>
+                  <p className="text-sm font-semibold">Practice / demo lot</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">No real money — lets new bidders learn the flow. Clearly marked DEMO on listing.</p>
+                </div>
+                <div className={`ml-auto w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center ${formData.isDemo ? 'bg-blue-500 border-blue-500' : 'border-slate-300'}`}>
+                  {formData.isDemo && <span className="text-white text-xs">✓</span>}
+                </div>
+              </button>
+            )}
+          </div>
+
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 space-y-1 text-sm">
             <p className="flex items-center gap-2"><span className="text-emerald-600">{"\u2713"}</span><span>5% platform fee</span></p>
             <p className="flex items-center gap-2"><span className="text-emerald-600">{"\u2713"}</span><span>48hr payment window</span></p>
