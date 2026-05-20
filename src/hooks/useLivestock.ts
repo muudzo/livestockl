@@ -358,6 +358,28 @@ export function useUpdateListing() {
   });
 }
 
+export function usePlatformStats() {
+  return useQuery({
+    queryKey: ['platform', 'stats'],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      if (!isSupabaseConfigured) {
+        return { animalsTransacted: 1247, activeListings: 89, registeredUsers: 3200 };
+      }
+      const [sold, active, users] = await Promise.all([
+        supabase.from('livestock_items').select('id', { count: 'exact', head: true }).in('status', ['ended', 'sold']),
+        supabase.from('livestock_items').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }),
+      ]);
+      return {
+        animalsTransacted: sold.count ?? 0,
+        activeListings: active.count ?? 0,
+        registeredUsers: users.count ?? 0,
+      };
+    },
+  });
+}
+
 export function useDeleteListing() {
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);

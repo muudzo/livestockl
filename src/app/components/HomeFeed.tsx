@@ -1,9 +1,9 @@
-import { Fragment, useState, useCallback, useDeferredValue } from "react";
+import { Fragment, useState, useCallback, useDeferredValue, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, Droplet, Plus, TrendingUp, FlaskConical } from "lucide-react";
+import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, Droplet, Plus, TrendingUp, FlaskConical, Share2, Users, Package, Activity } from "lucide-react";
 import { categories } from "../data/mockData";
-import { useLivestockList, usePrefetchLivestockItem, useMyListings } from "../../hooks/useLivestock";
+import { useLivestockList, usePrefetchLivestockItem, useMyListings, usePlatformStats } from "../../hooks/useLivestock";
 import { useFavorites, useToggleFavorite } from "../../hooks/useFavorites";
 import { getThumbnailUrl } from "../../lib/imageUtils";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
@@ -13,6 +13,53 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { toast } from "sonner";
+
+function computeCountdownLabel(endTime: string | undefined, now: number): string {
+  if (!endTime) return '';
+  const diff = new Date(endTime).getTime() - now;
+  if (diff <= 0) return 'Ended';
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  if (hours < 1) {
+    const mins = Math.floor(diff / (1000 * 60));
+    const secs = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+  if (hours < 24) return `${hours}h left`;
+  return `${Math.floor(hours / 24)}d left`;
+}
+
+function getCountdownUrgency(endTime: string | undefined, now: number): 'urgent' | 'soon' | 'normal' {
+  if (!endTime) return 'normal';
+  const diff = new Date(endTime).getTime() - now;
+  if (diff < 60 * 60 * 1000) return 'urgent';
+  if (diff < 24 * 60 * 60 * 1000) return 'soon';
+  return 'normal';
+}
+
+function TrustStatsBar() {
+  const { data: stats } = usePlatformStats();
+  if (!stats) return null;
+
+  const items = [
+    { icon: <Package className="w-4 h-4 text-emerald-600" />, value: stats.animalsTransacted.toLocaleString(), label: 'Animals sold' },
+    { icon: <Activity className="w-4 h-4 text-amber-500" />, value: stats.activeListings.toLocaleString(), label: 'Live auctions' },
+    { icon: <Users className="w-4 h-4 text-sky-500" />, value: stats.registeredUsers.toLocaleString(), label: 'Buyers & sellers' },
+  ];
+
+  return (
+    <div className="flex items-stretch divide-x divide-slate-200 rounded-xl border border-slate-200 bg-white overflow-hidden">
+      {items.map((item) => (
+        <div key={item.label} className="flex-1 flex flex-col items-center gap-0.5 py-3 px-2">
+          <div className="flex items-center gap-1.5">
+            {item.icon}
+            <span className="text-base font-bold text-foreground leading-tight">{item.value}</span>
+          </div>
+          <span className="text-[11px] text-muted-foreground">{item.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 /**
  * State-aware post-listing prompt at the top of the feed:
@@ -136,6 +183,28 @@ export function HomeFeed() {
       toast.error(err.message || 'Failed to start conversation');
     }
   };
+
+  // Tick every second only when any item has < 1h remaining so the
+  // countdown is live without burning cycles on long-running auctions.
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const livestock = livestockPages?.pages.flat() ?? [];
+    const hasUrgent = livestock.some((item: any) => {
+      const endTime = item.end_time;
+      if (!endTime) return false;
+      return new Date(endTime).getTime() - Date.now() < 60 * 60 * 1000;
+    });
+    if (!hasUrgent) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [livestockPages]);
+
+  const handleWhatsAppShare = useCallback((e: React.MouseEvent, item: any) => {
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/item/${item.id}`;
+    const text = `${item.title} — US$${getCurrentBid(item).toLocaleString()} · ZimLivestock\n${shareUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  }, []);
 
   const getSellerInfo = (item: any) => {
     // Handle both mock data format and Supabase joined format
@@ -263,6 +332,7 @@ export function HomeFeed() {
       </div>
 
       <div className="px-4 pt-4 space-y-5">
+        <TrustStatsBar />
         <PostListingCTA />
         {isLoading ? (
           <div className="space-y-5">
@@ -317,11 +387,26 @@ export function HomeFeed() {
               <div className="bg-card rounded-xl shadow-sm overflow-hidden border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5" onMouseEnter={() => handlePrefetch(item.id)} onTouchStart={() => handlePrefetch(item.id)}>
                 <div role="link" tabIndex={0} aria-label={`View details for ${item.title}`} className="relative aspect-[4/3] bg-muted cursor-pointer group overflow-hidden" onClick={() => navigate(`/item/${item.id}`)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate(`/item/${item.id}`); } }}>
                   <ImageWithFallback src={getThumbnailUrl(getImageUrl(item), 400)} alt={`${item.title} - ${item.breed}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                  {/* LIVE indicator — all listed items are active auctions */}
+                  <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1">
+                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-white text-xs font-semibold tracking-wide">LIVE</span>
+                  </div>
                   <div className="absolute bottom-2 left-2">
                     <Badge className="bg-emerald-700/90 text-white border-0">{item.breed}</Badge>
                   </div>
                   <div className="absolute bottom-2 right-2">
-                    <Badge variant="destructive" className="font-semibold">{getTimeLeft(item)}</Badge>
+                    {(() => {
+                      const urgency = getCountdownUrgency(item.end_time, now);
+                      const label = computeCountdownLabel(item.end_time, now) || getTimeLeft(item);
+                      if (urgency === 'urgent') {
+                        return <Badge className="bg-red-600 text-white border-0 font-mono animate-pulse">{label}</Badge>;
+                      }
+                      if (urgency === 'soon') {
+                        return <Badge className="bg-orange-500 text-white border-0 font-semibold">{label}</Badge>;
+                      }
+                      return <Badge variant="destructive" className="font-semibold">{label}</Badge>;
+                    })()}
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(item.id); }}
@@ -376,6 +461,14 @@ export function HomeFeed() {
                   </div>
 
                   <div className="flex gap-2 pt-2">
+                    <button
+                      onClick={(e) => handleWhatsAppShare(e, item)}
+                      aria-label="Share on WhatsApp"
+                      title="Share on WhatsApp"
+                      className="w-11 h-11 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-green-50 hover:border-green-400 transition-all active:scale-95 shrink-0"
+                    >
+                      <Share2 className="w-4 h-4 text-green-600" />
+                    </button>
                     <Button variant="outline" className="flex-1 h-11 border-slate-300 active:scale-[0.98] transition-all duration-150" onClick={(e) => { e.stopPropagation(); handleMessage(item); }} disabled={startConversation.isPending}>
                       <MessageCircle className="w-4 h-4 mr-2" />
                       Message
