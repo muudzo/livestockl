@@ -317,6 +317,15 @@ export function AuthScreen() {
             )}
 
             <footer className="mt-10 border-t border-ink-900/10 pt-5 font-mono text-[10px] uppercase leading-relaxed tracking-[0.2em] text-ink-500">
+              <div className="mb-4 flex items-center justify-between">
+                <span>Running an auction house?</span>
+                <a
+                  href="/operators"
+                  className="underline decoration-ink-500/40 underline-offset-4 transition hover:text-ring-red hover:decoration-ring-red"
+                >
+                  Set up your platform →
+                </a>
+              </div>
               By entering you agree to the{" "}
               <a href="#" className="underline decoration-ink-500/40 underline-offset-4 transition hover:text-ring-red hover:decoration-ring-red">Terms</a>
               {" & "}
