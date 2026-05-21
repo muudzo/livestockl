@@ -257,17 +257,30 @@ async function handleAwaitingConfirm(msg, phone, body, session, seller) {
 // ───────────────────────────────────────────────────────────────────────────
 
 async function findSellerByPhone(phone) {
+  // Profiles in the DB may store the phone with or without a leading `+`, and
+  // Zim numbers might be stored either as 0XX or 263XX. Try the plausible
+  // variants so a Dutch `+31…` signup matches a normalised `31…` lookup.
+  const variants = new Set([phone, `+${phone}`]);
+  if (phone.startsWith("0")) {
+    variants.add(`263${phone.slice(1)}`);
+    variants.add(`+263${phone.slice(1)}`);
+  }
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, first_name, last_name, phone")
-    .eq("phone", phone)
-    .maybeSingle();
+    .select("id, first_name, last_name, phone, city")
+    .in("phone", [...variants])
+    .limit(1);
   if (error) {
     console.error(`✗ findSellerByPhone(${phone}) error: ${error.message}`);
-  } else {
-    console.log(`→ findSellerByPhone(${phone}) → ${data ? "FOUND " + data.id : "no match"}`);
+    return null;
   }
-  return data || null;
+  const seller = data?.[0] || null;
+  console.log(
+    `→ findSellerByPhone(${phone}) variants=[${[...variants].join(",")}] → ${
+      seller ? "FOUND " + seller.id : "no match"
+    }`
+  );
+  return seller;
 }
 
 async function getOrCreateSession(phone, seller) {
@@ -381,54 +394,20 @@ function normalizePhone(waId) {
 }
 
 // WhatsApp now sometimes routes messages with an opaque `@lid` id instead of
-// a phone-based `@c.us` id. `getContact()` may still return only the LID, so
-// reach into WhatsApp Web's internal store via puppeteer to map LID → phone.
+// a phone-based `@c.us` id. The Contact object still carries the real phone
+// under `contact.id` (the `_serialized` is `<phone>@c.us`), while `contact.number`
+// can be the stale LID — so prefer `contact.id` for resolution.
 async function resolvePhone(msg) {
   try {
-    if (msg.from.endsWith("@lid")) {
-      const lid = msg.from.replace(/@lid$/, "");
-      const phone = await client.pupPage.evaluate((lid) => {
-        const tryAccessors = [
-          () => window.Store?.LidUtils?.getPhoneNumber?.(`${lid}@lid`)?._serialized,
-          () => window.Store?.LidUtils?.getPhoneNumber?.(lid)?._serialized,
-          () => window.Store?.LidToPhoneNumber?.get?.(`${lid}@lid`)?._serialized,
-          () => {
-            const wid = window.Store?.WidFactory?.createWid?.(`${lid}@lid`);
-            return window.Store?.LidUtils?.getPhoneNumber?.(wid)?._serialized;
-          },
-          () => {
-            const contact = window.Store?.Contact?.get?.(`${lid}@lid`);
-            return contact?.phoneNumber?._serialized || contact?.__x_phoneNumber?._serialized;
-          },
-        ];
-        for (const fn of tryAccessors) {
-          try {
-            const v = fn();
-            if (v) return v;
-          } catch {}
-        }
-        return null;
-      }, lid);
-      if (phone) return normalizePhone(phone);
-      console.warn(`! could not resolve @lid ${lid} via Store`);
-      const contact = await msg.getContact();
-      console.log("  contact dump:", JSON.stringify({
-        number: contact?.number,
-        id: contact?.id,
-        pushname: contact?.pushname,
-        verifiedName: contact?.verifiedName,
-        shortName: contact?.shortName,
-      }));
-      console.log("  msg._data keys:", Object.keys(msg._data || {}).join(","));
-      console.log("  msg._data.notifyName:", msg._data?.notifyName);
-      console.log("  msg.author:", msg.author);
-    }
     const contact = await msg.getContact();
-    const raw = contact?.number || contact?.id?.user || msg.from;
-    const id = raw.includes("@") ? raw : `${raw}@c.us`;
-    return normalizePhone(id);
+    const raw =
+      contact?.id?._serialized ||
+      (contact?.id?.user ? `${contact.id.user}@c.us` : null) ||
+      contact?.number ||
+      msg.from;
+    return normalizePhone(raw);
   } catch (err) {
-    console.error(`✗ resolvePhone fallback for ${msg.from}: ${err.message}`);
+    console.error(`✗ resolvePhone for ${msg.from}: ${err.message}`);
     return normalizePhone(msg.from);
   }
 }
