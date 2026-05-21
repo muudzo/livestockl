@@ -92,6 +92,7 @@ client.on("disconnected", (reason) => {
 
 client.on("message", async (msg) => {
   if (msg.from.endsWith("@g.us")) return; // ignore group messages
+  if (msg.from === "status@broadcast") return; // ignore status updates
   if (msg.fromMe) return;
 
   const phone = normalizePhone(msg.from);

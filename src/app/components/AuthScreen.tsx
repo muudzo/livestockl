@@ -278,12 +278,11 @@ export function AuthScreen() {
                     <input
                       id="signup-phone"
                       type="tel"
-                      placeholder="0771234567"
+                      placeholder="+263771234567 or +31647179310"
                       value={signupData.phone}
                       onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
                       required
-                      pattern="0[17][0-9]{8}"
-                      title="Enter a valid Zimbabwe phone number (e.g. 0771234567)"
+                      maxLength={32}
                       className={inputCls}
                     />
                   </Field>

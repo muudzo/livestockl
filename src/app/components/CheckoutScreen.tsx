@@ -77,7 +77,8 @@ export function CheckoutScreen() {
   const { id } = useParams();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('ecocash');
+  const isZimPhone = /^(\+?263|0)[17]\d{8}$/.test((user?.phone || '').replace(/[\s\-().]/g, ''));
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(isZimPhone ? 'ecocash' : 'card');
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
 
   const { data: item, isLoading } = useLivestockItem(id);
@@ -254,26 +255,30 @@ export function CheckoutScreen() {
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Payment Method</h2>
           <RadioGroup value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
             <div className="space-y-3">
-              <label htmlFor="ecocash" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'ecocash' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
-                <RadioGroupItem value="ecocash" id="ecocash" />
-                <div className="flex items-center gap-2 flex-1">
-                  <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/ecocash-badge.svg" alt="EcoCash" className="h-8 w-8 object-contain" />
-                  <div>
-                    <span className="font-medium">EcoCash</span>
-                    <p className="text-xs text-muted-foreground">Pay via USSD on your phone</p>
-                  </div>
-                </div>
-              </label>
-              <label htmlFor="onemoney" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'onemoney' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
-                <RadioGroupItem value="onemoney" id="onemoney" />
-                <div className="flex items-center gap-2 flex-1">
-                  <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/onemoney-badge.svg" alt="OneMoney" className="h-8 w-8 object-contain" />
-                  <div>
-                    <span className="font-medium">OneMoney</span>
-                    <p className="text-xs text-muted-foreground">Pay via USSD on your phone</p>
-                  </div>
-                </div>
-              </label>
+              {isZimPhone && (
+                <>
+                  <label htmlFor="ecocash" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'ecocash' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
+                    <RadioGroupItem value="ecocash" id="ecocash" />
+                    <div className="flex items-center gap-2 flex-1">
+                      <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/ecocash-badge.svg" alt="EcoCash" className="h-8 w-8 object-contain" />
+                      <div>
+                        <span className="font-medium">EcoCash</span>
+                        <p className="text-xs text-muted-foreground">Pay via USSD on your phone</p>
+                      </div>
+                    </div>
+                  </label>
+                  <label htmlFor="onemoney" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'onemoney' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
+                    <RadioGroupItem value="onemoney" id="onemoney" />
+                    <div className="flex items-center gap-2 flex-1">
+                      <img src="https://raw.githubusercontent.com/paynow/Paynow-for-WooCommerce/master/assets/images/onemoney-badge.svg" alt="OneMoney" className="h-8 w-8 object-contain" />
+                      <div>
+                        <span className="font-medium">OneMoney</span>
+                        <p className="text-xs text-muted-foreground">Pay via USSD on your phone</p>
+                      </div>
+                    </div>
+                  </label>
+                </>
+              )}
               <label htmlFor="card" className={`flex items-center gap-3 border rounded-xl p-4 cursor-pointer transition-all duration-200 ${paymentMethod === 'card' ? 'border-emerald-500 bg-emerald-50' : 'hover:border-muted-foreground'}`}>
                 <RadioGroupItem value="card" id="card" />
                 <div className="flex items-center gap-2 flex-1">
