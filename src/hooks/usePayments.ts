@@ -104,12 +104,16 @@ export function useInitiatePayment() {
       livestockTitle,
       method = 'Card',
       phone,
+      transportRequestId,
+      transportFee,
     }: {
       livestockId: string;
       amount: number;
       livestockTitle?: string;
       method?: 'EcoCash' | 'OneMoney' | 'Card';
       phone?: string;
+      transportRequestId?: string;
+      transportFee?: number;
     }) => {
       if (!user) throw new Error('Not authenticated');
 
@@ -154,6 +158,8 @@ export function useInitiatePayment() {
           method,
           phone: phone || null,
           idempotency_key: idempotencyKey,
+          ...(transportRequestId ? { transport_request_id: transportRequestId } : {}),
+          ...(transportFee != null && transportFee > 0 ? { transport_fee: transportFee } : {}),
         })
         .select()
         .single();

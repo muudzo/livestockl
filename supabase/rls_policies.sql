@@ -186,3 +186,19 @@ create policy "Recipient can mark messages as read"
     content IS NOT DISTINCT FROM (select content from public.messages where id = messages.id)
     and sender_id IS NOT DISTINCT FROM (select sender_id from public.messages where id = messages.id)
   );
+
+-- TRANSPORT REQUESTS
+-- Buyers see their own quotes; sellers see quotes on their listings.
+CREATE POLICY "Buyers can view own transport requests"
+  ON public.transport_requests FOR SELECT
+  USING (auth.uid() = buyer_id);
+
+CREATE POLICY "Sellers can view transport requests on their items"
+  ON public.transport_requests FOR SELECT
+  USING (
+    auth.uid() = (
+      SELECT seller_id FROM public.livestock_items WHERE id = item_id LIMIT 1
+    )
+  );
+
+-- Inserts/updates are service-role only (get-transport-quote Edge Function).

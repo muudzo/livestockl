@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
     // Verify payment record exists and amount matches
     const { data: paymentRecord } = await supabase
       .from("payments")
-      .select("amount, user_id, livestock_id, method")
+      .select("amount, user_id, livestock_id, method, transport_request_id, transport_fee")
       .eq("reference", reference)
       .single();
 
@@ -157,12 +157,14 @@ Deno.serve(async (req) => {
 
       // Amount-match guard — delegates to _shared/money.ts so the penny-bid
       // regression (c8b9a3a) can't sneak back in. Unit-tested at
-      // _shared/money_test.ts.
-      if (!amountMatches(paymentRecord.amount, winningBid.amount)) {
+      // _shared/money_test.ts. Transport fee is additive and validated here.
+      const transportFee = Number(paymentRecord.transport_fee ?? 0);
+      if (!amountMatches(paymentRecord.amount, winningBid.amount, transportFee)) {
         return jsonResponse({
           error: "Payment amount mismatch",
-          expected: platformTotal(winningBid.amount),
+          expected: Number((platformTotal(winningBid.amount) + transportFee).toFixed(2)),
           bidAmount: winningBid.amount,
+          transportFee,
           submitted: paymentRecord.amount,
         }, 400);
       }
@@ -406,21 +408,37 @@ Deno.serve(async (req) => {
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2024-12-18.acacia" });
 
+    const stripeTransportFee = Number(paymentRecord.transport_fee ?? 0);
+    const stripeLineItems: Parameters<typeof stripe.checkout.sessions.create>[0]["line_items"] = [
+      {
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round((amount - stripeTransportFee) * 100),
+          product_data: {
+            name: livestockTitle || "Livestock Purchase",
+            description: `Reference: ${reference}`,
+          },
+        },
+        quantity: 1,
+      },
+    ];
+    if (stripeTransportFee > 0) {
+      stripeLineItems.push({
+        price_data: {
+          currency: "usd",
+          unit_amount: Math.round(stripeTransportFee * 100),
+          product_data: {
+            name: "Transport / Delivery",
+            description: `Reference: ${reference}`,
+          },
+        },
+        quantity: 1,
+      });
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            unit_amount: Math.round(amount * 100),
-            product_data: {
-              name: livestockTitle || "Livestock Purchase",
-              description: `Reference: ${reference}`,
-            },
-          },
-          quantity: 1,
-        },
-      ],
+      line_items: stripeLineItems,
       metadata: {
         reference,
         livestock_id: paymentRecord.livestock_id,

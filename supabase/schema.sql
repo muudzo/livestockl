@@ -766,3 +766,39 @@ CREATE POLICY "Market intel is public" ON public.market_intel
 
 -- Enable realtime for agent activity log (used by frontend dashboard)
 ALTER PUBLICATION supabase_realtime ADD TABLE public.agent_activity_log;
+
+-- ─── TRANSPORT ────────────────────────────────────────────────────────────────
+
+-- Seller opts in to delivery on a per-listing basis.
+-- Coords are auto-populated from the city lookup in get-transport-quote.
+ALTER TABLE public.livestock_items
+  ADD COLUMN IF NOT EXISTS transport_available boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS pickup_lat numeric(9,6),
+  ADD COLUMN IF NOT EXISTS pickup_lng numeric(9,6);
+
+-- One quote per buyer/item pair. Created by get-transport-quote Edge Function.
+CREATE TABLE IF NOT EXISTS public.transport_requests (
+  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  item_id       uuid NOT NULL REFERENCES public.livestock_items(id) ON DELETE CASCADE,
+  buyer_id      uuid NOT NULL REFERENCES public.profiles(id),
+  pickup_lat    numeric(9,6) NOT NULL,
+  pickup_lng    numeric(9,6) NOT NULL,
+  dropoff_lat   numeric(9,6) NOT NULL,
+  dropoff_lng   numeric(9,6) NOT NULL,
+  dropoff_label text NOT NULL,
+  distance_km   numeric(8,2) NOT NULL,
+  quote_usd     numeric(10,2) NOT NULL,
+  status        text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending', 'accepted', 'rejected', 'fulfilled')),
+  created_at    timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_transport_requests_item  ON public.transport_requests(item_id);
+CREATE INDEX IF NOT EXISTS idx_transport_requests_buyer ON public.transport_requests(buyer_id);
+
+ALTER TABLE public.transport_requests ENABLE ROW LEVEL SECURITY;
+
+-- Link payment to its transport request (nullable — most payments have no transport).
+ALTER TABLE public.payments
+  ADD COLUMN IF NOT EXISTS transport_request_id uuid REFERENCES public.transport_requests(id),
+  ADD COLUMN IF NOT EXISTS transport_fee numeric(10,2);

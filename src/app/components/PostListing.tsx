@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router";
-import { ArrowLeft, Plus, X, Loader2, FileText, Upload, Wallet, FlaskConical, ShieldCheck, Clock } from "lucide-react";
+import { ArrowLeft, Plus, X, Loader2, FileText, Upload, Wallet, FlaskConical, ShieldCheck, Clock, Truck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -53,6 +53,18 @@ export function PostListing() {
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [stockCardFile, setStockCardFile] = useState<File | null>(null);
   const [stockCardPreview, setStockCardPreview] = useState<string | null>(null);
+  // Zimbabwe city pickup coordinates — mirrors get-transport-quote Edge Function lookup.
+  const CITY_COORDS: Record<string, { lat: number; lng: number }> = {
+    Harare:   { lat: -17.8292, lng: 31.0522 },
+    Bulawayo: { lat: -20.1325, lng: 28.6264 },
+    Mutare:   { lat: -18.9707, lng: 32.6709 },
+    Masvingo: { lat: -20.0696, lng: 30.8277 },
+    Gweru:    { lat: -19.4500, lng: 29.8167 },
+    Chinhoyi: { lat: -17.3617, lng: 30.2000 },
+    Kadoma:   { lat: -18.3419, lng: 29.9103 },
+    Kwekwe:   { lat: -18.9281, lng: 29.8131 },
+  };
+
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -67,6 +79,7 @@ export function PostListing() {
     auctionFormat: 'timed' as 'live' | 'timed',
     verifiedBiddersOnly: false,
     isDemo: false,
+    deliveryAvailable: false,
   });
   const [prefilled, setPrefilled] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -85,6 +98,7 @@ export function PostListing() {
         health: existingItem.health || '',
         startingPrice: String(existingItem.starting_price ?? existingItem.startingPrice ?? ''),
         duration: '',
+        deliveryAvailable: (existingItem as any).transport_available ?? false,
       });
       const existingPhotos = existingItem.image_urls ?? existingItem.imageUrls ?? [];
       setPhotos(existingPhotos);
@@ -195,6 +209,7 @@ export function PostListing() {
       }
 
       if (isEditMode && editId) {
+        const editPickupCoords = CITY_COORDS[formData.location];
         const updates: Record<string, any> = {
           id: editId,
           title: formData.title,
@@ -205,6 +220,9 @@ export function PostListing() {
           location: formData.location,
           health: formData.health,
           image_urls: imageUrls,
+          transport_available: formData.deliveryAvailable,
+          pickup_lat: formData.deliveryAvailable && editPickupCoords ? editPickupCoords.lat : null,
+          pickup_lng: formData.deliveryAvailable && editPickupCoords ? editPickupCoords.lng : null,
         };
 
         if (stockCardUrl) updates.stock_card_url = stockCardUrl;
@@ -218,6 +236,7 @@ export function PostListing() {
       } else {
         const durationMap: Record<string, number> = { '1 day': 1, '3 days': 3, '7 days': 7, '14 days': 14 };
 
+        const pickupCoords = CITY_COORDS[formData.location];
         await createListing.mutateAsync({
           title: formData.title,
           category: formData.category,
@@ -233,6 +252,9 @@ export function PostListing() {
           auction_format: formData.auctionFormat,
           verified_bidders_only: formData.verifiedBiddersOnly,
           is_demo: formData.isDemo,
+          transport_available: formData.deliveryAvailable,
+          pickup_lat: formData.deliveryAvailable && pickupCoords ? pickupCoords.lat : null,
+          pickup_lng: formData.deliveryAvailable && pickupCoords ? pickupCoords.lng : null,
           ...(stockCardUrl && { stock_card_url: stockCardUrl }),
         });
         toast.success('Listing submitted for review!');
@@ -440,6 +462,27 @@ export function PostListing() {
               </button>
             )}
             <p className="text-xs text-muted-foreground">Builds buyer trust — shows health and ownership proof</p>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Delivery</Label>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, deliveryAvailable: !formData.deliveryAvailable })}
+              className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-all duration-150 ${formData.deliveryAvailable ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}
+            >
+              <Truck className={`w-4 h-4 mt-0.5 shrink-0 ${formData.deliveryAvailable ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <div>
+                <p className="text-sm font-semibold">Offer delivery to buyers</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Buyers can request a transport quote at checkout. Delivery is calculated from{' '}
+                  {formData.location || 'your selected city'} to their address.
+                </p>
+              </div>
+              <div className={`ml-auto w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center ${formData.deliveryAvailable ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                {formData.deliveryAvailable && <span className="text-white text-xs">✓</span>}
+              </div>
+            </button>
           </div>
         </div>
 

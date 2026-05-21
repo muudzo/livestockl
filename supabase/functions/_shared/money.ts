@@ -26,8 +26,9 @@ export function platformTotal(bidAmount: number): number {
 /**
  * Amount-match guard: accept either the computed total OR the exact bid
  * amount (some test flows submit without the fee). Tolerance ±1c.
+ * transportFee defaults to 0 — all existing call sites are unaffected.
  */
-export function amountMatches(submitted: number, bid: number): boolean {
-  const total = platformTotal(bid);
-  return Math.abs(submitted - total) < PENNY_TOLERANCE || submitted === bid;
+export function amountMatches(submitted: number, bid: number, transportFee = 0): boolean {
+  const total = Number((platformTotal(bid) + transportFee).toFixed(2));
+  return Math.abs(submitted - total) < PENNY_TOLERANCE || (transportFee === 0 && submitted === bid);
 }

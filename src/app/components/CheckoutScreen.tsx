@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Lock, Loader2, ShieldAlert, PackageX } from "lucide-react";
+import { ArrowLeft, Lock, Loader2, ShieldAlert, PackageX, Truck } from "lucide-react";
 import { useLivestockItem } from "../../hooks/useLivestock";
 import { useBids } from "../../hooks/useBids";
 import { useInitiatePayment } from "../../hooks/usePayments";
@@ -81,6 +81,13 @@ export function CheckoutScreen() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(isZimPhone ? 'ecocash' : 'card');
   const [phoneNumber, setPhoneNumber] = useState(user?.phone || '');
 
+  type TransportQuote = { requestId: string; quoteUsd: number; distanceKm: number; dropoffLabel: string };
+  const [wantsDelivery, setWantsDelivery] = useState(false);
+  const [dropoffAddress, setDropoffAddress] = useState('');
+  const [transportQuote, setTransportQuote] = useState<TransportQuote | null>(null);
+  const [quotePending, setQuotePending] = useState(false);
+  const [quoteError, setQuoteError] = useState('');
+
   const { data: item, isLoading } = useLivestockItem(id);
   const { data: bids, isLoading: bidsLoading } = useBids(id);
   const initiatePayment = useInitiatePayment();
@@ -124,7 +131,33 @@ export function CheckoutScreen() {
   // Math.round on dollars zeroed out the fee for any bid under $10 and over-charged
   // for some midrange bids; toFixed(2) keeps both client and server in agreement.
   const platformFee = Number((currentBid * 0.05).toFixed(2));
-  const total = Number((currentBid + platformFee).toFixed(2));
+  const transportFee = wantsDelivery && transportQuote ? transportQuote.quoteUsd : 0;
+  const total = Number((currentBid + platformFee + transportFee).toFixed(2));
+
+  const handleGetQuote = async () => {
+    if (!dropoffAddress.trim() || dropoffAddress.trim().length < 3) {
+      setQuoteError('Enter a delivery address (e.g. 12 Main St, Gweru)');
+      return;
+    }
+    setQuoteError('');
+    setQuotePending(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('get-transport-quote', {
+        body: { item_id: id, dropoff_address: dropoffAddress.trim() },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || 'Quote failed');
+      setTransportQuote({
+        requestId: data.transport_request_id,
+        quoteUsd: data.quote_usd,
+        distanceKm: data.distance_km,
+        dropoffLabel: data.dropoff_label,
+      });
+    } catch (err: any) {
+      setQuoteError(err.message || 'Could not get a quote. Try a more specific address.');
+    } finally {
+      setQuotePending(false);
+    }
+  };
   const fmt = (n: number) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const methodMap: Record<PaymentMethod, 'EcoCash' | 'OneMoney' | 'Card'> = {
@@ -159,6 +192,9 @@ export function CheckoutScreen() {
         livestockTitle: item?.title,
         method: methodMap[paymentMethod],
         phone: normalizedPhone || undefined,
+        ...(wantsDelivery && transportQuote
+          ? { transportRequestId: transportQuote.requestId, transportFee: transportQuote.quoteUsd }
+          : {}),
       });
 
       navigate(`/payment-status/${result.reference}?method=${paymentMethod}&amount=${total}`);
@@ -242,12 +278,70 @@ export function CheckoutScreen() {
             <span className="text-muted-foreground">Platform Fee (5%)</span>
             <span className="font-semibold">US${fmt(platformFee)}</span>
           </div>
+          {wantsDelivery && transportQuote && (
+            <div className="flex justify-between text-emerald-700">
+              <span>Delivery ({transportQuote.distanceKm} km)</span>
+              <span className="font-semibold">US${fmt(transportQuote.quoteUsd)}</span>
+            </div>
+          )}
           <Separator />
           <div className="flex justify-between text-lg">
             <span className="font-semibold">Total</span>
             <span className="font-bold text-emerald-700">US${fmt(total)}</span>
           </div>
         </div>
+
+        {(item as any).transport_available && (
+          <div className="border rounded-xl p-4 space-y-3">
+            <button
+              type="button"
+              onClick={() => {
+                setWantsDelivery(!wantsDelivery);
+                if (wantsDelivery) { setTransportQuote(null); setQuoteError(''); }
+              }}
+              className={`w-full flex items-start gap-3 text-left transition-all duration-150 ${wantsDelivery ? 'opacity-100' : ''}`}
+            >
+              <Truck className={`w-4 h-4 mt-0.5 shrink-0 ${wantsDelivery ? 'text-emerald-600' : 'text-slate-400'}`} />
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Add delivery to my location</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Transport arranged from {(item as any).location}. Quote calculated by distance.
+                </p>
+              </div>
+              <div className={`w-5 h-5 rounded border-2 shrink-0 flex items-center justify-center ${wantsDelivery ? 'bg-emerald-600 border-emerald-600' : 'border-slate-300'}`}>
+                {wantsDelivery && <span className="text-white text-xs">✓</span>}
+              </div>
+            </button>
+
+            {wantsDelivery && (
+              <div className="space-y-2 pt-1">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g. 12 Manica Rd, Mutare"
+                    value={dropoffAddress}
+                    onChange={(e) => { setDropoffAddress(e.target.value); setTransportQuote(null); setQuoteError(''); }}
+                    className="h-10 text-sm flex-1"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGetQuote}
+                    disabled={quotePending}
+                    className="px-3 py-2 text-sm font-medium bg-emerald-600 text-white rounded-lg disabled:opacity-60 flex items-center gap-1 whitespace-nowrap"
+                  >
+                    {quotePending ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+                    {quotePending ? 'Checking…' : 'Get Quote'}
+                  </button>
+                </div>
+                {quoteError && <p className="text-xs text-red-500">{quoteError}</p>}
+                {transportQuote && (
+                  <p className="text-xs text-emerald-700 font-medium">
+                    Delivery to {transportQuote.dropoffLabel.split(',')[0]} — US${fmt(transportQuote.quoteUsd)} ({transportQuote.distanceKm} km)
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <Separator className="my-6" />
 
@@ -370,7 +464,7 @@ export function CheckoutScreen() {
           >
             {initiatePayment.isPending ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin text-white" />Processing...</>
-            ) : `Pay US$${fmt(total)}`}
+            ) : `Pay US$${fmt(total)}${wantsDelivery && transportQuote ? ' (incl. delivery)' : ''}`}
           </Button>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
             <Lock className="w-3 h-3" />

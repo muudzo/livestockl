@@ -185,6 +185,8 @@ async function route(msg, phone, body) {
       return handleAwaitingWeight(msg, phone, body, session);
     case "awaiting_price":
       return handleAwaitingPrice(msg, phone, body, session);
+    case "awaiting_delivery":
+      return handleAwaitingDelivery(msg, phone, body, session);
     case "awaiting_confirm":
       return handleAwaitingConfirm(msg, phone, body, session, seller);
     default:
@@ -200,7 +202,7 @@ async function handleIdle(msg, phone, body, seller) {
     await setState(phone, "awaiting_photo", { started_at: new Date().toISOString() });
     return reply(msg, phone,
       `Welcome, ${seller.first_name || "there"}. Let's list your animal.\n\n` +
-      `Step 1 of 6 — send me a clear photo of the animal.`
+      `Step 1 of 7 — send me a clear photo of the animal.`
     );
   }
   return reply(msg, phone,
@@ -223,7 +225,7 @@ async function handleAwaitingPhoto(msg, phone, body, session) {
   }
   const draft = { ...session.draft, photo_url: url };
   await setState(phone, "awaiting_breed", draft);
-  return reply(msg, phone, `Step 2 of 6 — what breed is it? (e.g. Brahman, Hereford, Boer, Dorper)`);
+  return reply(msg, phone, `Step 2 of 7 — what breed is it? (e.g. Brahman, Hereford, Boer, Dorper)`);
 }
 
 async function handleAwaitingBreed(msg, phone, body, session) {
@@ -235,7 +237,7 @@ async function handleAwaitingBreed(msg, phone, body, session) {
   }
   const draft = { ...session.draft, breed: body };
   await setState(phone, "awaiting_location", draft);
-  return reply(msg, phone, "Step 3 of 6 — where is the animal located? (e.g. Harare, Bulawayo, Mutare, Gweru)");
+  return reply(msg, phone, "Step 3 of 7 — where is the animal located? (e.g. Harare, Bulawayo, Mutare, Gweru)");
 }
 
 async function handleAwaitingLocation(msg, phone, body, session) {
@@ -247,7 +249,7 @@ async function handleAwaitingLocation(msg, phone, body, session) {
   }
   const draft = { ...session.draft, location: body };
   await setState(phone, "awaiting_weight", draft);
-  return reply(msg, phone, "Step 4 of 6 — weight in kg? (just the number, e.g. 480)");
+  return reply(msg, phone, "Step 4 of 7 — weight in kg? (just the number, e.g. 480)");
 }
 
 async function handleAwaitingWeight(msg, phone, body, session) {
@@ -257,7 +259,7 @@ async function handleAwaitingWeight(msg, phone, body, session) {
   }
   const draft = { ...session.draft, weight_kg: kg };
   await setState(phone, "awaiting_price", draft);
-  return reply(msg, phone, "Step 5 of 6 — starting price in USD? (just the number, e.g. 250)");
+  return reply(msg, phone, "Step 5 of 7 — starting price in USD? (just the number, e.g. 250)");
 }
 
 async function handleAwaitingPrice(msg, phone, body, session) {
@@ -266,14 +268,29 @@ async function handleAwaitingPrice(msg, phone, body, session) {
     return reply(msg, phone, "I didn't catch a price. Send a number in USD, e.g. 250.");
   }
   const draft = { ...session.draft, starting_price: price };
+  await setState(phone, "awaiting_delivery", draft);
+  return reply(msg, phone,
+    `Step 6 of 7 — can buyers request delivery to their location?\n\n` +
+    `Reply *yes* to offer transport (buyers will see a quote at checkout) or *no* to skip.`
+  );
+}
+
+async function handleAwaitingDelivery(msg, phone, body, session) {
+  const lower = (body || "").toLowerCase().trim();
+  if (lower !== "yes" && lower !== "y" && lower !== "no" && lower !== "n") {
+    return reply(msg, phone, "Reply *yes* to offer delivery or *no* to skip.");
+  }
+  const deliveryAvailable = lower === "yes" || lower === "y";
+  const draft = { ...session.draft, transport_available: deliveryAvailable };
   await setState(phone, "awaiting_confirm", draft);
 
   const summary =
-    `Step 6 of 6 — here's your draft listing:\n\n` +
+    `Step 7 of 7 — here's your draft listing:\n\n` +
     `• Breed: ${draft.breed}\n` +
     `• Location: ${draft.location}\n` +
     `• Weight: ${draft.weight_kg} kg\n` +
-    `• Starting price: US$${price}\n` +
+    `• Starting price: US$${draft.starting_price}\n` +
+    `• Delivery offered: ${deliveryAvailable ? "Yes" : "No"}\n` +
     `• Listing length: ${LISTING_DURATION_DAYS} days\n\n` +
     `Reply YES to publish it, or NO to cancel.`;
   return reply(msg, phone, summary);
@@ -504,10 +521,23 @@ async function uploadPhoto(phone, media) {
   return data.publicUrl;
 }
 
+const BOT_CITY_COORDS = {
+  Harare:   { lat: -17.8292, lng: 31.0522 },
+  Bulawayo: { lat: -20.1325, lng: 28.6264 },
+  Mutare:   { lat: -18.9707, lng: 32.6709 },
+  Masvingo: { lat: -20.0696, lng: 30.8277 },
+  Gweru:    { lat: -19.4500, lng: 29.8167 },
+  Chinhoyi: { lat: -17.3617, lng: 30.2000 },
+  Kadoma:   { lat: -18.3419, lng: 29.9103 },
+  Kwekwe:   { lat: -18.9281, lng: 29.8131 },
+};
+
 async function createListing(draft, seller, tenantId) {
   const endTime = new Date(Date.now() + LISTING_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const title = `${draft.breed}${guessCategorySuffix(draft.breed)}`;
   const location = draft.location || "Zimbabwe";
+  const transportAvailable = !!draft.transport_available;
+  const pickupCoords = transportAvailable ? BOT_CITY_COORDS[location] : null;
 
   const { data, error } = await supabase
     .from("livestock_items")
@@ -529,6 +559,9 @@ async function createListing(draft, seller, tenantId) {
       status: "active",
       duration_days: LISTING_DURATION_DAYS,
       end_time: endTime,
+      transport_available: transportAvailable,
+      pickup_lat: pickupCoords ? pickupCoords.lat : null,
+      pickup_lng: pickupCoords ? pickupCoords.lng : null,
     })
     .select("id")
     .single();

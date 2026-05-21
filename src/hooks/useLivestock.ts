@@ -152,6 +152,9 @@ export function useCreateListing() {
       auction_format?: 'live' | 'timed';
       verified_bidders_only?: boolean;
       is_demo?: boolean;
+      transport_available?: boolean;
+      pickup_lat?: number | null;
+      pickup_lng?: number | null;
     }) => {
       if (!user) throw new Error('Not authenticated');
 
