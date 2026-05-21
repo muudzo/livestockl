@@ -113,8 +113,9 @@ client.on("message", async (msg) => {
 // ───────────────────────────────────────────────────────────────────────────
 
 async function route(msg, phone, body) {
-  // Global commands first
-  const lower = body.toLowerCase();
+  const lower = body.toLowerCase().trim();
+
+  // ── Global commands ──────────────────────────────────────────────────────
   if (lower === "cancel" || lower === "stop" || lower === "reset") {
     await setState(phone, "idle", {});
     await reply(msg, phone, "Cancelled. Send 'list' to start over.");
@@ -122,18 +123,48 @@ async function route(msg, phone, body) {
   }
   if (lower === "help" || lower === "?") {
     await reply(msg, phone,
-      "ZimLivestock WhatsApp bot.\n\n" +
-      "Send 'list' to sell an animal — I'll walk you through a photo, breed, weight, and price.\n" +
-      "Send 'cancel' at any time to start over."
+      "ZimLivestock WhatsApp bot commands:\n\n" +
+      "• *browse* — see active listings\n" +
+      "• *browse 2* — next page\n" +
+      "• *view AUCT-0001* — full listing details\n" +
+      "• *bid AUCT-0001 250* — place a US$250 bid\n" +
+      "• *list* — sell your own animal\n" +
+      "• *cancel* — cancel current action\n\n" +
+      "You need a ZimLivestock account to list or bid: " + ZIMLIVESTOCK_PUBLIC_URL
     );
     return;
   }
 
-  // Check seller registration before anything else
+  // ── Browse / view: no account required ───────────────────────────────────
+  if (lower === "browse" || /^browse \d+$/.test(lower)) {
+    const page = lower === "browse" ? 0 : parseInt(lower.split(" ")[1], 10) - 1;
+    return handleBrowse(msg, phone, Math.max(0, page));
+  }
+  if (/^view auct-\d+$/i.test(lower)) {
+    return handleView(msg, phone, lower.split(" ")[1].toUpperCase());
+  }
+
+  // ── Bid: account required ─────────────────────────────────────────────────
+  if (/^bid auct-\d+ \d+(\.\d+)?$/i.test(lower)) {
+    const parts = body.trim().split(/\s+/);
+    const ref = parts[1].toUpperCase();
+    const amount = parseFloat(parts[2]);
+    const bidder = await findSellerByPhone(phone);
+    if (!bidder) {
+      return reply(msg, phone,
+        `You need a ZimLivestock account to bid. Sign up at ${ZIMLIVESTOCK_PUBLIC_URL}`
+      );
+    }
+    return handleBidByRef(msg, phone, ref, amount, bidder);
+  }
+
+  // ── Listing flow: account required ────────────────────────────────────────
   const seller = await findSellerByPhone(phone);
   if (!seller) {
     await reply(msg, phone,
-      `I don't have a ZimLivestock account for this number yet. Please sign up first at ${ZIMLIVESTOCK_PUBLIC_URL}, then come back and send 'list'.`
+      `No ZimLivestock account for this number yet.\n\n` +
+      `Sign up at ${ZIMLIVESTOCK_PUBLIC_URL} then come back.\n\n` +
+      `Anyone can browse listings — send 'browse' to see what's active.`
     );
     return;
   }
@@ -265,6 +296,116 @@ async function handleAwaitingConfirm(msg, phone, body, session, seller) {
     return reply(msg, phone, "Cancelled. Nothing was saved. Send 'list' to start over.");
   }
   return reply(msg, phone, "Please reply YES to publish or NO to cancel.");
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// Browse / view / bid handlers
+// ───────────────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 5;
+
+async function handleBrowse(msg, phone, page) {
+  const { data, error } = await supabase
+    .from("livestock_items")
+    .select("reference, breed, location, starting_price, current_bid, bid_count")
+    .eq("status", "active")
+    .gt("end_time", new Date().toISOString())
+    .order("created_at", { ascending: false })
+    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+  if (error) {
+    console.error("browse error:", error.message);
+    return reply(msg, phone, "Couldn't load listings right now. Try again.");
+  }
+  if (!data?.length) {
+    return reply(msg, phone,
+      page === 0
+        ? "No active listings right now. Check back soon."
+        : "No more listings on this page."
+    );
+  }
+
+  const lines = data.map((item) => {
+    const price = item.current_bid > 0
+      ? `US$${item.current_bid} (${item.bid_count} bid${item.bid_count === 1 ? "" : "s"})`
+      : `US$${item.starting_price} — no bids yet`;
+    return `${item.reference} — ${item.breed}, ${item.location} — ${price}`;
+  });
+
+  const nextPage = page + 2;
+  return reply(msg, phone,
+    `Active listings (page ${page + 1}):\n\n` +
+    lines.join("\n") +
+    `\n\nReply *view AUCT-XXXX* for details.\n` +
+    `Reply *browse ${nextPage}* for next page.`
+  );
+}
+
+async function handleView(msg, phone, ref) {
+  const { data: item, error } = await supabase
+    .from("livestock_items")
+    .select("id, reference, breed, location, weight, starting_price, current_bid, bid_count, end_time, status")
+    .eq("reference", ref)
+    .maybeSingle();
+
+  if (error || !item) {
+    return reply(msg, phone, `Listing ${ref} not found.`);
+  }
+
+  const active = item.status === "active" && new Date(item.end_time) > new Date();
+  const bidLine = item.current_bid > 0
+    ? `Current bid: US$${item.current_bid} (${item.bid_count} bid${item.bid_count === 1 ? "" : "s"})`
+    : `Starting price: US$${item.starting_price} — no bids yet`;
+
+  return reply(msg, phone,
+    `*${item.reference}*: ${item.breed}\n` +
+    `Location: ${item.location}\n` +
+    `Weight: ${item.weight}\n` +
+    `${bidLine}\n` +
+    `Ends: ${active ? timeUntil(item.end_time) : "Auction ended"}\n\n` +
+    (active
+      ? `To bid: reply *bid ${item.reference} <amount in USD>*\nView online: ${ZIMLIVESTOCK_PUBLIC_URL}/item/${item.id}`
+      : `View online: ${ZIMLIVESTOCK_PUBLIC_URL}/item/${item.id}`)
+  );
+}
+
+async function handleBidByRef(msg, phone, ref, amount, bidder) {
+  const { data: item, error } = await supabase
+    .from("livestock_items")
+    .select("id, title, status, end_time, current_bid, starting_price, seller_id, bid_count")
+    .eq("reference", ref)
+    .maybeSingle();
+
+  if (error || !item) return reply(msg, phone, `Listing ${ref} not found.`);
+  if (item.status !== "active") return reply(msg, phone, `${ref} is no longer active.`);
+  if (new Date(item.end_time) <= new Date()) return reply(msg, phone, `${ref} auction has ended.`);
+  if (item.seller_id === bidder.id) return reply(msg, phone, "You cannot bid on your own listing.");
+  if (amount < item.starting_price) {
+    return reply(msg, phone, `Minimum bid is US$${item.starting_price}.`);
+  }
+  if (item.current_bid > 0 && amount <= item.current_bid) {
+    return reply(msg, phone, `Bid must be above the current bid of US$${item.current_bid}.`);
+  }
+
+  // Can't use place_bid() RPC from service role (it checks auth.uid()).
+  // Insert directly and update atomically enough for demo scale.
+  const { error: bidErr } = await supabase
+    .from("bids")
+    .insert({ livestock_id: item.id, user_id: bidder.id, amount });
+  if (bidErr) {
+    console.error(`✗ bid insert (${ref}): ${bidErr.message}`);
+    return reply(msg, phone, "Bid failed — please try again.");
+  }
+  await supabase
+    .from("livestock_items")
+    .update({ current_bid: amount, bid_count: item.bid_count + 1 })
+    .eq("id", item.id);
+
+  return reply(msg, phone,
+    `Bid placed on ${ref}!\n` +
+    `Your bid: US$${amount}\n\n` +
+    `You'll be outbid if someone goes higher. View it: ${ZIMLIVESTOCK_PUBLIC_URL}/item/${item.id}`
+  );
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -430,6 +571,13 @@ async function resolvePhone(msg) {
 function parseNumber(text) {
   const m = String(text).replace(/[, ]/g, "").match(/^\d+(\.\d+)?/);
   return m ? Number(m[0]) : null;
+}
+
+function timeUntil(iso) {
+  const ms = new Date(iso) - Date.now();
+  if (ms <= 0) return "ended";
+  const h = Math.floor(ms / 3600000);
+  return h < 24 ? `in ${h}h` : `in ${Math.floor(h / 24)}d`;
 }
 
 function guessCategory(breed) {
