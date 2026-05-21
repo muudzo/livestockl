@@ -95,7 +95,7 @@ client.on("message", async (msg) => {
   if (msg.from === "status@broadcast") return; // ignore status updates
   if (msg.fromMe) return;
 
-  const phone = normalizePhone(msg.from);
+  const phone = await resolvePhone(msg);
   const body = (msg.body || "").trim();
 
   try {
@@ -257,11 +257,16 @@ async function handleAwaitingConfirm(msg, phone, body, session, seller) {
 // ───────────────────────────────────────────────────────────────────────────
 
 async function findSellerByPhone(phone) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
-    .select("id, first_name, last_name, phone, city")
+    .select("id, first_name, last_name, phone")
     .eq("phone", phone)
     .maybeSingle();
+  if (error) {
+    console.error(`✗ findSellerByPhone(${phone}) error: ${error.message}`);
+  } else {
+    console.log(`→ findSellerByPhone(${phone}) → ${data ? "FOUND " + data.id : "no match"}`);
+  }
   return data || null;
 }
 
@@ -369,10 +374,63 @@ async function createListing(draft, seller, tenantId) {
 // WhatsApp ids look like `2637712345678@c.us` (no leading +). Strip suffix
 // and normalize to the local 0XX format the rest of our stack uses.
 function normalizePhone(waId) {
-  const stripped = waId.replace(/@c\.us$/, "").replace(/^\+/, "");
+  const stripped = waId.replace(/@c\.us$/, "").replace(/@lid$/, "").replace(/^\+/, "");
   // 263 = Zimbabwe country code. Convert 263 7XX… → 07XX…
   if (stripped.startsWith("263")) return "0" + stripped.slice(3);
   return stripped;
+}
+
+// WhatsApp now sometimes routes messages with an opaque `@lid` id instead of
+// a phone-based `@c.us` id. `getContact()` may still return only the LID, so
+// reach into WhatsApp Web's internal store via puppeteer to map LID → phone.
+async function resolvePhone(msg) {
+  try {
+    if (msg.from.endsWith("@lid")) {
+      const lid = msg.from.replace(/@lid$/, "");
+      const phone = await client.pupPage.evaluate((lid) => {
+        const tryAccessors = [
+          () => window.Store?.LidUtils?.getPhoneNumber?.(`${lid}@lid`)?._serialized,
+          () => window.Store?.LidUtils?.getPhoneNumber?.(lid)?._serialized,
+          () => window.Store?.LidToPhoneNumber?.get?.(`${lid}@lid`)?._serialized,
+          () => {
+            const wid = window.Store?.WidFactory?.createWid?.(`${lid}@lid`);
+            return window.Store?.LidUtils?.getPhoneNumber?.(wid)?._serialized;
+          },
+          () => {
+            const contact = window.Store?.Contact?.get?.(`${lid}@lid`);
+            return contact?.phoneNumber?._serialized || contact?.__x_phoneNumber?._serialized;
+          },
+        ];
+        for (const fn of tryAccessors) {
+          try {
+            const v = fn();
+            if (v) return v;
+          } catch {}
+        }
+        return null;
+      }, lid);
+      if (phone) return normalizePhone(phone);
+      console.warn(`! could not resolve @lid ${lid} via Store`);
+      const contact = await msg.getContact();
+      console.log("  contact dump:", JSON.stringify({
+        number: contact?.number,
+        id: contact?.id,
+        pushname: contact?.pushname,
+        verifiedName: contact?.verifiedName,
+        shortName: contact?.shortName,
+      }));
+      console.log("  msg._data keys:", Object.keys(msg._data || {}).join(","));
+      console.log("  msg._data.notifyName:", msg._data?.notifyName);
+      console.log("  msg.author:", msg.author);
+    }
+    const contact = await msg.getContact();
+    const raw = contact?.number || contact?.id?.user || msg.from;
+    const id = raw.includes("@") ? raw : `${raw}@c.us`;
+    return normalizePhone(id);
+  } catch (err) {
+    console.error(`✗ resolvePhone fallback for ${msg.from}: ${err.message}`);
+    return normalizePhone(msg.from);
+  }
 }
 
 function parseNumber(text) {
