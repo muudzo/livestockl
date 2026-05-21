@@ -24,8 +24,10 @@ DO $$
 DECLARE
   seller_id  uuid := '889508c8-7206-46bd-aec2-d21fee774604';  -- seller-a@test.zl (Tendai Moyo)
   item_id    uuid := gen_random_uuid();
+  tenant_id  uuid;
   r          record;
 BEGIN
+  SELECT id INTO tenant_id FROM public.tenants WHERE slug = 'zimlivestock-demo' LIMIT 1;
   -- ── 1. Schema migration (idempotent) ──────────────────────────────────────
   ALTER TABLE public.livestock_items
     ADD COLUMN IF NOT EXISTS transport_available boolean NOT NULL DEFAULT false,
@@ -70,7 +72,7 @@ BEGIN
     location, health, starting_price, current_bid, bid_count,
     status, end_time, auction_format,
     transport_available, pickup_lat, pickup_lng,
-    image_urls, duration_days, created_at
+    image_urls, duration_days, created_at, tenant_id
   ) VALUES (
     item_id,
     seller_id,
@@ -93,20 +95,22 @@ BEGIN
     31.0522,   -- Harare lng
     ARRAY['https://images.unsplash.com/photo-1500595046743-cd271d694d30?w=800']::text[],
     7,
-    now() - interval '9 days'
+    now() - interval '9 days',
+    tenant_id
   );
 
   -- ── 4. Winning bid for every profile ──────────────────────────────────────
   FOR r IN SELECT id FROM public.profiles LOOP
     INSERT INTO public.bids (
-      id, livestock_id, user_id, amount, is_winner, created_at
+      id, livestock_id, user_id, amount, is_winner, created_at, tenant_id
     ) VALUES (
       gen_random_uuid(),
       item_id,
       r.id,
       620.00,
       true,
-      now() - interval '2 hours 5 minutes'
+      now() - interval '2 hours 5 minutes',
+      tenant_id
     );
   END LOOP;
 
