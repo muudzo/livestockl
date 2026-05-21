@@ -83,7 +83,7 @@ BEGIN
     '480 kg',
     'Healthy Brahman bull, suitable for breeding. Transport available from Harare.',
     'Harare',
-    'Vaccinated, FMD up to date, health cert available',
+    'Excellent',
     450.00,
     620.00,
     0,        -- bid_count updated below after inserting bids
