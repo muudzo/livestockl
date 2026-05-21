@@ -235,7 +235,7 @@ async function handleAwaitingBreed(msg, phone, body, session) {
   }
   const draft = { ...session.draft, breed: body };
   await setState(phone, "awaiting_location", draft);
-  return reply(msg, phone, "Step 3 of 6 — where is the animal located? (e.g. Harare, Bulawayo, Johannesburg, Netherlands)");
+  return reply(msg, phone, "Step 3 of 6 — where is the animal located? (e.g. Harare, Bulawayo, Mutare, Gweru)");
 }
 
 async function handleAwaitingLocation(msg, phone, body, session) {
@@ -243,7 +243,7 @@ async function handleAwaitingLocation(msg, phone, body, session) {
     return reply(msg, phone, "Send the location as a text message, please.");
   }
   if (!body || body.length < 2 || body.length > 60) {
-    return reply(msg, phone, "Type where the animal is located (2–60 characters), e.g. Harare or Netherlands.");
+    return reply(msg, phone, "Type where the animal is located (2–60 characters), e.g. Harare or Bulawayo.");
   }
   const draft = { ...session.draft, location: body };
   await setState(phone, "awaiting_weight", draft);
