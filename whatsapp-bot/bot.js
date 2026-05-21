@@ -148,6 +148,8 @@ async function route(msg, phone, body) {
       return handleAwaitingPhoto(msg, phone, body, session);
     case "awaiting_breed":
       return handleAwaitingBreed(msg, phone, body, session);
+    case "awaiting_location":
+      return handleAwaitingLocation(msg, phone, body, session);
     case "awaiting_weight":
       return handleAwaitingWeight(msg, phone, body, session);
     case "awaiting_price":
@@ -167,7 +169,7 @@ async function handleIdle(msg, phone, body, seller) {
     await setState(phone, "awaiting_photo", { started_at: new Date().toISOString() });
     return reply(msg, phone,
       `Welcome, ${seller.first_name || "there"}. Let's list your animal.\n\n` +
-      `Step 1 of 5 — send me a clear photo of the animal.`
+      `Step 1 of 6 — send me a clear photo of the animal.`
     );
   }
   return reply(msg, phone,
@@ -190,7 +192,7 @@ async function handleAwaitingPhoto(msg, phone, body, session) {
   }
   const draft = { ...session.draft, photo_url: url };
   await setState(phone, "awaiting_breed", draft);
-  return reply(msg, phone, `Step 2 of 5 — what breed is it? (e.g. Brahman, Hereford, Boer, Dorper)`);
+  return reply(msg, phone, `Step 2 of 6 — what breed is it? (e.g. Brahman, Hereford, Boer, Dorper)`);
 }
 
 async function handleAwaitingBreed(msg, phone, body, session) {
@@ -201,8 +203,20 @@ async function handleAwaitingBreed(msg, phone, body, session) {
     return reply(msg, phone, "Type the breed name (between 2 and 40 characters).");
   }
   const draft = { ...session.draft, breed: body };
+  await setState(phone, "awaiting_location", draft);
+  return reply(msg, phone, "Step 3 of 6 — where is the animal located? (e.g. Harare, Bulawayo, Johannesburg, Netherlands)");
+}
+
+async function handleAwaitingLocation(msg, phone, body, session) {
+  if (msg.hasMedia) {
+    return reply(msg, phone, "Send the location as a text message, please.");
+  }
+  if (!body || body.length < 2 || body.length > 60) {
+    return reply(msg, phone, "Type where the animal is located (2–60 characters), e.g. Harare or Netherlands.");
+  }
+  const draft = { ...session.draft, location: body };
   await setState(phone, "awaiting_weight", draft);
-  return reply(msg, phone, "Step 3 of 5 — weight in kg? (just the number, e.g. 480)");
+  return reply(msg, phone, "Step 4 of 6 — weight in kg? (just the number, e.g. 480)");
 }
 
 async function handleAwaitingWeight(msg, phone, body, session) {
@@ -212,7 +226,7 @@ async function handleAwaitingWeight(msg, phone, body, session) {
   }
   const draft = { ...session.draft, weight_kg: kg };
   await setState(phone, "awaiting_price", draft);
-  return reply(msg, phone, "Step 4 of 5 — starting price in USD? (just the number, e.g. 250)");
+  return reply(msg, phone, "Step 5 of 6 — starting price in USD? (just the number, e.g. 250)");
 }
 
 async function handleAwaitingPrice(msg, phone, body, session) {
@@ -224,8 +238,9 @@ async function handleAwaitingPrice(msg, phone, body, session) {
   await setState(phone, "awaiting_confirm", draft);
 
   const summary =
-    `Step 5 of 5 — here's your draft listing:\n\n` +
+    `Step 6 of 6 — here's your draft listing:\n\n` +
     `• Breed: ${draft.breed}\n` +
+    `• Location: ${draft.location}\n` +
     `• Weight: ${draft.weight_kg} kg\n` +
     `• Starting price: US$${price}\n` +
     `• Listing length: ${LISTING_DURATION_DAYS} days\n\n` +
@@ -267,7 +282,7 @@ async function findSellerByPhone(phone) {
   }
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, first_name, last_name, phone, city")
+    .select("id, first_name, last_name, phone")
     .in("phone", [...variants])
     .limit(1);
   if (error) {
@@ -351,7 +366,7 @@ async function uploadPhoto(phone, media) {
 async function createListing(draft, seller, tenantId) {
   const endTime = new Date(Date.now() + LISTING_DURATION_DAYS * 24 * 60 * 60 * 1000).toISOString();
   const title = `${draft.breed}${guessCategorySuffix(draft.breed)}`;
-  const location = seller.city || "Zimbabwe";
+  const location = draft.location || "Zimbabwe";
 
   const { data, error } = await supabase
     .from("livestock_items")
