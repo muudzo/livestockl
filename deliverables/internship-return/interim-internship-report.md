@@ -44,29 +44,31 @@ Paynow operates a multi-product ecosystem:
 
 | Product | Function | Primary user |
 |---|---|---|
-| **Paynow Core** | Web Checkout (hosted page, SHA-512 signed form POST) + Express Checkout (USSD push to EcoCash, OneMoney, Telecash, Zimswitch) | Online merchants |
-| **BillPay** | Vendor API to pay 106+ Zimbabwean billers (ZESA electricity, ZWSC water, school fees, municipal rates, medical aid, DStv, airtime) | Retail apps, banks, super-apps |
+| **Paynow Core** | Web Checkout (SHA-512 signed form POST) + Express Checkout (USSD push to EcoCash, OneMoney, Telecash, Zimswitch) | Online merchants |
+| **BillPay** | Vendor API to 106+ Zimbabwean billers (ZESA, ZWSC, school fees, municipal rates, medical aid, DStv, airtime) | Retail apps, banks, super-apps |
 | **TXT (txt.co.zw)** | Bulk SMS gateway with sender-ID branding | Merchants needing OTPs, receipts, notifications |
-| **Bisafe** | Escrow product — funds held until delivery confirmation | High-ticket and trust-deficit transactions |
-| **Paab** | Physical cash-collection agent network; teller points notify the merchant digitally on receipt | Unbanked / cash-only consumers |
+| **Bisafe** | Escrow — funds held until delivery confirmation | High-ticket / trust-deficit transactions |
+| **Paab** | Physical cash-collection agent network with digital merchant notification | Unbanked / cash-only consumers |
 
 Together these cover the full Zimbabwean payment matrix: digital-to-digital, digital-to-bill, digital-to-cash, cash-to-digital, and escrowed transactions.
 
 ### 1.4 Market
 
-Three structural conditions define the Zimbabwean digital-payments market: mobile money dominance (EcoCash and OneMoney, primarily over USSD); card-rail unreliability (Visa/Mastercard works intermittently under forex and correspondent-banking constraints); and continued heavy cash circulation, especially in agriculture and informal trade. Paynow's direct competitors are Pesepay and DPOpay; globally comparable players — Stripe, Paystack, Flutterwave — are either unavailable here or operate under severe constraints.
+Three structural conditions define the market: mobile-money dominance (EcoCash and OneMoney, primarily over USSD); card-rail unreliability (Visa/Mastercard works intermittently under forex constraints); and continued heavy cash circulation in agriculture and informal trade. Paynow's direct competitors are Pesepay and DPOpay; Stripe, Paystack, and Flutterwave are either unavailable or operate under severe constraints here.
 
 ### 1.5 Internal organisation and structure
 
-Paynow runs **product teams per product line** (Core, BillPay, TXT, Bisafe, Paab), a shared **Developer Experience (DX) team** (SDKs, merchant onboarding, documentation), and a small infrastructure / SRE function. By Zimbabwean corporate standards the company is **flat**: product decisions are made inside small cross-functional groups (engineering lead + product owner + DX contact) rather than via long hierarchical approval chains.
+Paynow runs product teams per product line (Core, BillPay, TXT, Bisafe, Paab), a shared **Developer Experience (DX) team**, and a small SRE function. By Zimbabwean standards the company is **flat**: decisions sit with small cross-functional groups rather than long approval chains.
 
 ### 1.6 Internal communication
 
-Day-to-day communication runs on per-product **Slack channels**, with **WhatsApp** for urgent coordination. Weekly product standups synchronise the cross-team picture; long-form decisions (architecture notes, RFCs, integration writeups) live in shared Google Drive folders — a friction point the DX team is actively working on.
+Per-product **Slack channels** for day-to-day, **WhatsApp** for urgent coordination. Weekly product standups; long-form decisions live in Google Drive — a friction point the DX team is working on.
 
 ### 1.7 My position and department
 
-I report into the **DX team**, day-to-day supervised by Takudzwa Sisimayi, rather than to a single product team. The placement was deliberately positioned this way: no Paynow employee had previously integrated every Paynow product end-to-end in a single application. Sitting at the DX layer let me consume the ecosystem as an external integrator does and expose inconsistencies that product-silo insiders would not see. The positioning gave me direct access to engineering leads across Core, BillPay, TXT, Bisafe, and Paab; sandbox + live merchant accounts (Integration IDs 23657 and 23997); cross-team Slack access; and latitude to choose my own stack, scope, and research methodology, subject to a mid-point leadership-panel demo.
+I report into the **DX team**, day-to-day supervised by Takudzwa Sisimayi, rather than to a single product team. The placement was deliberately positioned this way: no Paynow employee had previously integrated every Paynow product end-to-end in a single application. Sitting at the DX layer let me consume the ecosystem as an external integrator does, and expose inconsistencies that product-silo insiders would not see.
+
+The positioning gave me four concrete things: direct access to engineering leads across Core, BillPay, TXT, Bisafe, and Paab; sandbox + live merchant accounts (Integration IDs 23657 and 23997); cross-team Slack access; and latitude to choose my own stack, scope, and research methodology, subject to a mid-point leadership-panel demo.
 
 ### 1.8 Position in the business chain
 
@@ -229,7 +231,7 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 
 **Original learning goal:** *By the end of my placement, I will independently manage my development workflow within Paynow's Agile environment by planning tasks, tracking progress, meeting sprint deadlines, and adjusting priorities based on feedback. This includes breaking work into subtasks; estimating delivery time; using sprint boards; monitoring productivity; and taking ownership of deliverables.*
 
-**Why this competency was appropriate.** With week-one autonomy over stack, scope, and methodology, the placement either runs as a well-organised programme or it slides. Organisation is load-bearing for everything else.
+**Why this competency was appropriate.** With week-one autonomy over stack, scope, and methodology, the placement depended heavily on disciplined planning and prioritisation. Organisation is load-bearing for everything else.
 
 **Evidence cluster (interim).**
 
@@ -251,7 +253,7 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 - **Method**: comparative benchmark against five named peers across seven categories with a reproducible rubric; structured field-research at a physical livestock auction; integration retrospective using a four-layer evidence model.
 - **Metrics collected**: per-provider scores on docs, SDK, sandbox, error messages, onboarding, support, time-to-first-payment. For Core specifically: webhook reliability, time to sandbox / live payment, undocumented quirks.
 - **Solution prototyped**: Cloudflare Worker relay + browser-relay fallback, both live in production and documented as the standard workaround.
-- **Evaluation**: side-by-side against Paynow's own BillPay subdomain (not behind the same wall) — 7.5/10 vs Core's 4.2/10. This is the evidence basis for the central recommendation: replicate the BillPay subdomain pattern for Core.
+- **Evaluation**: side-by-side against Paynow's own BillPay subdomain, which is not behind the same wall. This forms the basis for the central recommendation around subdomain isolation and infrastructure separation (scores and full reasoning in §2.1 and §4).
 - **Recommendation + presentation**: DX benchmark v2 + Ecosystem Retrospective delivered to the DX team with subdomain isolation as recommendation #1; presented at the 8 May 2026 leadership-panel demo.
 
 ---
@@ -264,7 +266,7 @@ I had spent the preceding week building wireframes for a livestock marketplace t
 
 The second growth moment was the Cloudflare relay incident. It is the clearest example I can give of something I got wrong before I got it right.
 
-The symptom was simple to describe and hard to diagnose: every call from our backend to Paynow's main domain was being silently dropped before Paynow's servers even saw it. (In network terms, the calls returned TCP RST — the connection rejected at the network layer, before any application-level response.) The cause looked initially like a credentials problem, then a CORS problem, then a TLS problem. I burned almost a full working day at each of those layers before climbing one rung up the stack. When I eventually escalated to Takudzwa I expected him to reset credentials or open a firewall rule. He did neither. He asked me to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately — which is how the comparative evidence (Core scoring 4.2/10 versus BillPay scoring 7.5/10) ended up in the retrospective as the central recommendation. The framing I now describe as the placement's most important finding was, in its original form, his redirect, not my insight.
+The symptom was simple to describe and hard to diagnose: every call from our backend to Paynow's main domain was being silently dropped before Paynow's servers even saw it. (In network terms, the calls returned TCP RST — the connection rejected at the network layer, before any application-level response.) The cause looked initially like a credentials problem, then a CORS problem, then a TLS problem. I spent almost a full working day at each of those layers before climbing one rung up the stack. When I eventually escalated to Takudzwa I expected him to reset credentials or open a firewall rule. He did neither. He asked me to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately — which is how the comparative evidence (Core scoring 4.2/10 versus BillPay scoring 7.5/10) ended up in the retrospective as the central recommendation. The framing I now describe as the placement's most important finding was, in its original form, his redirect, not my insight.
 
 The procedural lesson — climb the stack one layer at a time, rather than thrashing at the layer you know best — is one I now apply consciously. It is the lesson I would not have learned without his pushback. The relay fix itself (a Cloudflare Worker plus a browser-relay fallback) is now documented as the standard workaround for any integrator hitting the same wall.
 
