@@ -28,11 +28,24 @@
 
 ---
 
+## Table of Contents
+
+1. Organizational Analysis
+2. Interim Evaluation (for the company supervisor)
+3. Justification of Learning Objectives — five HBO-i competencies
+4. Experiences of Growth and Insights
+5. Reflection and Progress Assessment (for the internship tutor)
+6. Conclusion
+- Appendix A — Key Deliverables Index
+- Appendix B — Competency Mapping (HBO-i / CMD)
+
+---
+
 ## 1. Organizational Analysis
 
 ### 1.1 Description and mission
 
-Paynow is one of Zimbabwe's primary digital payment processors. Founded 2009, it serves thousands of merchants as the country's primary online-payment acceptance layer where international card networks operate intermittently. Its mission, **"to make digital payments accessible to every Zimbabwean,"** is read literally inside the company: a product that fails on a feature phone, on 2G, or during a power cut has failed its mandate.
+Paynow is one of Zimbabwe's primary digital payment processors. Founded in 2009, it serves thousands of merchants as the country's main online-payment acceptance layer in a market where international card networks are often unreliable. Its mission, **"to make digital payments accessible to every Zimbabwean,"** is read literally inside the company: a product that fails on a feature phone, on 2G, or during a power cut has failed its mandate.
 
 ### 1.2 Products
 
@@ -46,15 +59,15 @@ Paynow is one of Zimbabwe's primary digital payment processors. Founded 2009, it
 
 ### 1.3 Market
 
-Mobile money (EcoCash, OneMoney, primarily over USSD) dominates consumer payments; card rails are intermittent; cash remains heavy in agriculture and informal trade. Direct competitors: Pesepay, DPOpay. Stripe, Paystack, Flutterwave are unavailable or constrained.
+Mobile money (EcoCash, OneMoney, primarily over USSD) dominates consumer payments; card rails are unreliable; cash remains heavy in agriculture and informal trade. Direct competitors: Pesepay, DPOpay. Stripe, Paystack, Flutterwave are unavailable or constrained.
 
 ### 1.4 Organisation, position, and culture
 
 Paynow runs per-product teams, a shared **Developer Experience (DX) team**, and a small SRE function. Structure is flat: decisions sit with whoever is closest to the problem. Day-to-day on Slack, urgent on WhatsApp, long-form in Google Drive. Oversight: ZEPA and the Reserve Bank of Zimbabwe.
 
-I report into the DX team under Takudzwa Sisimayi rather than into a single product team. No Paynow employee had previously integrated every product end-to-end inside one application; the DX seat let me consume the ecosystem as an external integrator does and surface inconsistencies invisible from a product silo. In practice: direct access to engineering leads across all five products, sandbox + live merchant accounts (IDs 23657 / 23997), cross-team Slack, and latitude over stack, scope, and methodology, subject to a mid-point leadership-panel demo.
+I report into the DX team under Takudzwa Sisimayi rather than into a single product team. No Paynow employee had previously integrated every product end-to-end inside one application; the DX seat let me consume the ecosystem as an external integrator does and surface inconsistencies invisible from a product silo. In practice: direct access to engineering leads across all five products, sandbox + live merchant accounts (IDs 23657 / 23997), and latitude over stack, scope, and methodology, subject to a mid-point leadership-panel demo.
 
-Three cultural traits: **pragmatic and infrastructure-first** (products described by what fails on 2G, not what looks good on a slide); **flat and trust-based** (live-merchant credentials in week one); **externally humble** (receptive to outside critique — without which the benchmark and retrospective would not exist).
+Three cultural traits: **pragmatic and infrastructure-first** (products described by what fails on 2G, not what looks good on a slide); **flat and trust-based** (live-merchant credentials in week one); **receptive to external critique** (without which the benchmark and retrospective would not exist).
 
 ---
 
@@ -62,11 +75,11 @@ Three cultural traits: **pragmatic and infrastructure-first** (products describe
 
 ### 2.1 Brief summary (≤ ½ A4)
 
-**Delivery.** Across the first 17 of 18 weeks I built and deployed **ZimLivestock**, a livestock-trading marketplace integrating the full Paynow ecosystem — Core, BillPay, TXT, components of Bisafe and Paab — inside a React PWA backed by Supabase. Live at `app-nine-sigma-jgoqp90f2p.vercel.app`. On 8 May 2026 it was demonstrated to a Paynow leadership panel, with the full agentic-buying chain (semi-automated WhatsApp and USSD purchase flows completing transactions without a web checkout) executing live on stage.
+**Delivery.** Across the first 17 of 18 weeks I built and deployed **ZimLivestock**, a livestock-trading marketplace integrating the full Paynow ecosystem — Core, BillPay, TXT, components of Bisafe and Paab — inside a React PWA backed by Supabase. Live at `app-nine-sigma-jgoqp90f2p.vercel.app`. On 8 May 2026 it was demonstrated to a Paynow leadership panel, with the agentic-buying chain (semi-automated WhatsApp and USSD purchases completing without a web checkout) running live on stage.
 
-**Research.** Three artefacts: a **field-research report** from physical livestock-auction visits; a **42-page DX benchmark** comparing Paynow against five competitors across seven categories; and an **Ecosystem Integration Retrospective** with senior-engineer integration writeups for Core, BillPay, and TXT for Paynow's docs team. The most material finding is counter-intuitive: Paynow Core scored lowest of the six providers (4.2/10) while Paynow's own BillPay and TXT scored 7.5/10 and 7/10. The gap is one of **internal consistency**, not capability — and the architectural fix already runs on Paynow's own BillPay subdomain (detailed in §4).
+**Research.** Three artefacts: a **field-research report** from physical livestock-auction visits; a **42-page DX benchmark** comparing Paynow against five competitors across seven categories; and an **Ecosystem Integration Retrospective** with senior-engineer integration writeups for Core, BillPay, and TXT. The headline finding: Paynow Core scored lowest of the six providers (4.2/10), while Paynow's own BillPay and TXT scored 7.5 and 7. The gap is one of internal consistency, not capability — the architectural fix already runs on Paynow's own BillPay subdomain (detailed in §4).
 
-**Impact.** The DX team is reviewing the integration writeups as candidate documentation; the Core bot-wall workaround is in production. The benchmark and retrospective give Paynow outside-in evidence that would otherwise have required a paid auditor.
+**Impact.** The DX team is reviewing the integration writeups as candidate documentation; the workaround for the Core blocker is in production. The benchmark and retrospective give Paynow outside-in evidence otherwise requiring a paid auditor.
 
 ### 2.2 Main tasks versus secondary tasks
 
@@ -79,7 +92,7 @@ The main vs secondary boundary eroded after the demo (§2.6).
 
 ### 2.3 The most important thing I have learned
 
-**A developer-experience benchmark, done from the inside with real production credentials, is a strategic instrument — not a documentation exercise.** By week 6 it had become the spine of every other piece of work: retrospective, demo, integration order, even the ZimLivestock checkout design. Practical corollary: write down what surprises you in week one. By week three the surprises feel normal and the comparative evidence is gone.
+**A developer-experience benchmark, done from the inside with real production credentials, is a decision-making tool — not a documentation exercise.** By week 6 it had become the spine of every other piece of work: retrospective, demo, integration order, even the ZimLivestock checkout design. Practical lesson: write down what surprises you in week one. By week three the surprises feel normal and the comparative evidence is gone.
 
 ### 2.4 Alignment with the internship plan
 
@@ -103,13 +116,13 @@ The placement runs **2 February – 8 June 2026** (91 days, 30 ECTS, five HBO-i 
 
 ### 2.5 Competencies to focus on going forward
 
-1. **Advisory communication to non-technical leadership.** The demo proved I can carry a technical room; condensing the same material into a 10-minute written brief is the harder skill.
+1. **Advisory communication to non-technical leadership.** The demo proved I can carry a technical room; a 10-minute written brief is the harder skill.
 2. **Designing for trust under low-trust conditions.** Field research showed counterparty distrust — not UI friction — is the failure mode. Bisafe escrow, dispute flows, and seller verification test design against that constraint.
 3. **Writing for code I did not author.** The integration writeups describe systems whose source I cannot fully see.
 
 ### 2.6 Adjustments to the internship plan
 
-Scope expanded after the demo; additions approved progressively in 1:1s.
+Scope expanded after the demo; additions approved in 1:1s.
 
 | Added item | Trigger | Status |
 |---|---|---|
@@ -119,21 +132,21 @@ Scope expanded after the demo; additions approved progressively in 1:1s.
 | **Paab cash-collection design** | Demo ask | Designed; scoped |
 | **Benchmark expanded** (3→6, 5→7) | DX team — competitive context | Live in v2 |
 | **WhatsApp bot** | Field research: de-facto trading channel | Working prototype |
-| **USSD simulator** | Field research: rural sellers without smartphones | Working prototype |
-| **Cloudflare Worker + browser-relay fallback** | Production blocker — Core bot-wall (§4) | Live |
+| **USSD simulator** | Field research: rural sellers, no smartphones | Working prototype |
+| **Routing workaround for Core blocker** | Production blocker (§4) | Live |
 | **Senior-engineer integration writeups** | DX team adopted as docs candidates | Drafted |
 | **Ecosystem Integration Retrospective** | Panel ask: outside-in integrator perspective | Draft delivered |
-| **Reframe of final deliverable** — from launch to evidence vehicle | Strategic value is retrospective + benchmark, not the product | Reframed |
+| **Reframe of final deliverable** — from launch to evidence vehicle | Lasting value sits in the retrospective + benchmark, not the product | Reframed |
 
-The remaining ~3 weeks converge this material into one advisory document rather than producing more of it.
+The remaining ~3 weeks converge this material into one advisory document rather than adding more.
 
 ---
 
 ## 3. Justification of My Learning Objectives (HBO-i competencies)
 
-The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each sub-section restates the goal and presents evidence.
+The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each sub-section restates the goal with evidence.
 
-**CMD framing.** Engineering-heavy on the surface, four CMD lenses framed the work: **human-centred design** (architecture anchored in counterparty trust via field research); **service design** (web, WhatsApp, USSD, cash as one user journey); **systems thinking** (surfaced an internal ecosystem gap, not only an external benchmark gap); **low-connectivity UX** (2G, feature phones, power cuts as first-class constraints).
+**CMD framing.** Engineering-heavy on the surface, four CMD lenses shaped the work: **human-centred design** (architecture anchored in counterparty trust via field research); **service design** (web, WhatsApp, USSD, cash as one user journey); **systems thinking** (surfaced an internal ecosystem gap, not only an external benchmark gap); **low-connectivity UX** (2G, feature phones, power cuts as first-class constraints).
 
 ### 3.1 To Create — L2, 12 ECTS
 
@@ -141,49 +154,49 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 
 - **ZimLivestock live in production**, integrated end-to-end with Paynow Core (Web + Express Checkout).
 - **Stack:** React 18 + TS + Vite + Tailwind + shadcn/ui; Supabase Edge Functions in Deno; Paynow Core, BillPay, TXT.
-- **Event-driven integration:** webhooks → Edge Function → Postgres with row-level security → realtime fan-out.
+- **Event-driven integration:** webhooks → Edge Function → Postgres with row-level security → realtime updates to subscribed clients.
 - **Tooling:** admin auction-control dashboard, bid history, payment reconciliation, seller listing wizard, buyer browse + bid, WhatsApp bot, USSD simulator.
 - **Tests + CI/CD:** Vercel previews per push; versioned Supabase migrations; security-agent edge function (11/11 PASS) gating RLS regressions; payment test matrix across the four sandbox numbers.
-- **Secure coding:** per-user access controls; idempotency keys on bids and payments; secure webhook verification; CORS hardening (closed a vulnerability that would have let any third-party site call our payment functions); secrets in Supabase Vault; transaction-safe operations preventing conflicting bids.
+- **Secure coding:** per-user access controls; safe-retry keys on bids and payments; verified webhook signatures; closed a CORS vulnerability that would have let any third-party site call our payment functions; secrets in Supabase Vault.
 
 ### 3.2 To Learn — L2, 3 ECTS
 
 **Goal:** *Operate effectively in a professional fintech environment — mastering Paynow's stack, participating in Agile cycles, reflecting regularly, and adjusting designs to regulatory and business realities.*
 
-- **Stack absorbed end-to-end:** webhook signing, USSD push semantics, idempotency, the *biller-inbound* vendor flow, the undocumented hash-ordering quirk on callbacks.
-- **Agile cadence:** weekly product standups; fortnightly supervisor 1:1s; tutor check-ins.
+- **Stack absorbed end-to-end:** webhook signing, USSD push semantics, safe-retry patterns, the *biller-inbound* vendor flow, an undocumented inconsistency in how security signatures were generated during callbacks.
+- **Agile cadence:** weekly standups; fortnightly supervisor 1:1s; tutor check-ins.
 - **Reflection:** session logs, weekly progress reports, decision rationale in project memory.
-- **Adjusting to constraints:** Cloudflare Worker + browser-relay fallback after the bot-wall (§4); abandoned a custom Go backend once Supabase RLS covered it; integrated Core + BillPay rather than a single rail, because "digital-only" cedes the cash economy.
+- **Adjusting to constraints:** routing workaround after the Core blocker (§4); abandoned a custom Go backend once Supabase covered it; integrated Core + BillPay rather than a single rail, because "digital-only" cedes the cash economy.
 
 ### 3.3 To Communicate — L2, 6 ECTS
 
 **Goal:** *Communicate technical work clearly to both technical and non-technical stakeholders — documentation, sprint updates, business-framed trade-offs.*
 
-- **Leadership-panel demo (8 May):** agentic-buying chain executed live; feedback captured and incorporated.
+- **Leadership-panel demo (8 May):** agentic-buying chain executed live; feedback incorporated.
 - **42-page DX benchmark:** Paynow vs five competitors, seven categories, reproducible rubric, 5+ recommendations.
-- **Ecosystem Integration Retrospective:** four-layer evidence model (observed friction → root cause → evidence → action) for mixed technical / non-technical readers.
+- **Ecosystem Integration Retrospective:** four-layer model (observed friction → root cause → evidence → action) for mixed technical / non-technical readers.
 - **Senior-engineer integration writeups** (Core, BillPay, TXT) for the DX docs pipeline.
-- Weekly progress reports, session logs, demo deck, 1-minute video script, return-day script.
+- Weekly progress reports, session logs, demo deck, return-day script.
 
 ### 3.4 To Organise — L2, 3 ECTS
 
 **Goal:** *Independently manage workflow — planning, tracking, sprint deadlines, adjusting under feedback, owning deliverables.*
 
 - **Plan kept:** every success criterion delivered on or ahead of date.
-- **Sprint discipline:** weekly progress reports, per-task tracking, structured deliverable folders.
-- **Re-sequencing under feedback:** Bisafe moved to weeks 8–9 to make room for BillPay + TXT; agentic-commerce bounded into one "non-app channels" stream.
-- **Ownership:** sole intern, no missed deliverables; live app with ongoing operational responsibility.
+- **Sprint discipline:** weekly reports, per-task tracking, structured deliverable folders.
+- **Re-sequencing under feedback:** Bisafe moved to weeks 8–9 for BillPay + TXT; agentic-commerce bounded into one "non-app channels" stream.
+- **Ownership:** sole intern, no missed deliverables; live app, ongoing operational responsibility.
 - **Estimation under uncertainty:** the Cloudflare incident (~1.5 weeks unplanned) was absorbed by deferring BillPay to post-plan without dropping a plan item.
 
 ### 3.5 To Research — L2, 6 ECTS
 
 **Goal:** *Conduct a structured investigation into a system-improvement opportunity, applying professional research methods and presenting a data-driven recommendation.*
 
-- **Issue identified:** the Core bot-wall (§4), reproduced across IP ranges, request shapes, user-agent strings.
-- **Method:** comparative benchmark against five peers with reproducible rubric; structured field research at a physical livestock auction; integration retrospective using a four-layer evidence model.
-- **Metrics:** per-provider scores on docs, SDK, sandbox, error messages, onboarding, support, time-to-first-payment; for Core also webhook reliability and undocumented quirks.
-- **Solution prototyped:** Cloudflare Worker + browser-relay fallback, live in production.
-- **Recommendation:** side-by-side testing across Paynow products and external providers formed the basis for several infrastructure and DX recommendations (reasoning in §2.1 and §4), presented at the panel.
+- **Issue identified:** the Core blocker (§4), reproduced across IP ranges, request shapes, user-agent strings.
+- **Method:** comparative benchmark against five peers with reproducible rubric; field research at a physical livestock auction; integration retrospective using a four-layer evidence model.
+- **Metrics:** per-provider scores on docs, SDK, sandbox, error messages, onboarding, support, time-to-first-payment.
+- **Solution prototyped:** routing workaround, live in production.
+- **Recommendation:** side-by-side testing formed the basis for several infrastructure and DX recommendations (reasoning in §2.1 and §4), presented at the panel.
 
 ---
 
@@ -191,15 +204,15 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 
 The most significant growth moment in the first 17 weeks did not happen on a keyboard. It happened at an auction.
 
-I had spent the preceding week on wireframes that, in hindsight, would have failed within weeks of real use. They assumed the friction was UI — too many taps, unclear pricing, slow loads. At the auction it became immediately obvious the friction is **counterparty trust** and **payment timing**; the interface is almost incidental. A seller paid in cash for thirty years does not need a slicker checkout; he needs credible reason to believe the money will arrive before the cattle leave the kraal. I rewrote the architecture over the weekend — the single change with the largest downstream effect on the project.
+I had spent the preceding week on wireframes that, in hindsight, would have failed within weeks of real use. They assumed the friction was UI — too many taps, unclear pricing, slow loads. At the auction it became immediately obvious the friction is **counterparty trust** and **payment timing**; the interface is almost incidental. A seller paid in cash for thirty years needs credible reason to believe the money will arrive before the cattle leave the kraal, not a slicker checkout. I rewrote the architecture over the weekend — the single change with the largest downstream effect on the project.
 
-The second moment was the Cloudflare relay incident — getting something wrong before getting it right. Backend calls to Paynow's main domain were silently dropped at the network layer. I assumed credentials, then CORS, then TLS — close to a working day at each before stepping back. When I escalated, Takudzwa asked me to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately. The placement's most important finding began with a supervisor redirect, not my own insight. The procedural lesson — work through the stack systematically rather than repeatedly troubleshooting the same layer — is one I now apply consciously. The fix (a Cloudflare Worker plus a browser-relay fallback routing the call through the user's own browser) is the documented workaround.
+The second moment was the Cloudflare relay incident — getting something wrong before getting it right. Backend calls to Paynow's main domain were silently dropped at the network layer. I assumed credentials, then CORS, then TLS — close to a working day at each before stepping back. When I escalated, Takudzwa asked me to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately. The placement's most important finding began with a supervisor redirect, not my own insight. The procedural lesson — work through the stack systematically rather than repeatedly troubleshooting the same layer — is one I now apply consciously. The fix (a routing workaround that sends the call through the user's own browser) is now the documented standard.
 
-The third — and most professionally formative — moment was the week-6 realisation that the DX benchmark was the strategic centre of the project. It arrived gradually: I noticed I was reaching for it to justify every other decision — which product to integrate next, how to scope the retrospective, what to lead the demo with. The shift was from producing deliverables to producing evidence decisions can be made on. Takudzwa's habit of pressing every artefact with *what decision does this enable* was the engine of that shift.
+The third moment was the week-6 realisation that the DX benchmark was the project's central reference, not a side-deliverable. I noticed I was reaching for it to justify every other decision — which product to integrate next, how to scope the retrospective, what to lead the demo with. Takudzwa's habit of pressing every artefact with *what decision does this enable* was the engine of the shift.
 
-Two smaller moments reinforced the same lesson. A one-sentence supervisor question ("what is the Go layer doing that Supabase cannot?") collapsed three days of misplaced effort; the same functionality is now ~200 lines of Postgres functions and a few Edge Functions. And on working culture: after several weeks of over-requesting confirmation, I learned to bring Takudzwa proposed decisions with the option chosen, alternatives listed, and trade-offs named. Both came from explicit feedback rather than self-discovery.
+Two smaller moments reinforced the same lesson. A one-sentence supervisor question ("what is the Go layer doing that Supabase cannot?") collapsed three days of misplaced effort. And on working culture: after several weeks of over-requesting confirmation, I learned to bring Takudzwa proposed decisions with the option chosen, alternatives listed, and trade-offs named. Both came from explicit feedback rather than self-discovery.
 
-The largest single surprise has been the **ecosystem consistency pattern inside Paynow itself**. I had expected comparative integration work to surface a Paynow-versus-the-world gap; it surfaced inconsistencies between Paynow's own product subdomains instead. The pattern that would resolve the most consequential of these is already running on a sister product inside the same company. The most valuable advice I can leave behind is therefore less a roadmap of new things to build than a pointer back to a pattern Paynow has already shipped.
+The largest single surprise has been the **ecosystem consistency pattern inside Paynow itself**. I had expected comparative integration work to surface a Paynow-versus-the-world gap; it surfaced inconsistencies between Paynow's own product subdomains instead. The pattern that would resolve the most consequential of these is already running on a sister product. The most valuable advice I can leave behind is therefore less a roadmap of new things to build than a pointer back to a pattern Paynow has already shipped.
 
 ---
 
@@ -207,43 +220,49 @@ The largest single surprise has been the **ecosystem consistency pattern inside 
 
 ### 5.1 Does the work match the internship plan?
 
-Yes — and it has expanded in directions explicitly invited by the supervisor and panel (§2.6). Original-plan items were all delivered; additions displaced nothing.
+Yes — and it has expanded in directions invited by the supervisor and panel (§2.6). Original-plan items were all delivered; additions displaced nothing.
 
 ### 5.2 Are the activities appropriate for my internship goals?
 
-Yes. Each HBO-i competency has a substantive evidence cluster (§3). The one most at risk is *To Communicate*: the raw artefacts exist, but the synthesis into a single advisory document is incomplete — the principal focus of my remaining ~3 weeks.
+Yes. Each HBO-i competency has substantive evidence (§3). The one most at risk is *To Communicate*: raw artefacts exist, but synthesis into a single advisory document is incomplete — the focus of my remaining ~3 weeks.
 
 ### 5.3 Have I acquired sufficient skills during training?
 
-Largely yes. CMD prepared me well for **Create** and **Communicate**. **Research** built on prior coursework but was stretched by the reproducible-rubric requirement. **Organise** was the biggest adjustment: a 91-day sole-developer placement abroad is a different problem from a group assignment with weekly sign-off. **Learn** built on prior reflective-practice training, with the remote cadence requiring adaptation.
+Largely yes. CMD prepared me well for **Create** and **Communicate**. **Research** built on prior coursework, stretched by the reproducible-rubric requirement. **Organise** was the biggest adjustment: a 91-day sole-developer placement abroad is a different problem from a group assignment with weekly sign-off. **Learn** built on prior reflective-practice training, with the remote cadence requiring adaptation.
 
 ### 5.4 Is supervision from the company sufficient?
 
-Yes. Takudzwa Sisimayi's posture — give the intern access and let them surface what insiders cannot — is exactly what the placement requires. Feedback is timely, direct, and consistently challenges my conclusions; the §4 moments are representative. Bi-weekly 1:1s are the right cadence.
+Yes. Takudzwa Sisimayi's posture — give the intern access and let them surface what insiders cannot — is exactly what the placement requires. Feedback is timely, direct, and consistently challenges my conclusions; the §4 moments are representative.
 
 ### 5.5 Is supervision from the training programme sufficient?
 
-Yes. John Bos has provided structured check-ins and consistent reading of my work against the HBO-i / CMD framework — particularly valuable after the demo when scope drifted. The remote cadence works because it is predictable and because the first visit (13 February) preceded project-plan finalisation.
+Yes. John Bos has provided structured check-ins and consistent reading of my work against the HBO-i / CMD framework — particularly valuable after the demo when scope drifted. The remote cadence works because it is predictable and the first visit (13 February) preceded project-plan finalisation.
 
 ### 5.6 Bottlenecks
 
-1. **Cloudflare relay problem** — ~1.5 weeks unplanned; resolved with the Worker + browser-relay fallback (§4). Became the retrospective's most concrete recommendation.
-2. **Webhook verification mismatch** — legitimate Paynow confirmations rejected as forgeries due to a subtle, undocumented difference in how the security signature was constructed. Three production rejections before identification; resolved and filed as a documentation gap.
+1. **Cloudflare relay problem** — ~1.5 weeks unplanned; resolved with the routing workaround (§4). Became the retrospective's most concrete recommendation.
+2. **Webhook verification mismatch** — legitimate Paynow confirmations rejected as forgeries due to an undocumented inconsistency in how the security signature was generated. Three production rejections before identification; resolved and filed as a documentation gap.
 3. **Scope drift after the demo** — the panel expanded scope into BillPay, Bisafe, Paab, WhatsApp, USSD. Managed by moving Bisafe to weeks 8–9 and bounding agentic work into one "non-app channels" stream. No plan items dropped.
 
-All resolved within the placement period.
+All resolved.
 
 ### 5.7 Do I agree with the supervisor's assessment?
 
-[FILL — after appraisal on FILL-date.] Based on the 1:1s I expect a broadly positive assessment on *Create*, *Organise*, and *Research*, with constructive pressure on the synthesis-and-advisory side of *Communicate*. I agree with that in advance: it is where I am weakest and where the remaining work has highest leverage.
+[FILL — after appraisal on FILL-date.] Based on the 1:1s I expect a positive assessment on *Create*, *Organise*, and *Research*, with constructive pressure on the synthesis-and-advisory side of *Communicate*. I agree with that in advance: it is where I am weakest and where the remaining work has highest leverage.
 
 ### 5.8 Goals for the remainder
 
 1. Ship Bisafe escrow on ZimLivestock; document it in the senior-engineer register.
 2. Deliver the final ecosystem report as a single advisory document — usable by leadership without my presence in the room.
-3. Close the agentic-commerce workstream (WhatsApp bot + USSD simulator) as an evidenced thesis rather than a one-off demonstration.
+3. Close the agentic-commerce workstream as an evidenced thesis rather than a one-off demonstration.
 4. Leave onboarding documentation that gets the next external integrator to first payment in under a week (currently three).
 5. Produce a separate written advisory brief pitched at non-engineer executives.
+
+---
+
+## 6. Conclusion
+
+This internship developed my technical, research, and communication abilities beyond classroom conditions by placing me inside a live fintech environment with real operational constraints. Beyond delivering a working platform, it shifted my understanding of design from interface thinking toward systems, trust, infrastructure, and evidence-driven decision-making. The remaining weeks will consolidate the technical and research work into clear advisory documentation for both technical and non-technical stakeholders at Paynow.
 
 ---
 
