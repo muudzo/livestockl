@@ -107,7 +107,7 @@ The single most important lesson is that **a developer-experience benchmark, don
 
 ### 2.4 Alignment with the internship plan
 
-The placement runs **2 February – 8 June 2026** (91 days, 30 ECTS, five HBO-i competencies — see title page). The **ZimLivestock project plan** sits inside it as the concrete deliverable: **12 March – 23 April 2026** (6 weeks). Onboarding and orientation occupied the weeks before the project plan opened. Against that project plan, every success criterion has been met or exceeded:
+The overall internship placement runs from **2 February to 8 June 2026** (91 days, 30 ECTS, five HBO-i competencies — see title page), while the **ZimLivestock project plan** formed the primary delivery phase from **12 March to 23 April 2026** (6 weeks) following onboarding and orientation. Against that project plan, every success criterion has been met or exceeded:
 
 | Plan success criterion | Plan period | Status |
 |---|---|---|
@@ -150,7 +150,7 @@ The scope expanded beyond the original ZimLivestock project plan after the 8 May
 | **USSD simulator** | Field research: many rural sellers have no smartphone | Working prototype |
 | **Cloudflare Worker relay + browser-relay fallback** | Production blocker (Core bot-wall — see §4) | Live |
 | **Senior-engineer integration writeups** (Core, BillPay, TXT) | DX team adopted my notes as docs candidates | Drafted |
-| **Ecosystem Integration Retrospective** | Panel ask: "tell us what we look like from outside" | Draft delivered |
+| **Ecosystem Integration Retrospective** | Panel ask: outside-in perspective on the integrator experience | Draft delivered |
 | **Reframe of final deliverable** — from ZimLivestock launch to evidence vehicle for an ecosystem-integration thesis | Strategic value is retrospective + benchmark, not the product | Reframed |
 
 The remaining ~3 weeks are committed to converging this material into a single coherent advisory document rather than producing more of it.
@@ -176,8 +176,8 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies, each 
 - **Event-driven integration**: Paynow webhooks → Edge Function → Postgres database protected with row-level security (RLS — database rules that restrict each user to their own data) → realtime fan-out.
 - **Internal/merchant tooling**: admin auction-control dashboard, bid history, payment reconciliation, seller listing wizard, buyer browse + bid, WhatsApp bot, USSD simulator.
 - **Tests + CI/CD**: Vercel previews per push; versioned Supabase migrations; security-agent edge function (11/11 PASS) gating RLS regressions; payment test matrix across Paynow's four sandbox numbers (success / delayed / cancel / insufficient).
-- **Secure coding for fintech**: row-level security on every table; idempotency keys on `bids` and `payments` (so a retried request can't accidentally double-bid); SHA-512 hash verification on Paynow webhooks (cryptographic proof the callback isn't forged); CORS wildcard fallback removed on user-facing functions (SEV-1 fix — it would have let any third-party site call our payment functions); no stack traces leaked publicly; secrets in Supabase Vault.
-- **Atomic database operations** (`place_bid`, `end_expired_auctions`) — single transactions that either fully succeed or fully fail, preventing races when two users bid at the same moment.
+- **Secure coding for fintech**: per-user database access controls; idempotency keys on bids and payments (so a retried request can't accidentally double-bid); secure webhook verification to ensure payment callbacks were authentic and tamper-resistant; CORS hardening on user-facing functions (closed a vulnerability that would have let any third-party site call our payment functions); no internal error detail leaked publicly; secrets stored in Supabase Vault.
+- **Transaction-safe database operations** to prevent conflicting bids or inconsistent auction states when two users act at the same moment.
 
 ### 3.2 To Learn — L2, 3 ECTS (compulsory, maximum permitted)
 
@@ -232,8 +232,8 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies, each 
 - **Method**: comparative benchmark against five named peers with a reproducible rubric; structured field-research at a physical livestock auction; integration retrospective using a four-layer evidence model.
 - **Metrics collected**: per-provider scores on docs, SDK, sandbox, error messages, onboarding, support, and time-to-first-payment. For Core: webhook reliability, time to sandbox / live payment, undocumented quirks.
 - **Solution prototyped**: Cloudflare Worker relay + browser-relay fallback (live in production, documented as the standard workaround).
-- **Evaluation**: side-by-side against Paynow's own BillPay subdomain, which is not behind the same wall — the basis for the central subdomain-isolation recommendation (scores and full reasoning in §2.1 and §4).
-- **Recommendation + presentation**: DX benchmark v2 and Ecosystem Retrospective delivered with subdomain isolation as recommendation #1; presented at the 8 May 2026 leadership-panel demo.
+- **Evaluation**: side-by-side testing across Paynow products and external providers, forming the basis for several infrastructure and DX recommendations (full reasoning in §2.1 and §4).
+- **Recommendation + presentation**: DX benchmark v2 and Ecosystem Retrospective delivered with prioritised recommendations; presented at the 8 May 2026 leadership-panel demo.
 
 ---
 
@@ -241,21 +241,21 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies, each 
 
 The most significant growth moment in the first 17 weeks did not happen on a keyboard. It happened at the auction.
 
-I had spent the preceding week building wireframes for a livestock marketplace that, in hindsight, would have failed inside a fortnight of real use. The wireframes assumed the friction in livestock trading was UI friction — too many taps, unclear pricing, slow loads. At the auction it became immediately obvious that the friction is **counterparty trust** and **payment timing**. The interface is almost incidental. A seller paid in cash for thirty years does not need a slicker checkout. He needs a credible reason to believe the money will arrive before the cattle leave the kraal. Walking back from that visit, I rewrote the architecture document over a weekend. It is the single change with the largest downstream effect on the project.
+I had spent the preceding week building wireframes for a livestock marketplace that, in hindsight, would have failed within weeks of real use. The wireframes assumed the friction in livestock trading was UI friction — too many taps, unclear pricing, slow loads. At the auction it became immediately obvious that the friction is **counterparty trust** and **payment timing**. The interface is almost incidental. A seller paid in cash for thirty years does not need a slicker checkout. He needs a credible reason to believe the money will arrive before the cattle leave the kraal. Walking back from that visit, I rewrote the architecture document over a weekend. It is the single change with the largest downstream effect on the project.
 
 The second growth moment was the Cloudflare relay incident — the clearest example I can give of something I got wrong before I got it right.
 
-Calls from our backend to Paynow's main domain were being silently dropped at the network layer. I assumed credentials, then CORS, then TLS — close to a working day at each before climbing one rung up the stack. When I escalated to Takudzwa I expected a credentials reset or a firewall rule. He asked me instead to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately. The placement's most important finding began with a supervisor redirect, not my own insight.
+Calls from our backend to Paynow's main domain were being silently dropped at the network layer. I assumed credentials, then CORS, then TLS — close to a working day at each before stepping back to validate assumptions at a higher layer. When I escalated to Takudzwa I expected a credentials reset or a firewall rule. He asked me instead to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately. The placement's most important finding began with a supervisor redirect, not my own insight.
 
-The procedural lesson — climb the stack one layer at a time, rather than thrashing at the layer you know best — is one I now apply consciously. The fix itself (a Cloudflare Worker plus a browser-relay fallback that routes the call through the user's own browser, sidestepping the bot wall) is now the documented workaround.
+The procedural lesson — work through the stack systematically rather than repeatedly troubleshooting the same layer without validating assumptions higher up — is one I now apply consciously. The fix itself (a Cloudflare Worker plus a browser-relay fallback that routes the call through the user's own browser, sidestepping the bot wall) is now the documented workaround.
 
-The third — and most professionally formative — moment was the week-6 realisation that the DX benchmark was the strategic centre of the project, not a side-deliverable (substance in §2.3). It did not arrive as an insight; it arrived as a slow accumulation of moments where I noticed I was reaching for the benchmark to justify every other decision — which Paynow product to integrate next, how to scope the retrospective, what to lead the demo with. The shift was from "produce deliverables" to "produce evidence that decisions can be made on." Takudzwa's habit of pressing every artefact with the same question — *what decision does this enable* — was the engine of that shift.
+The third — and most professionally formative — moment was the week-6 realisation that the DX benchmark was the strategic centre of the project, not a side-deliverable (substance in §2.3). It arrived gradually: I noticed I was reaching for the benchmark to justify every other decision — which product to integrate next, how to scope the retrospective, what to lead the demo with. The shift was from producing deliverables to producing evidence that decisions can be made on, and Takudzwa's habit of pressing every artefact with the same question — *what decision does this enable* — was the engine of that shift.
 
 A fourth, smaller moment was abandoning the custom Go backend I had started in week 3. I had defaulted to a familiar CMD-coursework pattern — separate backend service, separate frontend — and was three days in when Takudzwa asked, in a 1:1, what the Go layer was doing that Supabase could not. I did not have a good answer. The Go backend came out the following week; the same functionality is now ~200 lines of Postgres functions and a few Edge Functions in Deno. The lesson was not "choose Supabase" — it was that I had been pattern-matching to a stack I already knew rather than reasoning from the constraints in front of me. It took a one-sentence supervisor question to surface that.
 
-A persistent smaller insight has been about working culture. Paynow's flatness was initially disorienting after the weekly tutor sign-offs of a Dutch HBO programme; here, decisions are made by whoever is closest to the problem. After three weeks of slight over-checking, I learned to bring Takudzwa proposed decisions with the option already chosen, the alternatives listed, and the trade-offs named. The change took explicit feedback to land — in a 1:1 he pointed out that the questions I was asking were doing more work than my proposed answers. The format I use now — proposed decision, two alternatives, the trade-off that made me pick one — came directly from that conversation.
+A persistent smaller insight has been about working culture. Paynow's flatness was initially disorienting after the weekly tutor sign-offs of a Dutch HBO programme; here, decisions are made by whoever is closest to the problem. After several weeks of requesting confirmation more often than necessary, I learned to bring Takudzwa proposed decisions with the option already chosen, the alternatives listed, and the trade-offs named. The change took explicit feedback to land — in a 1:1 he pointed out that the questions I was asking were doing more work than my proposed answers. The format I use now — proposed decision, two alternatives, the trade-off that made me pick one — came directly from that conversation.
 
-The largest single surprise has been the **internal consistency gap inside Paynow itself**. I had expected the benchmark to surface a Paynow-versus-the-world gap. It surfaced a Paynow-Core-versus-Paynow-BillPay gap instead. The architectural pattern that would resolve Core's lowest-scoring problem is already running on a sister product's subdomain inside the same company. The most valuable advice I can leave behind is therefore less a roadmap of new things to build than a pointer back to a pattern Paynow has already shipped.
+The largest single surprise has been the **ecosystem consistency pattern inside Paynow itself**. I had expected comparative integration work to surface a Paynow-versus-the-world gap; it surfaced inconsistencies between Paynow's own product subdomains instead. The architectural pattern that would resolve the most consequential of these is already running successfully on a sister product inside the same company. The most valuable advice I can leave behind is therefore less a roadmap of new things to build than a pointer back to a pattern Paynow has already shipped.
 
 ---
 
@@ -287,7 +287,7 @@ Three are worth naming explicitly.
 
 **Bottleneck 1 — the Cloudflare relay problem.** ~1.5 weeks of unplanned engineering time. Resolved with a Worker relay + browser-relay fallback, now the standard workaround. Full narrative in §4; the bottleneck is now an asset — it produced the retrospective's most concrete recommendation.
 
-**Bottleneck 2 — webhook hash-ordering bug.** Legitimate Paynow payment confirmations were being rejected by our code as forgeries. Paynow hashes callback fields in the order its server sent them, not the order our code expected — so any intermediate hop that reshuffles fields breaks the hash. Undocumented; three intermittent production rejections before I identified it. Resolved by reconstructing the hash on received-order; filed as a docs gap in the Core writeup.
+**Bottleneck 2 — webhook verification mismatch.** Legitimate Paynow payment confirmations were being rejected by our code as if they were forgeries, due to a subtle and undocumented difference in how the security signature was constructed. Three intermittent production rejections occurred before I identified it. Resolved by adjusting our verification logic; filed as a documentation gap in the Core writeup.
 
 **Bottleneck 3 — scope drift after the leadership demo.** The 8 May panel expanded scope into BillPay, Bisafe, Paab, WhatsApp, and USSD. Productive but a scope-management risk. Managed by moving Bisafe to weeks 8–9 and bounding the agentic work into a single "non-app channels" stream. Scope expanded without plan items being dropped.
 
@@ -301,7 +301,7 @@ All three resolved within the placement period.
 
 1. Ship Bisafe escrow on ZimLivestock and document it in the senior-engineer register.
 2. Deliver the final ecosystem report as a single coherent advisory document — usable by leadership without my presence in the room.
-3. Close the agentic-commerce workstream (WhatsApp bot + USSD simulator) as a demonstrated, evidenced thesis rather than a demo trick.
+3. Close the agentic-commerce workstream (WhatsApp bot + USSD simulator) as a demonstrated, evidenced thesis rather than a one-off demonstration.
 4. Leave behind onboarding documentation that gets the next external integrator to first payment in under a week (currently three).
 5. Produce a separate written advisory brief from the ecosystem report and DX benchmark v2, pitched at non-engineer executives.
 
