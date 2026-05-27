@@ -66,9 +66,7 @@ Per-product **Slack channels** for day-to-day, **WhatsApp** for urgent coordinat
 
 ### 1.7 My position and department
 
-I report into the **DX team**, day-to-day supervised by Takudzwa Sisimayi, rather than to a single product team. The placement was deliberately positioned this way: no Paynow employee had previously integrated every Paynow product end-to-end in a single application. Sitting at the DX layer let me consume the ecosystem as an external integrator does, and expose inconsistencies that product-silo insiders would not see.
-
-The positioning gave me four concrete things: direct access to engineering leads across Core, BillPay, TXT, Bisafe, and Paab; sandbox + live merchant accounts (Integration IDs 23657 and 23997); cross-team Slack access; and latitude to choose my own stack, scope, and research methodology, subject to a mid-point leadership-panel demo.
+I report into the **DX team**, supervised day-to-day by Takudzwa Sisimayi, rather than into a single product team. No Paynow employee had previously integrated every Paynow product end-to-end inside one application; sitting at the DX layer let me consume the ecosystem as an external integrator does, and expose inconsistencies that product-silo insiders would not see. In practice this meant direct access to engineering leads across Core, BillPay, TXT, Bisafe, and Paab; sandbox + live merchant accounts (Integration IDs 23657 and 23997); cross-team Slack access; and latitude over my own stack, scope, and research methodology, subject to a mid-point leadership-panel demo.
 
 ### 1.8 Position in the business chain
 
@@ -101,7 +99,7 @@ Three traits stood out:
 | **Main tasks** (in original ZimLivestock plan, 12 Mar – 23 Apr) | Field research; DX benchmark vs Stripe / Paystack / Flutterwave; wireframes + architecture; marketplace prototype (listings + bidding); Paynow Core integration; end-to-end payment testing; stakeholder demos; final DX report; deployed prototype; 5-min presentation. |
 | **Secondary tasks** (added post-demo / outside plan) | BillPay, TXT, Bisafe, Paab integrations/designs; benchmark expanded to 6 providers / 7 categories; WhatsApp bot; USSD simulator; senior-engineer integration writeups; Cloudflare Worker relay + browser-relay fallback; session-log discipline. |
 
-The boundary between "main" and "secondary" eroded after the 8 May leadership demo. Tasks the panel asked me to extend — BillPay coverage, Bisafe escrow on high-ticket trades, agentic commerce via WhatsApp, USSD reach for feature phones — became central to the second half of the placement, not optional. Section 2.6 details the scope expansion explicitly.
+The "main vs secondary" boundary eroded after the 8 May leadership demo: BillPay coverage, Bisafe escrow, WhatsApp agentic flows, and USSD reach became central to the second half of the placement (see §2.6).
 
 ### 2.3 The most important thing I have learned
 
@@ -109,12 +107,7 @@ The single most important lesson is that **a developer-experience benchmark, don
 
 ### 2.4 Alignment with the internship plan
 
-The placement began on **2 February 2026**, with the first weeks devoted to onboarding and orientation; the **ZimLivestock project plan** then ran formally from **12 March to 23 April 2026** (6 weeks). The internship therefore comprises two nested documents:
-
-- **The Internship Agreement (CMD)** signed by myself, Takudzwa Sisimayi (company supervisor), and John Bos (internship tutor): 91 days, 2 Feb – 8 Jun 2026, anchored to five HBO-i competencies — *To Create*, *To Learn*, *To Communicate*, *To Organise*, *To Research* — totalling 30 ECTS.
-- **The ZimLivestock project plan** (12 Mar – 23 Apr 2026, 6 weeks): the concrete project deliverable inside the placement.
-
-Against the **ZimLivestock project plan**, every success criterion has been met or exceeded:
+The placement runs **2 February – 8 June 2026** (91 days, 30 ECTS, five HBO-i competencies — see title page). The **ZimLivestock project plan** sits inside it as the concrete deliverable: **12 March – 23 April 2026** (6 weeks). Onboarding and orientation occupied the weeks before the project plan opened. Against that project plan, every success criterion has been met or exceeded:
 
 | Plan success criterion | Plan period | Status |
 |---|---|---|
@@ -132,7 +125,7 @@ Against the **ZimLivestock project plan**, every success criterion has been met 
 | Deployed prototype with public URL | by 23 Apr | ✅ `app-nine-sigma-jgoqp90f2p.vercel.app` |
 | 5-minute presentation | by 23 Apr | ✅ Delivered |
 
-Against the **Internship Agreement competencies**, alignment is described in section 3.
+Competency alignment is described in §3.
 
 ### 2.5 Competencies to focus on in the upcoming period
 
@@ -144,9 +137,7 @@ For the remaining ~3 weeks I want to stretch on three things:
 
 ### 2.6 Adjustments to the internship plan (scope expansion vs original plan)
 
-The internship has expanded beyond the original ZimLivestock project plan. The full table of original-plan items vs added items is below so the supervisor and tutor can confirm the additions remain consistent with the agreement. All original-plan items were delivered (see §2.4); none were displaced.
-
-#### Items added during the placement (outside the original plan)
+The scope expanded beyond the original ZimLivestock project plan after the 8 May demo. Original-plan items were all delivered (§2.4); the additions below were approved progressively in supervisor 1:1s.
 
 | Added item | Trigger | Status |
 |---|---|---|
@@ -162,19 +153,19 @@ The internship has expanded beyond the original ZimLivestock project plan. The f
 | **Ecosystem Integration Retrospective** | Panel ask: "tell us what we look like from outside" | Draft delivered |
 | **Reframe of final deliverable** — from ZimLivestock launch to evidence vehicle for an ecosystem-integration thesis | Strategic value is retrospective + benchmark, not the product | Reframed |
 
-All additions were approved progressively in supervisor 1:1s. The remaining ~3 weeks are committed to converging the material into a single coherent advisory document rather than producing more of it.
+The remaining ~3 weeks are committed to converging this material into a single coherent advisory document rather than producing more of it.
 
 ---
 
 ## 3. Justification of My Learning Objectives (HBO-i competencies)
 
-The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each competency carries a learning goal phrased in my own words at the start of the placement. The sub-sections below justify each competency, restate the original learning goal, and present the evidence cluster that supports it at this interim point.
+The Internship Agreement allocates 30 ECTS across five HBO-i competencies, each with a learning goal I phrased in my own words at the start of the placement. The sub-sections below restate each goal, justify the competency, and present an interim evidence cluster.
 
-**CMD framing.** Although the placement is engineering-heavy on the surface, the work was framed throughout by CMD design lenses. Human-centred design shaped the field-research methodology and the decision to anchor the architecture in counterparty trust rather than UI polish. Service design framed the cross-channel flow — web, WhatsApp, USSD, and physical cash — as a single user journey instead of a set of integrations. Systems thinking is what allowed the placement to surface an *internal* ecosystem gap inside Paynow rather than only an external benchmark gap. Low-connectivity UX shaped the choice to treat 2G, feature phones, and power cuts as first-class design constraints. The competencies below sit on top of that design frame.
+**CMD framing.** The placement is engineering-heavy on the surface, but four CMD lenses framed the work: human-centred design (anchoring the architecture in counterparty trust over UI polish, via field research); service design (treating web, WhatsApp, USSD, and physical cash as one user journey rather than a set of integrations); systems thinking (which surfaced an *internal* ecosystem gap inside Paynow, not only an external benchmark gap); and low-connectivity UX (treating 2G, feature phones, and power cuts as first-class design constraints).
 
 ### 3.1 To Create — L2, 12 ECTS (6 compulsory + 6 elective)
 
-**Original learning goal:** *By the end of my placement, I will have shipped at least one full-stack application at Paynow that interfaces with core platform infrastructure (e.g. payment processing, merchant management, or settlement), is deployed to production, and handles real user traffic. This includes building end-to-end features connecting frontend UIs to backend APIs and core Paynow systems; designing and implementing RESTful or event-driven integrations with core infrastructure; building merchant-facing or internal dashboards and tools; writing automated tests and managing deployments through CI/CD pipelines; and applying secure coding practices appropriate to a fintech environment.*
+**Original learning goal:** *Ship at least one full-stack application at Paynow that interfaces with core platform infrastructure, is deployed to production, and handles real user traffic — covering frontend-to-backend integration, RESTful or event-driven integrations, internal tooling, CI/CD, and secure coding practices appropriate to a fintech environment.*
 
 **Why this competency was appropriate.** Paynow runs live merchant flows; a localhost prototype would not have surfaced the relay problem, the webhook hash-ordering bug, or the realities of production integration. The 12 ECTS commitment reflects that the placement's strategic value depended on shipping, not just designing.
 
@@ -190,7 +181,7 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 
 ### 3.2 To Learn — L2, 3 ECTS (compulsory, maximum permitted)
 
-**Original learning goal:** *By the end of my placement, I will demonstrate that I can operate effectively in a professional fintech development environment by mastering Paynow's tech stack and adapting my academic development methods to enterprise-level constraints through regular reflection and feedback cycles. This includes learning internal frameworks and tooling; participating in Agile sprints; holding bi-weekly reflection sessions; and adjusting technical designs based on regulatory and business realities.*
+**Original learning goal:** *Operate effectively in a professional fintech development environment by mastering Paynow's tech stack, participating in Agile cycles, holding regular reflection sessions, and adjusting technical designs to regulatory and business realities.*
 
 **Why this competency was appropriate.** I arrived with no prior fintech experience and no exposure to mobile-money rails or USSD-first markets. The placement only works if I can absorb domain context fast enough to make non-trivial decisions without supervision.
 
@@ -203,7 +194,7 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 
 ### 3.3 To Communicate — L2, 6 ECTS (3 compulsory + 3 elective)
 
-**Original learning goal:** *By the end of my placement, I will communicate technical work clearly to both technical and non-technical stakeholders by producing professional documentation, presenting sprint updates, and explaining system trade-offs in business-relevant terms. This includes writing API or feature documentation; updating stakeholders during sprint ceremonies; translating technical complexity for support or product teams; and documenting design decisions.*
+**Original learning goal:** *Communicate technical work clearly to both technical and non-technical stakeholders — through documentation, sprint updates, and trade-off explanations framed in business-relevant terms.*
 
 **Why this competency was appropriate.** The work is only valuable if Paynow leadership reads, believes, and acts on it. The DX team asked for outside-in evidence on developer experience; product teams asked for an integration-friction list only an end-to-end integrator produces. Both audiences need the same material translated for them.
 
@@ -217,7 +208,7 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 
 ### 3.4 To Organise — L2, 3 ECTS (compulsory)
 
-**Original learning goal:** *By the end of my placement, I will independently manage my development workflow within Paynow's Agile environment by planning tasks, tracking progress, meeting sprint deadlines, and adjusting priorities based on feedback. This includes breaking work into subtasks; estimating delivery time; using sprint boards; monitoring productivity; and taking ownership of deliverables.*
+**Original learning goal:** *Independently manage my development workflow within Paynow's Agile environment — planning, tracking, meeting sprint deadlines, adjusting priorities under feedback, and taking ownership of deliverables.*
 
 **Why this competency was appropriate.** With week-one autonomy over stack, scope, and methodology, the placement depended heavily on disciplined planning and prioritisation. Organisation is load-bearing for everything else.
 
@@ -231,7 +222,7 @@ The Internship Agreement allocates 30 ECTS across five HBO-i competencies. Each 
 
 ### 3.5 To Research — L2, 6 ECTS (elective)
 
-**Original learning goal:** *By the end of my placement, I will conduct a structured technical investigation into a system improvement opportunity at Paynow, apply professional research methods, and present a data-driven recommendation to senior engineers. This includes identifying a performance or architecture issue; collecting system metrics; prototyping solutions; evaluating results; writing a recommendation report; and presenting findings.*
+**Original learning goal:** *Conduct a structured technical investigation into a system-improvement opportunity at Paynow, applying professional research methods and presenting a data-driven recommendation to senior engineers.*
 
 **Why this competency was appropriate.** Both asks from the DX and product teams are research-shaped, not build-shaped: the deliverables are findings + recommendations, not features.
 
@@ -254,15 +245,15 @@ I had spent the preceding week building wireframes for a livestock marketplace t
 
 The second growth moment was the Cloudflare relay incident — the clearest example I can give of something I got wrong before I got it right.
 
-Every call from our backend to Paynow's main domain was being silently dropped at the network layer before Paynow's servers saw it. I assumed credentials, then CORS, then TLS, and spent close to a working day at each layer before climbing one rung up the stack. When I escalated to Takudzwa I expected him to reset credentials or open a firewall rule. He did neither. He asked me to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately. The placement's most important finding began with a supervisor redirect, not my own insight.
+Calls from our backend to Paynow's main domain were being silently dropped at the network layer. I assumed credentials, then CORS, then TLS — close to a working day at each before climbing one rung up the stack. When I escalated to Takudzwa I expected a credentials reset or a firewall rule. He asked me instead to reproduce the failure against `billpay.paynow.co.zw`. That subdomain succeeded immediately. The placement's most important finding began with a supervisor redirect, not my own insight.
 
-The procedural lesson — climb the stack one layer at a time, rather than thrashing at the layer you know best — is one I now apply consciously. The fix itself (a Cloudflare Worker plus a browser-relay fallback that routes the call through the user's own browser, sidestepping the bot wall) is now the documented standard workaround.
+The procedural lesson — climb the stack one layer at a time, rather than thrashing at the layer you know best — is one I now apply consciously. The fix itself (a Cloudflare Worker plus a browser-relay fallback that routes the call through the user's own browser, sidestepping the bot wall) is now the documented workaround.
 
-The third — and most professionally formative — moment was the week-6 realisation that the DX benchmark was the strategic centre of the project, not a side-deliverable (substance in §2.3). The texture matters more than the conclusion: it did not arrive as an insight. It arrived as a slow accumulation of moments where I noticed I was reaching for the benchmark to justify every other decision — which Paynow product to integrate next, how to scope the retrospective, what to lead the demo with. The shift was from "produce deliverables" to "produce evidence that decisions can be made on." Takudzwa's habit of pressing every artefact with the same question — *what decision does this enable* — was, in retrospect, the engine of that shift.
+The third — and most professionally formative — moment was the week-6 realisation that the DX benchmark was the strategic centre of the project, not a side-deliverable (substance in §2.3). It did not arrive as an insight; it arrived as a slow accumulation of moments where I noticed I was reaching for the benchmark to justify every other decision — which Paynow product to integrate next, how to scope the retrospective, what to lead the demo with. The shift was from "produce deliverables" to "produce evidence that decisions can be made on." Takudzwa's habit of pressing every artefact with the same question — *what decision does this enable* — was the engine of that shift.
 
-A fourth growth moment, smaller but no less formative, was abandoning the custom Go backend I had started building in week 3. I had defaulted to a familiar pattern from my CMD coursework — a separate backend service speaking to a frontend client — and was three days into implementing payment endpoints when Takudzwa asked, in a 1:1, what the Go layer was doing that Supabase could not. I did not have a good answer. The Go backend came out the following week; the same functionality is now ~200 lines of Postgres functions and a handful of Edge Functions in Deno. The lesson was not "choose Supabase" — that decision was incidental. The lesson was that I had been pattern-matching to a stack I already knew, rather than reasoning from the constraints in front of me. It took a one-sentence supervisor question to surface that.
+A fourth, smaller moment was abandoning the custom Go backend I had started in week 3. I had defaulted to a familiar CMD-coursework pattern — separate backend service, separate frontend — and was three days in when Takudzwa asked, in a 1:1, what the Go layer was doing that Supabase could not. I did not have a good answer. The Go backend came out the following week; the same functionality is now ~200 lines of Postgres functions and a few Edge Functions in Deno. The lesson was not "choose Supabase" — it was that I had been pattern-matching to a stack I already knew rather than reasoning from the constraints in front of me. It took a one-sentence supervisor question to surface that.
 
-A smaller but persistent insight has been about working culture. Paynow's flatness was initially disorienting after the weekly tutor sign-offs of a Dutch HBO programme; here, decisions are made by whoever is closest to the problem. After three weeks of slight over-checking, I learned to bring Takudzwa proposed decisions with the option already chosen, the alternatives listed, and the trade-offs named. The change took explicit feedback to land — in a 1:1 he pointed out that the questions I was asking were doing more work than my proposed answers. The format I use now (proposed decision, two alternatives, the trade-off that made me pick one) comes directly from that conversation.
+A persistent smaller insight has been about working culture. Paynow's flatness was initially disorienting after the weekly tutor sign-offs of a Dutch HBO programme; here, decisions are made by whoever is closest to the problem. After three weeks of slight over-checking, I learned to bring Takudzwa proposed decisions with the option already chosen, the alternatives listed, and the trade-offs named. The change took explicit feedback to land — in a 1:1 he pointed out that the questions I was asking were doing more work than my proposed answers. The format I use now — proposed decision, two alternatives, the trade-off that made me pick one — came directly from that conversation.
 
 The largest single surprise has been the **internal consistency gap inside Paynow itself**. I had expected the benchmark to surface a Paynow-versus-the-world gap. It surfaced a Paynow-Core-versus-Paynow-BillPay gap instead. The architectural pattern that would resolve Core's lowest-scoring problem is already running on a sister product's subdomain inside the same company. The most valuable advice I can leave behind is therefore less a roadmap of new things to build than a pointer back to a pattern Paynow has already shipped.
 
@@ -272,23 +263,23 @@ The largest single surprise has been the **internal consistency gap inside Payno
 
 ### 5.1 Does the work match the tasks and activities agreed in the internship plan?
 
-Yes — and it has expanded beyond them in directions that were explicitly invited by the company supervisor and the leadership panel. Section 2.6 sets out the original-plan items (all delivered) and the added items (all approved progressively in supervisor 1:1s with Takudzwa Sisimayi). The expansion has not displaced any original-plan deliverable.
+Yes — and it has expanded in directions explicitly invited by the company supervisor and leadership panel (see §2.6). Original-plan items were all delivered; the additions were approved progressively in 1:1s and displaced nothing.
 
 ### 5.2 Are the activities appropriate for my internship goals?
 
-Yes. The five HBO-i competencies in the agreement — *To Create*, *To Learn*, *To Communicate*, *To Organise*, *To Research* — each have a substantive evidence cluster at interim (see section 3). The competency I judge most at risk of under-delivery is *To Communicate*: the raw artefacts exist, but the final synthesis into a single advisory document for Paynow leadership is the most important piece of remaining work and is incomplete. This is the principal focus of my remaining ~3 weeks.
+Yes. Each of the five HBO-i competencies has a substantive interim evidence cluster (§3). The competency most at risk of under-delivery is *To Communicate*: the raw artefacts exist, but the final synthesis into a single advisory document for Paynow leadership is incomplete. This is the principal focus of my remaining ~3 weeks.
 
 ### 5.3 Have I acquired sufficient skills during my training to carry out my tasks?
 
-Largely yes. The CMD programme prepared me well for **Create** and **Communicate**. **Research** was supported by prior user-research coursework but stretched by the requirement to apply it to a DX benchmark with a reproducible rubric — a genre I had not previously practised. **Organise** was the biggest adjustment: managing a 91-day placement as a sole developer in a foreign country is a different organisational problem from a group assignment with weekly sign-off. **Learn** built on prior reflective-practice training; the remote-supervision cadence required adaptation.
+Largely yes. CMD prepared me well for **Create** and **Communicate**. **Research** built on prior user-research coursework but was stretched by the DX-benchmark requirement to apply a reproducible rubric — a genre I had not practised before. **Organise** was the biggest adjustment: managing a 91-day placement as a sole developer abroad is a different problem from a group assignment with weekly sign-off. **Learn** built on prior reflective-practice training, with the remote-supervision cadence requiring adaptation.
 
 ### 5.4 Is the supervision from the company sufficient?
 
-Yes. Takudzwa Sisimayi's posture — give the intern access and let them surface what insiders cannot — is exactly what the placement requires. Feedback has been timely and direct. He has consistently challenged my conclusions rather than accepted them, which is the more useful behaviour for this work. Two representative moments are detailed in §4: the Cloudflare-wall redirect that produced the retrospective's central recommendation, and the one-sentence question that removed the Go backend the following week. In both cases my first instinct was wrong; supervision corrected the trajectory rather than rubber-stamped it. Bi-weekly 1:1s are the right cadence given the autonomy I have day-to-day.
+Yes. Takudzwa Sisimayi's posture — give the intern access and let them surface what insiders cannot — is exactly what the placement requires. Feedback has been timely and direct, and has consistently challenged my conclusions rather than accepted them. Two representative moments are detailed in §4 (the Cloudflare-wall redirect and the Go-backend question); in both cases my first instinct was wrong and supervision corrected the trajectory rather than rubber-stamped it. Bi-weekly 1:1s are the right cadence given the day-to-day autonomy.
 
 ### 5.5 Is the supervision from the training programme sufficient?
 
-Yes. John Bos has provided structured check-ins and a consistent reading of my work against the HBO-i / CMD framework — particularly valuable after the 8 May demo when scope began to drift. The remote cadence (Leeuwarden ↔ Harare) has worked because it is predictable and because the first visit took place on 13 February, before the project plan was finalised.
+Yes. John Bos has provided structured check-ins and a consistent reading of my work against the HBO-i / CMD framework — particularly valuable after the 8 May demo when scope began to drift. The remote cadence (Leeuwarden ↔ Harare) has worked because it is predictable and because the first visit (13 February) preceded the project-plan finalisation.
 
 ### 5.6 Bottlenecks or problems during this internship period
 
@@ -296,15 +287,15 @@ Three are worth naming explicitly.
 
 **Bottleneck 1 — the Cloudflare relay problem.** ~1.5 weeks of unplanned engineering time. Resolved with a Worker relay + browser-relay fallback, now the standard workaround. Full narrative in §4; the bottleneck is now an asset — it produced the retrospective's most concrete recommendation.
 
-**Bottleneck 2 — webhook hash-ordering bug.** Some legitimate Paynow payment confirmations were being rejected by our code as if they were forgeries. The cause was a quirk in Paynow's signing logic: it hashes the callback fields in the order Paynow's server sent them, not the order our code expected. If anything along the network path reshuffles those fields, the hash no longer matches and the callback is dropped. The behaviour is undocumented and caused three intermittent production rejections before I identified it. Resolved by reconstructing the hash on received-order; filed as a documentation gap in the Core writeup.
+**Bottleneck 2 — webhook hash-ordering bug.** Legitimate Paynow payment confirmations were being rejected by our code as forgeries. Paynow hashes callback fields in the order its server sent them, not the order our code expected — so any intermediate hop that reshuffles fields breaks the hash. Undocumented; three intermittent production rejections before I identified it. Resolved by reconstructing the hash on received-order; filed as a docs gap in the Core writeup.
 
-**Bottleneck 3 — scope drift after the leadership demo.** The 8 May panel produced strong feedback that expanded the project's scope into BillPay, Bisafe escrow, Paab cash, agentic commerce, WhatsApp, and USSD flows. Productive feedback, but a scope-management risk. Managed by formally moving Bisafe from week 7 to weeks 8–9 and bounding the agentic work into a single "non-app channels" workstream rather than letting it spread across every deliverable. Net effect: scope expanded without plan items being dropped.
+**Bottleneck 3 — scope drift after the leadership demo.** The 8 May panel expanded scope into BillPay, Bisafe, Paab, WhatsApp, and USSD. Productive but a scope-management risk. Managed by moving Bisafe to weeks 8–9 and bounding the agentic work into a single "non-app channels" stream. Scope expanded without plan items being dropped.
 
-All three were resolved within the placement period.
+All three resolved within the placement period.
 
 ### 5.7 Do I agree with the assessment my supervisor has given me?
 
-[FILL — after appraisal on FILL-date.] Based on bi-weekly conversations with Takudzwa, I expect the assessment to be broadly positive on technical delivery (*Create*, *Organise*) and research (*Research*), with constructive pressure on synthesis-and-advisory (*Communicate*) — which I have flagged in §2.5 as my priority for the remaining weeks. I agree with that direction in advance: it is where I am weakest and where the remaining work has the highest leverage.
+[FILL — after appraisal on FILL-date.] Based on bi-weekly 1:1s, I expect the assessment to be broadly positive on *Create*, *Organise*, and *Research*, with constructive pressure on the synthesis-and-advisory side of *Communicate* (flagged in §2.5). I agree with that direction in advance: it is where I am weakest and where the remaining work has the highest leverage.
 
 ### 5.8 Goals for the remainder of the internship
 
