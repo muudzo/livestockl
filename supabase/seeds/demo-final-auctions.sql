@@ -85,9 +85,10 @@ BEGIN
     SELECT '/item/' || id::text FROM public.livestock_items WHERE title LIKE 'DEMO · %'
   );
   DELETE FROM public.bids        WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
-  -- transport_requests + conversations FK livestock_items with NO ACTION in prod
-  -- (schema.sql declares CASCADE; prod drifted). Clean explicitly.
-  DELETE FROM public.transport_requests tr WHERE tr.item_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
+  -- conversations.livestock_id FKs livestock_items with NO ACTION in prod
+  -- and isn't declared in schema.sql; clean explicitly so the next DELETE
+  -- doesn't trip. (transport_requests now cascades — see migration
+  -- 20260528010000_align_transport_fk_cascade.sql.)
   DELETE FROM public.conversations WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
   DELETE FROM public.livestock_items WHERE title LIKE 'DEMO · %';
 
