@@ -37,6 +37,10 @@ DECLARE
   item_id    uuid;
   bid_uuid   uuid;
 
+  -- Multi-tenant pivot (2026-05-11) made tenant_id NOT NULL. All demo
+  -- buyer/sellers belong to zimlivestock-demo (verified 2026-05-28).
+  demo_tenant_id uuid := '9d227a90-5958-4de3-93a9-82d410faedd0';
+
   img_brahman  text := 'https://images.unsplash.com/photo-1762202207738-e0b4b905922d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80';
   img_hereford text := 'https://images.unsplash.com/photo-1554798372-9f6d1831bd96?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80';
   img_angus    text := 'https://images.unsplash.com/photo-1605633561814-0f4f8e0d76cf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1080&q=80';
@@ -81,6 +85,10 @@ BEGIN
     SELECT '/item/' || id::text FROM public.livestock_items WHERE title LIKE 'DEMO · %'
   );
   DELETE FROM public.bids        WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
+  -- transport_requests + conversations FK livestock_items with NO ACTION in prod
+  -- (schema.sql declares CASCADE; prod drifted). Clean explicitly.
+  DELETE FROM public.transport_requests tr WHERE tr.item_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
+  DELETE FROM public.conversations WHERE livestock_id IN (SELECT id FROM public.livestock_items WHERE title LIKE 'DEMO · %');
   DELETE FROM public.livestock_items WHERE title LIKE 'DEMO · %';
 
   ---------------------------------------------------------------------------
@@ -94,13 +102,14 @@ BEGIN
   SELECT id INTO penny_uuid FROM public.agents
    WHERE user_id = buyer_id AND name = 'Penny Sniper' LIMIT 1;
   IF penny_uuid IS NULL THEN
-    INSERT INTO public.agents (user_id, agent_type, name, status, config)
+    INSERT INTO public.agents (user_id, agent_type, name, status, config, tenant_id)
     VALUES (buyer_id, 'sniper', 'Penny Sniper', 'active',
             jsonb_build_object(
               'max_bid_usd', 0.05,
               'snipe_window_seconds', 30,
               'payment_phone', '0781497764',
-              'category_focus', ARRAY['Cattle', 'Sheep']))
+              'category_focus', ARRAY['Cattle', 'Sheep']),
+            demo_tenant_id)
     RETURNING id INTO penny_uuid;
   ELSE
     UPDATE public.agents
@@ -115,13 +124,14 @@ BEGIN
   SELECT id INTO boer_uuid FROM public.agents
    WHERE user_id = buyer_id AND name = 'Boer Bargainer' LIMIT 1;
   IF boer_uuid IS NULL THEN
-    INSERT INTO public.agents (user_id, agent_type, name, status, config)
+    INSERT INTO public.agents (user_id, agent_type, name, status, config, tenant_id)
     VALUES (buyer_id, 'sniper', 'Boer Bargainer', 'active',
             jsonb_build_object(
               'max_bid_usd', 0.05,
               'snipe_window_seconds', 30,
               'payment_phone', '0781497764',
-              'category_focus', ARRAY['Goats', 'Pigs']))
+              'category_focus', ARRAY['Goats', 'Pigs']),
+            demo_tenant_id)
     RETURNING id INTO boer_uuid;
   ELSE
     UPDATE public.agents
@@ -143,7 +153,7 @@ BEGIN
     INSERT INTO public.livestock_items (
       title, category, breed, age, weight, description, location, health,
       starting_price, current_bid, bid_count, image_urls,
-      seller_id, status, duration_days, end_time, created_at
+      seller_id, status, duration_days, end_time, created_at, tenant_id
     )
     VALUES (
       'DEMO · ' || spec[1] || (CASE WHEN spec[14] = 'ended' THEN ' — won!' ELSE ' — ends ' || spec[13] || 'm' END),
@@ -151,14 +161,15 @@ BEGIN
       spec[9]::numeric, spec[10]::numeric, 1, ARRAY[spec[11]],
       spec[12]::uuid, spec[14], 1,
       NOW() + make_interval(mins => spec[13]::int),
-      NOW() - interval '6 hours'
+      NOW() - interval '6 hours',
+      demo_tenant_id
     )
     RETURNING id INTO item_id;
 
     -- Buyer's bid. Pre-ended listings are already winners; active ones flip
     -- when end-auctions / place_bid fires.
-    INSERT INTO public.bids (livestock_id, user_id, amount, is_winner, created_at)
-    VALUES (item_id, buyer_id, spec[10]::numeric, spec[14] = 'ended', NOW() - interval '1 minute')
+    INSERT INTO public.bids (livestock_id, user_id, amount, is_winner, created_at, tenant_id)
+    VALUES (item_id, buyer_id, spec[10]::numeric, spec[14] = 'ended', NOW() - interval '1 minute', demo_tenant_id)
     RETURNING id INTO bid_uuid;
 
     INSERT INTO public.agent_bids (agent_id, livestock_id, bid_id, amount, strategy, status)
