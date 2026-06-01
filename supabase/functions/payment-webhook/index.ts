@@ -63,6 +63,58 @@ async function completePayment(reference: string, providerRef: string, log: impo
       message: `Payment of US$${updated.amount} received for ${item.title}.`,
       priority: "high",
     });
+    await notifySellerWhatsApp(
+      { sellerId: item.seller_id, amount: Number(updated.amount), title: item.title, livestockId: updated.livestock_id },
+      log,
+    );
+  }
+}
+
+/**
+ * Push the seller an in-chat "payment received → arrange delivery" message on
+ * the WhatsApp Cloud bot. Fire-and-forget: the bot decides 24h-window vs SMS.
+ */
+async function notifySellerWhatsApp(
+  opts: { sellerId: string; amount: number; title: string; livestockId: string | null },
+  log: import("../_shared/logger.ts").Logger,
+) {
+  try {
+    const { data: seller } = await supabase.from("profiles").select("phone").eq("id", opts.sellerId).maybeSingle();
+    if (!seller?.phone) return;
+
+    const payload: Record<string, unknown> = {
+      event: "payment_received",
+      seller_phone: seller.phone,
+      title: opts.title,
+      amount: opts.amount,
+    };
+
+    // Attach the buyer's pending delivery request, if any, so the seller can
+    // accept delivery straight from the chat.
+    if (opts.livestockId) {
+      const { data: tr } = await supabase
+        .from("transport_requests")
+        .select("id, dropoff_label, distance_km, quote_usd")
+        .eq("item_id", opts.livestockId).eq("status", "pending")
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (tr) {
+        payload.transport_request_id = tr.id;
+        payload.dropoff_label = tr.dropoff_label;
+        payload.distance_km = tr.distance_km;
+        payload.quote_usd = tr.quote_usd;
+      }
+    }
+
+    await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-cloud/notify`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    log.warn("WhatsApp seller notify failed", { error: (e as Error).message });
   }
 }
 
