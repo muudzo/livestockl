@@ -524,7 +524,7 @@ async function smsFallback(phone: string, message: string, eventType: string, us
 // access token or app secret. event:"selfcheck" inspects the token; add
 // subscribe:true to also register the webhook (callback/verify/messages) and
 // subscribe the WhatsApp Business Account to this app.
-async function adminSelfcheck(subscribe: boolean): Promise<Response> {
+async function adminSelfcheck(subscribe: boolean, wabaOverride?: string): Promise<Response> {
   const out: Record<string, unknown> = {
     phone_number_id_set: !!PHONE_NUMBER_ID,
     app_secret_set: !!APP_SECRET,
@@ -538,13 +538,16 @@ async function adminSelfcheck(subscribe: boolean): Promise<Response> {
   const dbg = await dbgRes.json();
   const d = dbg?.data ?? {};
   const appId = d.app_id as string | undefined;
-  const waba = Array.isArray(d.granular_scopes)
+  const wabaFromScopes = Array.isArray(d.granular_scopes)
     ? ([...new Set(
         d.granular_scopes
           .filter((g: any) => /whatsapp_business/.test(g.scope ?? ""))
           .flatMap((g: any) => g.target_ids ?? []),
       )][0] as string | undefined)
     : undefined;
+  // Test-number WABAs aren't enumerated in granular scopes; allow an explicit
+  // waba_id (the non-secret "WhatsApp Business Account ID" from the dashboard).
+  const waba = wabaOverride || wabaFromScopes;
   out.token = {
     is_valid: d.is_valid ?? false,
     type: d.type ?? null,
@@ -603,7 +606,7 @@ async function adminSelfcheck(subscribe: boolean): Promise<Response> {
 
 async function handleNotify(body: Record<string, any>): Promise<Response> {
   const event = body.event as string;
-  if (event === "selfcheck") return adminSelfcheck(body.subscribe === true);
+  if (event === "selfcheck") return adminSelfcheck(body.subscribe === true, body.waba_id);
   const sellerPhone = body.seller_phone as string;
   if (!event || !sellerPhone) return new Response("bad request", { status: 400 });
 
