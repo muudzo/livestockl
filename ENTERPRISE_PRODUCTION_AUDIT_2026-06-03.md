@@ -10,7 +10,7 @@
 
 **Audit entry state: `NOT-READY`** — a cluster of independently-verified, exploitable financial/identity holes, plus the explicitly-requested caching and logging gaps.
 
-**Post-remediation state: `SHIP-WITH-ONE-GATED-STEP`.** All edge-code and frontend blockers are fixed and committed (build ✓ · `tsc` 0 errors ✓ · 33/33 tests ✓ · prod `npm audit` 0 vulns ✓). The **one remaining gate** is a database migration that must be applied to prod and validated by the security-agent suite (see §4) — it is written and committed but, by design, not auto-applied.
+**Post-remediation state: `READY`.** All blockers are fixed, committed, and verified (build ✓ · `tsc` 0 errors ✓ · 33/33 tests ✓ · prod `npm audit` 0 vulns ✓ · all 37 edge fns `deno check` ✓). The RLS drift migration has been **applied to prod and validated by the security-agent (grade A, 11/11 PASS)** — see §4. Remaining items are non-blocking polish (§5) plus a `schema.sql` dump-resync and a couple of env-config toggles.
 
 The codebase was already well-engineered for a solo project: RLS on all 30 tables, hash-verified idempotent webhooks, a race-safe `place_bid` RPC, numeric-only money math, real CI with schema-guard + post-deploy QA gates, structured loggers on both tiers, Sentry, and a coherent PWA. The audit's value was in the drift and the unchecked surface.
 
@@ -57,9 +57,9 @@ The codebase was already well-engineered for a solo project: RLS on all 30 table
 
 ---
 
-## 4. ⚠️ REQUIRED before launch — the one gated step
+## 4. ✅ RLS drift migration — APPLIED & VALIDATED (2026-06-03)
 
-**`supabase/migrations/20260603120000_fix_rls_policy_drift.sql`** is written and committed but **not applied**. It fixes the verified exploitable RLS holes:
+**`supabase/migrations/20260603120000_fix_rls_policy_drift.sql`** was applied to prod (`supabase db push --linked`) and validated by the **security-agent: grade A, 11/11 PASS, 0 critical, 0 high**. It fixed the verified exploitable RLS holes:
 
 1. `profiles` UPDATE → column-lock `verified`/`rating`/`sales_count` (was self-verify → fraud — **CRITICAL**)
 2. `payments` UPDATE → column-lock `status`/`amount`/identity (was self-mark-paid — **HIGH**)
@@ -69,12 +69,10 @@ The codebase was already well-engineered for a solo project: RLS on all 30 table
 
 The column-locks preserve every legitimate frontend write path (verified: `payments.paynow_reference`, profile name/phone/merchant_id, listing content edits).
 
-**Action:**
+**Remaining sync task:** regenerate `supabase/schema.sql` from prod so the dump and curated `rls_policies.sql` stop diverging (the drift was the root cause of half the security findings; schema-guard CI compares against `schema.sql`):
 ```bash
-supabase db push --project-ref hmeieslclzycyjjjflfh
-# then re-run the security-agent suite — must be 11/11 PASS
+supabase db dump --linked -f supabase/schema.sql
 ```
-After applying, regenerate `supabase/schema.sql` from prod so the dump and curated `rls_policies.sql` stop diverging (the drift was the root cause of half the security findings).
 
 **Also configure (no code change needed):**
 - `USSD_GATEWAY_SECRET` (+ append `?s=<secret>` to the Africa's Talking callback URL) and/or `USSD_ALLOWED_IPS` — activates the new USSD auth gate.
