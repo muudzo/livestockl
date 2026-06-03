@@ -60,6 +60,30 @@ Deno.serve(async (req) => {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
+  // ── Authenticate the Africa's Talking gateway ───────────────────────────────
+  // This endpoint is platform-public (verify_jwt=false) and trusts the POSTed
+  // phoneNumber to place bids and fire EcoCash prompts on a caller's behalf, so
+  // it MUST authenticate the gateway. Both checks are OPT-IN — they enforce only
+  // when their env var is set — so turning them on is a config change (set the
+  // env + append ?s=<secret> to the AT callback URL, and/or allowlist AT's
+  // egress IPs) rather than a deploy that could break the live shortcode.
+  const gatewaySecret = Deno.env.get("USSD_GATEWAY_SECRET");
+  if (gatewaySecret) {
+    const provided = new URL(req.url).searchParams.get("s")
+      || req.headers.get("x-ussd-secret") || "";
+    if (provided !== gatewaySecret) {
+      return end("Service temporarily unavailable.");
+    }
+  }
+  const allowedIps = (Deno.env.get("USSD_ALLOWED_IPS") || "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  if (allowedIps.length) {
+    const clientIp = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim();
+    if (!allowedIps.includes(clientIp)) {
+      return end("Service temporarily unavailable.");
+    }
+  }
+
   const body = await req.text();
   const params = new URLSearchParams(body);
   const phone   = params.get("phoneNumber") || "";

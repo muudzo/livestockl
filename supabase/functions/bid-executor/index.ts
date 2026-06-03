@@ -105,20 +105,27 @@ serve(async (req: Request) => {
       });
     }
 
-    // ── Insert bid + update listing atomically ──
-    const { data: bidRecord, error: bidError } = await supabase
-      .from("bids")
-      .insert({ livestock_id: livestockId, user_id: agent.user_id, amount, tenant_id: listing.tenant_id })
-      .select("id")
-      .single();
+    // ── Place the bid via the atomic, lock-safe RPC ──
+    // The previous read-then-insert-then-update was a TOCTOU race: two
+    // concurrent agents (buyer-agent + auction-sniper) could both read the same
+    // current_bid, both pass the JS checks, and the lower amount could land last
+    // and clobber the higher current_bid (lost update). place_bid holds a
+    // FOR UPDATE lock across validate+insert+update, stamps tenant_id/current_bid/
+    // bid_count correctly, and dedupes on the idempotency key.
+    const idempotencyKey = globalThis.crypto?.randomUUID?.() ?? `${agentId}-${livestockId}-${amount}`;
+    const { data: bidId, error: bidError } = await (supabase.rpc as any)("place_bid", {
+      p_livestock_id: livestockId,
+      p_user_id: agent.user_id,
+      p_amount: amount,
+      p_idempotency_key: idempotencyKey,
+    });
 
-    if (bidError) throw bidError;
-
-    // Update listing price and bid count (mirrors place_bid() logic)
-    await supabase
-      .from("livestock_items")
-      .update({ current_bid: amount, bid_count: (listing.bid_count || 0) + 1 })
-      .eq("id", livestockId);
+    if (bidError) {
+      log.error("place_bid failed", { livestockId, amount, error: bidError.message });
+      return new Response(JSON.stringify({ error: bidError.message }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Notify seller
     await supabase.from("notifications").insert({
@@ -135,7 +142,7 @@ serve(async (req: Request) => {
       agent_id: agentId,
       goal_id: goalId || null,
       livestock_id: livestockId,
-      bid_id: bidRecord.id,
+      bid_id: bidId,
       amount,
       strategy,
     });
@@ -145,11 +152,11 @@ serve(async (req: Request) => {
       agent_id: agentId,
       event_type: "bid_placed",
       message: `Placed ${strategy} bid of US$${amount}`,
-      metadata: { livestock_id: livestockId, bid_id: bidRecord.id, amount, strategy },
+      metadata: { livestock_id: livestockId, bid_id: bidId, amount, strategy },
     });
 
     return new Response(JSON.stringify({
-      bid_id: bidRecord.id,
+      bid_id: bidId,
       amount,
       strategy,
       livestock_id: livestockId,

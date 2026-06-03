@@ -7,6 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// The Paynow simulator must NEVER fabricate a 'paid' order with a synthetic
+// reference in production. It is opt-in via env (demos/dev only). When disabled,
+// a network-blocked or unconfigured Paynow path resolves to a real failure
+// instead of a fake settlement.
+const ALLOW_SIM = Deno.env.get("ORCHESTRATOR_ALLOW_SIMULATION") === "true";
+
 // Simulated Paynow payment behavior
 // Models real-world Zimbabwe payment failure rates and latency
 function simulatePaynowPayment(method: string, attempt: number): {
@@ -452,23 +458,32 @@ async function executePayment(supabase: any, order: any, agent: any, log: import
           // confirm final payment status via the existing webhook.
           result = { success: true, delay: 0, error: null, reference: liveRef };
         } else if (live.networkBlocked) {
-          // Cloudflare / DNS / timeout — fall through to simulator for
-          // continuity. Surface the blocker in the activity log for clarity.
+          // Cloudflare / DNS / timeout. Surface the blocker; only fall back to
+          // the simulator when explicitly enabled. In production a network block
+          // must NOT fabricate a 'paid' order with a synthetic reference.
           await supabase.from("agent_activity_log").insert({
             agent_id: order.agent_id,
             event_type: "payment_initiated",
-            message: `Paynow Express push blocked at network layer (${live.error}) — falling back to simulator`,
+            message: ALLOW_SIM
+              ? `Paynow Express push blocked at network layer (${live.error}) — falling back to simulator`
+              : `Paynow Express push blocked at network layer (${live.error}) — failing (simulation disabled)`,
             metadata: { payment_order_id: order.id, method, phone: payerPhone, error: live.error },
           });
-          result = simulatePaynowPayment(method, attempt);
-          await new Promise((r) => setTimeout(r, Math.min(result.delay, 2000)));
+          if (ALLOW_SIM) {
+            result = simulatePaynowPayment(method, attempt);
+            await new Promise((r) => setTimeout(r, Math.min(result.delay, 2000)));
+          } else {
+            result = { success: false, delay: 0, error: "paynow_unreachable", reference: null };
+          }
         } else {
           // Real provider decline — don't simulate success, use the real error.
           result = { success: false, delay: 0, error: live.error || "Paynow declined", reference: null };
         }
-      } else {
+      } else if (ALLOW_SIM) {
         result = simulatePaynowPayment(method, attempt);
         await new Promise((resolve) => setTimeout(resolve, Math.min(result.delay, 2000)));
+      } else {
+        result = { success: false, delay: 0, error: "paynow_not_configured", reference: null };
       }
 
       if (result.success) {

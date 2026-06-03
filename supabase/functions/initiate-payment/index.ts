@@ -3,6 +3,21 @@ import Stripe from "https://esm.sh/stripe@17.7.0?target=deno";
 import { createLogger } from "../_shared/logger.ts";
 import { amountMatches, platformTotal } from "../_shared/money.ts";
 
+// Paynow sits behind Cloudflare and is known to hang (not cleanly error) under
+// some network conditions. Bound every call so a stalled upstream can't pin the
+// synchronous checkout request to the edge wall-clock limit; the existing
+// try/catch fallbacks treat the AbortError like any other Paynow failure.
+const PAYNOW_TIMEOUT_MS = 12_000;
+async function fetchWithTimeout(url: string, init: RequestInit, ms = PAYNOW_TIMEOUT_MS): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ALLOWED_ORIGIN is a comma-separated list of allowed browser origins for
 // CORS on this user-facing payment endpoint. Previous behaviour fell back to
 // "*" if the env var was unset, which means a production misconfiguration
@@ -210,7 +225,7 @@ Deno.serve(async (req) => {
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
             .join("&");
 
-          const paynowRes = await fetch("https://www.paynow.co.zw/interface/remotetransaction", {
+          const paynowRes = await fetchWithTimeout("https://www.paynow.co.zw/interface/remotetransaction", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: formBody,
@@ -315,7 +330,7 @@ Deno.serve(async (req) => {
           .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
           .join("&");
 
-        const paynowRes = await fetch("https://www.paynow.co.zw/interface/initiatetransaction", {
+        const paynowRes = await fetchWithTimeout("https://www.paynow.co.zw/interface/initiatetransaction", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: formBody,

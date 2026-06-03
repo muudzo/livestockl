@@ -19,6 +19,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createLogger } from "../_shared/logger.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 
+// Bound the Paynow poll fetch — a Cloudflare-fronted hang would otherwise pin
+// this (called every ~20s while pending) to the edge wall-clock limit. The
+// existing catch falls back to the pending/poll-unreachable branch on abort.
+const PAYNOW_POLL_TIMEOUT_MS = 10_000;
+async function fetchWithTimeout(url: string, init: RequestInit, ms = PAYNOW_POLL_TIMEOUT_MS): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -192,7 +206,7 @@ Deno.serve(async (req) => {
 
     let paynowParams: Record<string, string>;
     try {
-      const paynowRes = await fetch(pollUrl, { method: "POST" });
+      const paynowRes = await fetchWithTimeout(pollUrl, { method: "POST" });
       const paynowBody = await paynowRes.text();
       paynowParams = parsePaynowBody(paynowBody);
     } catch (fetchErr) {
