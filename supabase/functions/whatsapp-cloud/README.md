@@ -78,6 +78,27 @@ In the Meta App dashboard → WhatsApp → Configuration:
 - **Verify token**: the `WHATSAPP_VERIFY_TOKEN` value
 - **Subscribe** the webhook field: `messages`
 
+### Go-live / health check (no dashboard, no shell token)
+
+The `/notify` path has a bearer-gated `selfcheck` action that runs the Graph API
+calls *inside* the Edge runtime, where the Meta secrets already live — so the
+access token never has to be exported to a shell. It returns metadata only.
+
+```bash
+FN=https://hmeieslclzycyjjjflfh.supabase.co/functions/v1/whatsapp-cloud
+# Inspect the token (validity, type, expiry, scopes, WABA id):
+curl -s -X POST "$FN/notify" -H "Authorization: Bearer $CRON_SECRET" \
+  -H 'Content-Type: application/json' -d '{"event":"selfcheck"}'
+# Same, plus register the webhook (callback/verify/messages) + subscribe the WABA:
+curl -s -X POST "$FN/notify" -H "Authorization: Bearer $CRON_SECRET" \
+  -H 'Content-Type: application/json' -d '{"event":"selfcheck","subscribe":true}'
+```
+
+`WHATSAPP_ACCESS_TOKEN` must be a **permanent System User token** (Meta Business
+Settings → System Users → Generate token, expiration **Never**, scopes
+`whatsapp_business_messaging` + `whatsapp_business_management`). A temporary
+API-Setup token expires in ~24h and `selfcheck` will report `is_valid:false`.
+
 ### DB prerequisites
 
 Apply migration `20260601120000_whatsapp_cloud_bot.sql` and ensure the Vault

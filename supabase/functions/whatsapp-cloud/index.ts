@@ -518,8 +518,92 @@ async function smsFallback(phone: string, message: string, eventType: string, us
   }
 }
 
+// Admin go-live action (bearer-gated like the rest of /notify). Runs the Graph
+// API calls *inside* the Edge runtime where the Meta secrets already live, so
+// they never have to be exported to a shell. Returns metadata only — never the
+// access token or app secret. event:"selfcheck" inspects the token; add
+// subscribe:true to also register the webhook (callback/verify/messages) and
+// subscribe the WhatsApp Business Account to this app.
+async function adminSelfcheck(subscribe: boolean): Promise<Response> {
+  const out: Record<string, unknown> = {
+    phone_number_id_set: !!PHONE_NUMBER_ID,
+    app_secret_set: !!APP_SECRET,
+    verify_token_set: !!VERIFY_TOKEN,
+    cron_secret_set: !!CRON_SECRET,
+  };
+
+  const dbgRes = await fetch(
+    `${GRAPH_API}/debug_token?input_token=${encodeURIComponent(ACCESS_TOKEN)}&access_token=${encodeURIComponent(ACCESS_TOKEN)}`,
+  );
+  const dbg = await dbgRes.json();
+  const d = dbg?.data ?? {};
+  const appId = d.app_id as string | undefined;
+  const waba = Array.isArray(d.granular_scopes)
+    ? ([...new Set(
+        d.granular_scopes
+          .filter((g: any) => /whatsapp_business/.test(g.scope ?? ""))
+          .flatMap((g: any) => g.target_ids ?? []),
+      )][0] as string | undefined)
+    : undefined;
+  out.token = {
+    is_valid: d.is_valid ?? false,
+    type: d.type ?? null,
+    app_id: appId ?? null,
+    expires_at: d.expires_at ?? null,
+    permanent: d.expires_at === 0,
+    data_access_expires_at: d.data_access_expires_at ?? null,
+    scopes: d.scopes ?? [],
+    waba_id: waba ?? null,
+    error: dbg?.data?.error?.message ?? dbg?.error?.message ?? null,
+  };
+
+  if (subscribe && appId && d.is_valid) {
+    const callback = `${SUPABASE_URL}/functions/v1/whatsapp-cloud`;
+    const appToken = `${appId}|${APP_SECRET}`;
+    const subRes = await fetch(`${GRAPH_API}/${appId}/subscriptions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        object: "whatsapp_business_account",
+        callback_url: callback,
+        verify_token: VERIFY_TOKEN,
+        fields: "messages",
+        access_token: appToken,
+      }),
+    });
+    out.app_subscription = await subRes.json();
+
+    if (waba) {
+      const sa = await fetch(`${GRAPH_API}/${waba}/subscribed_apps`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ access_token: ACCESS_TOKEN }),
+      });
+      out.waba_subscribed = await sa.json();
+    } else {
+      out.waba_subscribed = { skipped: "no WABA id in token granular scopes" };
+    }
+
+    const verRes = await fetch(
+      `${GRAPH_API}/${appId}/subscriptions?access_token=${encodeURIComponent(appToken)}`,
+    );
+    const ver = await verRes.json();
+    out.current_subscriptions = Array.isArray(ver?.data)
+      ? ver.data
+          .filter((s: any) => s.object === "whatsapp_business_account")
+          .map((s: any) => ({ callback_url: s.callback_url, active: s.active, fields: (s.fields ?? []).map((f: any) => f.name) }))
+      : ver;
+  }
+
+  return new Response(JSON.stringify(out, null, 2), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 async function handleNotify(body: Record<string, any>): Promise<Response> {
   const event = body.event as string;
+  if (event === "selfcheck") return adminSelfcheck(body.subscribe === true);
   const sellerPhone = body.seller_phone as string;
   if (!event || !sellerPhone) return new Response("bad request", { status: 400 });
 
