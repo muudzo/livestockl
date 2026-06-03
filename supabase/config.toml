@@ -66,3 +66,9 @@ verify_jwt = false
 # Africa's Talking posts without a JWT token — must be public.
 [functions.ussd-handler]
 verify_jwt = false
+
+# Meta WhatsApp Cloud API sends webhooks with no Supabase JWT. The function does
+# its own auth internally (verify-token on GET, HMAC x-hub-signature-256 on POST,
+# Bearer == CRON_SECRET on /notify). Pins the flag so redeploys can't re-enable JWT.
+[functions.whatsapp-cloud]
+verify_jwt = false
