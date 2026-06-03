@@ -235,9 +235,11 @@ export function useEndExpiredAuctions(item: { status?: string | null; end_time?:
     triggeredRef.current = true;
     (supabase.rpc as any)('end_expired_auctions')
       .then(() => {
-        // Refetch the item and bids so the UI updates immediately
-        queryClient.invalidateQueries({ queryKey: ['livestock'] });
-        queryClient.invalidateQueries({ queryKey: ['bids'] });
+        // Refetch the item and bids so the UI updates immediately. refetchType
+        // 'active' marks the cache stale but only refetches mounted queries,
+        // avoiding a refetch storm across every cached list/detail permutation.
+        queryClient.invalidateQueries({ queryKey: ['livestock'], refetchType: 'active' });
+        queryClient.invalidateQueries({ queryKey: ['bids'], refetchType: 'active' });
         queryClient.invalidateQueries({ queryKey: ['won-items'] });
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
       })
@@ -254,6 +256,12 @@ export function useWonItems() {
   return useQuery({
     queryKey: ['won-items', user?.id],
     enabled: !!user,
+    // Won-items surface payment/settlement state (Paid / Blocked / Retrying);
+    // always revalidate when online rather than serving 24h-stale offlineFirst
+    // financial state.
+    staleTime: 0,
+    gcTime: 1000 * 60 * 10,
+    networkMode: 'online',
     queryFn: async () => {
       if (!isSupabaseConfigured) {
         return mockLivestock.filter(item =>

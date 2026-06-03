@@ -98,18 +98,15 @@ export default defineConfig(({ command, mode }) => {
               },
             },
           },
-          {
-            // Cache API calls with network-first strategy
-            urlPattern: /^https:\/\/hmeieslclzycyjjjflfh\.supabase\.co\/rest/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 5 * 60, // 5 minutes
-              },
-            },
-          },
+          // NOTE: Supabase /rest GETs are deliberately NOT runtime-cached.
+          // Workbox keys its cache by URL and ignores the per-request
+          // Authorization/apikey headers, so a NetworkFirst cache over /rest
+          // would serve one user's RLS-scoped rows (payments, favorites,
+          // notifications) to the next user on a shared device, and serve
+          // up-to-5-min-stale financial state on a flaky network. React Query
+          // already owns this layer in-memory with correct per-session scope;
+          // re-adding a /rest SW cache requires a cacheKeyWillBeUsed plugin
+          // that folds the user id into the key.
           {
             // Cache Google Fonts
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com/,

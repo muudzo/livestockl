@@ -106,7 +106,10 @@ export function usePlaceBid() {
     onSuccess: (_, { livestockId }) => {
       queryClient.invalidateQueries({ queryKey: ['bids', livestockId] });
       queryClient.invalidateQueries({ queryKey: ['livestock', 'detail', livestockId] });
-      queryClient.invalidateQueries({ queryKey: ['livestock'] });
+      // Refresh only currently-mounted list queries instead of marking every
+      // cached ['livestock','list',category,search] permutation stale; a single
+      // bid only changes the current_bid shown on mounted lists.
+      queryClient.invalidateQueries({ queryKey: ['livestock', 'list'], refetchType: 'active' });
     },
   });
 }

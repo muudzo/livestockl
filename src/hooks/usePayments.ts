@@ -10,6 +10,13 @@ export function usePaymentHistory() {
   return useQuery({
     queryKey: ['payments', user?.id],
     enabled: !!user,
+    // Financial data: always revalidate against the server when reachable.
+    // The global defaults (gcTime 24h + networkMode 'offlineFirst') are right
+    // for the catalog but would let a stale 'pending'/'unpaid' payment row
+    // linger; override so payment state is never served stale.
+    staleTime: 0,
+    gcTime: 1000 * 60 * 10,
+    networkMode: 'online',
     queryFn: async () => {
       if (!isSupabaseConfigured) return mockPayments;
 
