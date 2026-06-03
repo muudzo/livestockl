@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { CheckCircle, Clock, CreditCard, Loader2, XCircle, Receipt } from "lucide-react";
+import { CheckCircle, Clock, CreditCard, Loader2, XCircle, Receipt, AlertTriangle } from "lucide-react";
 import { usePaymentHistory } from "../../hooks/usePayments";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -27,7 +27,7 @@ function PaymentCardSkeleton() {
 
 export function PaymentHistory() {
   const navigate = useNavigate();
-  const { data: payments, isLoading } = usePaymentHistory();
+  const { data: payments, isLoading, isError, refetch } = usePaymentHistory();
 
   const formatDate = (date: Date | string) => {
     return new Intl.DateTimeFormat('en-GB', {
@@ -59,6 +59,13 @@ export function PaymentHistory() {
             <PaymentCardSkeleton />
             <PaymentCardSkeleton />
           </>
+        ) : isError ? (
+          <div className="text-center py-12" role="alert">
+            <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+            <p className="font-semibold text-lg text-slate-700">Couldn't load payments</p>
+            <p className="text-sm text-slate-500 mt-1 mb-4">Network or server error — your history is safe.</p>
+            <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+          </div>
         ) : !payments?.length ? (
           <div className="text-center py-12">
             <CreditCard className="w-12 h-12 text-slate-300 mx-auto mb-3" />

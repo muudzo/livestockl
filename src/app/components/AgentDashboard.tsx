@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import { useAgents } from '../../hooks/useAgents';
-import { Bot, Plus, ChevronRight } from 'lucide-react';
+import { Bot, Plus, ChevronRight, AlertTriangle } from 'lucide-react';
 import { AgentCard } from './agents/AgentCard';
 import { GoalsList } from './agents/GoalsList';
 import { DecisionsList } from './agents/DecisionsList';
@@ -13,7 +13,7 @@ import { PaymentsList } from './agents/PaymentsList';
 import { AGENT_ICONS, AGENT_COLORS, STATUS_STYLES } from './agents/constants';
 
 export function AgentDashboard() {
-  const { data: agents, isLoading } = useAgents();
+  const { data: agents, isLoading, isError, refetch } = useAgents();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const selectedAgent = agents?.find(a => a.id === selectedAgentId);
 
@@ -25,6 +25,16 @@ export function AgentDashboard() {
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Bot className="w-8 h-8 animate-pulse" /></div>;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-center px-4" role="alert">
+        <AlertTriangle className="w-10 h-10 text-amber-500" />
+        <p className="text-muted-foreground">Couldn't load your agents</p>
+        <button onClick={() => refetch()} className="px-4 py-2 rounded-lg border text-sm font-medium hover:bg-muted">Retry</button>
+      </div>
+    );
   }
 
   return (

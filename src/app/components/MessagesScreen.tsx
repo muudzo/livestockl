@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Send, Loader2, MessageCircle } from "lucide-react";
+import { ArrowLeft, Send, Loader2, MessageCircle, AlertTriangle } from "lucide-react";
 import { useConversations, useMessages, useSendMessage } from "../../hooks/useMessages";
 import { useAuthStore } from "../../stores/authStore";
 import { Button } from "./ui/button";
@@ -87,7 +87,7 @@ function ChatMessagesSkeleton() {
 // Conversation List View
 function ConversationList() {
   const navigate = useNavigate();
-  const { data: conversations, isLoading } = useConversations();
+  const { data: conversations, isLoading, isError, refetch } = useConversations();
   const user = useAuthStore((s) => s.user);
 
   const items = conversations || [];
@@ -102,6 +102,14 @@ function ConversationList() {
 
       {isLoading ? (
         <ConversationListSkeleton />
+      ) : isError ? (
+        <div className="p-4 space-y-2">
+          <div className="text-center py-12" role="alert">
+            <AlertTriangle className="w-12 h-12 mx-auto text-amber-500 mb-3" />
+            <p className="text-muted-foreground">Couldn't load conversations</p>
+            <button onClick={() => refetch()} className="mt-3 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-muted">Retry</button>
+          </div>
+        </div>
       ) : items.length === 0 ? (
         <div className="p-4 space-y-2">
           <div className="text-center py-12">

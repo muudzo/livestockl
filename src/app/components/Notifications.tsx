@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { X, CheckCheck, Loader2, BellOff } from "lucide-react";
+import { X, CheckCheck, Loader2, BellOff, AlertTriangle } from "lucide-react";
 import { useNotifications, useMarkAllRead, useMarkRead, useDeleteNotification } from "../../hooks/useNotifications";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -45,7 +45,7 @@ function NotificationSkeleton() {
 
 export function Notifications() {
   const navigate = useNavigate();
-  const { data: notifications, isLoading } = useNotifications();
+  const { data: notifications, isLoading, isError, refetch } = useNotifications();
   const markAllRead = useMarkAllRead();
   const markRead = useMarkRead();
   const deleteNotification = useDeleteNotification();
@@ -158,6 +158,12 @@ export function Notifications() {
             {[1, 2, 3, 4].map(i => (
               <NotificationSkeleton key={i} />
             ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center py-12 flex flex-col items-center gap-3" role="alert">
+            <AlertTriangle className="w-10 h-10 text-amber-500" />
+            <p className="text-muted-foreground">Couldn't load notifications</p>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>Retry</Button>
           </div>
         ) : filteredNotifications.length === 0 ? (
           <div className="text-center py-12 flex flex-col items-center gap-3">

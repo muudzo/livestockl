@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { MessageCircle, Edit, Trash2, Loader2, Package, Trophy, Bot, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Edit, Trash2, Loader2, Package, Trophy, Bot, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -33,8 +33,8 @@ export function MyListings() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('selling');
 
-  const { data: sellingItems, isLoading: loadingSelling } = useMyListings();
-  const { data: wonItems, isLoading: loadingWon } = useWonItems();
+  const { data: sellingItems, isLoading: loadingSelling, isError: errorSelling, refetch: refetchSelling } = useMyListings();
+  const { data: wonItems, isLoading: loadingWon, isError: errorWon, refetch: refetchWon } = useWonItems();
   const deleteListing = useDeleteListing();
   const startConversation = useStartConversation();
 
@@ -75,6 +75,12 @@ export function MyListings() {
               <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
+            </div>
+          ) : errorSelling ? (
+            <div className="text-center py-16" role="alert">
+              <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-4 font-medium">Couldn't load your listings</p>
+              <Button variant="outline" onClick={() => refetchSelling()}>Retry</Button>
             </div>
           ) : !sellingItems?.length ? (
             <div className="text-center py-16">
@@ -137,6 +143,12 @@ export function MyListings() {
               <SkeletonCard />
               <SkeletonCard />
               <SkeletonCard />
+            </div>
+          ) : errorWon ? (
+            <div className="text-center py-16" role="alert">
+              <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-4 font-medium">Couldn't load won items</p>
+              <Button variant="outline" onClick={() => refetchWon()}>Retry</Button>
             </div>
           ) : !wonItems?.length ? (
             <div className="text-center py-16">
