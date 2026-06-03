@@ -49,6 +49,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npx vite build
 
@@ -72,13 +75,20 @@ jobs:
 
       - name: Type-check all Edge Functions
         run: |
+          FAILED=()
           for dir in supabase/functions/*/; do
             fn=$(basename "$dir")
             # Skip _shared (it's a library, not a function)
             if [ "$fn" = "_shared" ]; then continue; fi
+            [ -f "$dir/index.ts" ] || continue
             echo "Checking $fn..."
-            deno check "$dir/index.ts" || echo "WARN: $fn has type issues"
+            if ! deno check "$dir/index.ts"; then FAILED+=("$fn"); fi
           done
+          if [ ${#FAILED[@]} -ne 0 ]; then
+            echo "::error::deno check failed for: ${FAILED[*]}"
+            exit 1
+          fi
+          echo "All Edge Functions type-check clean."
 
   # ── Deploy Edge Functions (main only) ──────────────────
   deploy-functions:

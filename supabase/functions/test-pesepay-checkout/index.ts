@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           error: "Pesepay returned non-JSON response",
-          status: pesepayResponse.status,
+          status: pesepayStatus,
           body: responseText.slice(0, 500),
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         error: pesepayData.message || pesepayData.error || "Pesepay request failed",
-        httpStatus: pesepayResponse.status,
+        httpStatus: pesepayStatus,
         raw: pesepayData,
       }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

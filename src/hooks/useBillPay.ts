@@ -279,7 +279,7 @@ export function useBillPayStatus(reference: string | undefined) {
       if (!payment) return null;
 
       // If still processing, trigger a server-side STATUS check
-      if (['being_processed', 'flagged'].includes(payment.status)) {
+      if (['being_processed', 'flagged'].includes(payment.status ?? '')) {
         const { data } = await supabase.functions.invoke('billpay-status', {
           body: { reference, action: 'status' },
         });
@@ -361,7 +361,7 @@ export function useBillPayHistory() {
         .limit(50);
 
       if (error) throw error;
-      return (data || []) as BillPayment[];
+      return (data || []) as unknown as BillPayment[];
     },
   });
 }

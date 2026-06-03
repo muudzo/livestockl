@@ -42,13 +42,13 @@ export function useTenantUpdate() {
 
       const { data, error } = await supabase
         .from('tenants')
-        .update(patch)
+        .update(patch as never)
         .eq('id', tenantId)
         .select('*')
         .single();
 
       if (error) throw error;
-      return data as Tenant;
+      return data as unknown as Tenant;
     },
     onSuccess: () => {
       // Invalidate everything that depends on tenant config. For v0 that's

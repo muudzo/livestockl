@@ -11,6 +11,7 @@ import { mockLivestock } from '../app/data/mockData';
 const TEST_USER = {
   id: 'demo-user', email: 'test@test.com', first_name: 'Test', last_name: 'User',
   phone: '0771234567', avatar_url: null, verified: false, rating: 0, sales_count: 0,
+  paynow_merchant_id: null,
   created_at: new Date().toISOString(),
 };
 

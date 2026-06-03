@@ -246,7 +246,7 @@ export function useStartConversation() {
           livestock_items: { title: 'Listing' },
           last_message: '',
         };
-        mockConversations.unshift(newConv);
+        mockConversations.unshift(newConv as any);
         return newConv;
       }
 

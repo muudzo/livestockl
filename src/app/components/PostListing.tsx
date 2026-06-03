@@ -45,7 +45,8 @@ export function PostListing() {
 
   const hasBids = useMemo(() => {
     if (!existingItem) return false;
-    return (existingItem.bid_count ?? existingItem.bidCount ?? 0) > 0;
+    const ex = existingItem as any;
+    return (ex.bid_count ?? ex.bidCount ?? 0) > 0;
   }, [existingItem]);
 
   const blobUrlsRef = useRef<string[]>([]);
@@ -87,20 +88,24 @@ export function PostListing() {
   // Pre-fill form when editing
   useEffect(() => {
     if (isEditMode && existingItem && !prefilled) {
+      const ex = existingItem as any;
       setFormData({
-        title: existingItem.title || '',
-        category: existingItem.category || '',
-        breed: existingItem.breed || '',
-        age: existingItem.age || '',
-        weight: existingItem.weight || '',
-        description: existingItem.description || '',
-        location: existingItem.location || '',
-        health: existingItem.health || '',
-        startingPrice: String(existingItem.starting_price ?? existingItem.startingPrice ?? ''),
+        title: ex.title || '',
+        category: ex.category || '',
+        breed: ex.breed || '',
+        age: ex.age || '',
+        weight: ex.weight || '',
+        description: ex.description || '',
+        location: ex.location || '',
+        health: ex.health || '',
+        startingPrice: String(ex.starting_price ?? ex.startingPrice ?? ''),
         duration: '',
-        deliveryAvailable: (existingItem as any).transport_available ?? false,
+        auctionFormat: (ex.auction_format as 'live' | 'timed') ?? 'timed',
+        verifiedBiddersOnly: !!ex.verified_bidders_only,
+        isDemo: !!ex.is_demo,
+        deliveryAvailable: ex.transport_available ?? false,
       });
-      const existingPhotos = existingItem.image_urls ?? existingItem.imageUrls ?? [];
+      const existingPhotos = ex.image_urls ?? ex.imageUrls ?? [];
       setPhotos(existingPhotos);
       setPhotoFiles([]);
       setPrefilled(true);

@@ -68,7 +68,7 @@ export function useAgents() {
         .eq('user_id', user!.id)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as Agent[];
+      return data as unknown as Agent[];
     },
   });
 }
@@ -205,7 +205,7 @@ export function useCreateAgent() {
         .select()
         .single();
       if (error) throw error;
-      return data as Agent;
+      return data as unknown as Agent;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
@@ -226,7 +226,7 @@ export function useUpdateAgentStatus() {
         .select()
         .single();
       if (error) throw error;
-      return data as Agent;
+      return data as unknown as Agent;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });
@@ -313,7 +313,7 @@ export function useUpdateAgent() {
         .select()
         .single();
       if (error) throw error;
-      return data as Agent;
+      return data as unknown as Agent;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agents'] });

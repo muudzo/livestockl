@@ -51,12 +51,12 @@ export function TawkToChat() {
     window.Tawk_API.onLoad = () => {
       if (user && window.Tawk_API?.setAttributes) {
         window.Tawk_API.setAttributes({
-          name: user.user_metadata?.first_name
-            ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`
+          name: user.first_name
+            ? `${user.first_name} ${user.last_name || ''}`
             : user.email || 'Visitor',
           email: user.email || '',
           // Custom attributes for support context
-          ...(user.user_metadata?.phone && { phone: user.user_metadata.phone }),
+          ...(user.phone && { phone: user.phone }),
         });
       }
     };
@@ -80,8 +80,8 @@ export function TawkToChat() {
   useEffect(() => {
     if (user && window.Tawk_API?.setAttributes) {
       window.Tawk_API.setAttributes({
-        name: user.user_metadata?.first_name
-          ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`
+        name: user.first_name
+          ? `${user.first_name} ${user.last_name || ''}`
           : user.email || 'Visitor',
         email: user.email || '',
       });

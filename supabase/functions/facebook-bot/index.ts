@@ -62,7 +62,7 @@ async function verifySignature(rawBody: string, sig: string | null): Promise<boo
 
 // ── Session helpers ──────────────────────────────────────────────────────────
 
-async function getSession(psid: string, supabase: ReturnType<typeof createClient>) {
+async function getSession(psid: string, supabase: any) {
   const { data } = await supabase.from("fb_sessions").select("*").eq("psid", psid).single();
   if (!data) {
     await supabase.from("fb_sessions").insert({ psid, state: "MENU", draft: {} });
@@ -75,7 +75,7 @@ async function setState(
   psid: string,
   state: BotState,
   draft: object,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   await supabase
     .from("fb_sessions")
@@ -85,7 +85,7 @@ async function setState(
 
 // ── UI builders ──────────────────────────────────────────────────────────────
 
-async function showMenu(psid: string, supabase: ReturnType<typeof createClient>) {
+async function showMenu(psid: string, supabase: any) {
   await setState(psid, "MENU", {}, supabase);
   await send(psid, {
     attachment: {
@@ -106,7 +106,7 @@ async function showMenu(psid: string, supabase: ReturnType<typeof createClient>)
 async function browseLivestock(
   psid: string,
   category: string,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   let query = supabase
     .from("livestock_items")
@@ -171,7 +171,7 @@ async function browseLivestock(
 async function showDetail(
   psid: string,
   listingId: string,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   const { data: l } = await supabase
     .from("livestock_items")
@@ -226,7 +226,7 @@ async function showDetail(
 
 // ── Sell flow ────────────────────────────────────────────────────────────────
 
-async function startSell(psid: string, supabase: ReturnType<typeof createClient>) {
+async function startSell(psid: string, supabase: any) {
   await setState(psid, "SELL_CATEGORY", {}, supabase);
   await send(psid, {
     text: "Let's list your animal for auction. What type of animal are you selling?",
@@ -243,7 +243,7 @@ async function handleSellCategory(
   text: string,
   payload: string,
   draft: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   const category = payload.startsWith("CAT:")
     ? payload.slice(4)
@@ -265,7 +265,7 @@ async function handleSellBreed(
   psid: string,
   text: string,
   draft: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   if (!text.trim()) {
     await sendText(psid, "Please type the breed name.");
@@ -283,7 +283,7 @@ async function handleSellLocation(
   text: string,
   payload: string,
   draft: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   const location = payload.startsWith("LOC:")
     ? payload.slice(4)
@@ -305,7 +305,7 @@ async function handleSellPrice(
   psid: string,
   text: string,
   draft: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   const price = parseFloat(text.replace(/[^0-9.]/g, ""));
   if (isNaN(price) || price <= 0) {
@@ -324,7 +324,7 @@ async function handleSellPhone(
   psid: string,
   text: string,
   draft: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   let phone = text.replace(/[\s\-()+]/g, "");
   if (phone.startsWith("263")) phone = "0" + phone.slice(3);
@@ -370,7 +370,7 @@ async function handleSellConfirm(
   text: string,
   payload: string,
   draft: Record<string, unknown>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
 ) {
   const confirmed = payload === "CONFIRM_SELL" || ["yes", "confirm", "post", "y"].includes(text.toLowerCase());
 
@@ -458,7 +458,7 @@ async function handleSellConfirm(
 
 // ── Main event handler ───────────────────────────────────────────────────────
 
-async function handleEvent(event: Record<string, unknown>, supabase: ReturnType<typeof createClient>) {
+async function handleEvent(event: Record<string, unknown>, supabase: any) {
   const psid = (event.sender as Record<string, string>)?.id;
   if (!psid) return;
 

@@ -217,7 +217,7 @@ export function useMyListings() {
  * ensuring the winner gets determined promptly. The DB function uses an advisory
  * lock so concurrent calls are safe and idempotent.
  */
-export function useEndExpiredAuctions(item: { status?: string; end_time?: string } | null | undefined) {
+export function useEndExpiredAuctions(item: { status?: string | null; end_time?: string | null } | null | undefined) {
   const queryClient = useQueryClient();
   const triggeredRef = useRef(false);
 

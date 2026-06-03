@@ -25,7 +25,7 @@ export function PaymentStatus() {
 
   // Active Paynow poll fallback — triggers payment-poll-sync edge function
   // every 20s while pending so we're not solely dependent on webhook delivery
-  usePaynowPoll(ref, paymentData?.status);
+  usePaynowPoll(ref, paymentData?.status ?? undefined);
 
   // Demo mode simulation
   const [demoStatus, setDemoStatus] = useState<Status>('pending');

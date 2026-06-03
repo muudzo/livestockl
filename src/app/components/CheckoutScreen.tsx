@@ -125,8 +125,8 @@ export function CheckoutScreen() {
     );
   }
 
-  const currentBid = item.currentBid ?? (item as any).current_bid ?? 0;
-  const imageUrl = item.imageUrl ?? (item as any).image_urls?.[0] ?? '';
+  const currentBid = (item as any).currentBid ?? (item as any).current_bid ?? 0;
+  const imageUrl = (item as any).imageUrl ?? (item as any).image_urls?.[0] ?? '';
   // Cent-accurate math (matches supabase/functions/_shared/money.ts platformTotal).
   // Math.round on dollars zeroed out the fee for any bid under $10 and over-charged
   // for some midrange bids; toFixed(2) keeps both client and server in agreement.

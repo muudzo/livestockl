@@ -93,17 +93,18 @@ export function ItemDetail() {
   }
 
   // Normalize data for both mock and Supabase formats
-  const currentBid = item.currentBid ?? (item as any).current_bid ?? 0;
-  const startingPrice = item.startingPrice ?? (item as any).starting_price ?? 0;
-  const imageUrl = item.imageUrl ?? (item as any).image_urls?.[0] ?? '';
-  const imageUrls: string[] = (item as any).image_urls ?? (item.imageUrl ? [item.imageUrl] : []);
+  const it = item as any;
+  const currentBid = it.currentBid ?? it.current_bid ?? 0;
+  const startingPrice = it.startingPrice ?? it.starting_price ?? 0;
+  const imageUrl = it.imageUrl ?? it.image_urls?.[0] ?? '';
+  const imageUrls: string[] = it.image_urls ?? (it.imageUrl ? [it.imageUrl] : []);
   const status = item.status ?? 'active';
   const lotRef: string | null = (item as any).reference ?? null;
 
   const getSellerInfo = () => {
-    if (item.seller) return item.seller;
-    if ((item as any).profiles) {
-      const p = (item as any).profiles;
+    if (it.seller) return it.seller;
+    if (it.profiles) {
+      const p = it.profiles;
       return {
         name: `${p.first_name} ${p.last_name?.charAt(0) || ''}.`,
         avatar: `${p.first_name?.charAt(0) || ''}${p.last_name?.charAt(0) || ''}`,
@@ -137,9 +138,9 @@ export function ItemDetail() {
   };
 
   const getTimeLeft = () => {
-    if (item.timeLeft) return item.timeLeft;
-    if ((item as any).end_time) {
-      const diff = new Date((item as any).end_time).getTime() - Date.now();
+    if (it.timeLeft) return it.timeLeft;
+    if (it.end_time) {
+      const diff = new Date(it.end_time).getTime() - Date.now();
       if (diff <= 0) return 'Ended';
       const hours = Math.floor(diff / (1000 * 60 * 60));
       if (hours < 24) return `${hours}h`;
@@ -149,7 +150,7 @@ export function ItemDetail() {
   };
 
   // Normalize bids for display
-  const displayBids = (bids || item.bids || []).map((b: any) => ({
+  const displayBids = (bids || it.bids || []).map((b: any) => ({
     id: b.id,
     userName: b.userName ?? `${b.profiles?.first_name || ''} ${b.profiles?.last_name?.charAt(0) || ''}.`,
     amount: b.amount,
