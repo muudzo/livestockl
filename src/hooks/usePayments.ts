@@ -86,6 +86,7 @@ export function usePaynowPoll(reference: string | undefined, currentStatus: stri
       if (!reference) return null;
       const { data, error } = await supabase.functions.invoke('payment-poll-sync', {
         body: { reference },
+        headers: { 'x-request-id': reference },
       });
       if (error) {
         // Quietly degrade — DB poll still runs, webhook may still arrive
@@ -176,6 +177,9 @@ export function useInitiatePayment() {
       // Call Edge Function to initiate payment (Paynow or Stripe)
       const { data: result, error: fnError } = await supabase.functions.invoke('initiate-payment', {
         body: { reference, amount, livestockTitle, method, phone },
+        // Correlate frontend logs with edge logs: the edge logger keys on
+        // x-request-id, so payment lines on both tiers share the reference.
+        headers: { 'x-request-id': reference },
       });
 
       if (fnError) {

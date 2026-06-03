@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createLogger } from "../_shared/logger.ts";
 
 /**
  * SMS sender via txt.co.zw REST API (usd.txt.co.zw host, USD billing)
@@ -43,6 +44,7 @@ Deno.serve(async (req) => {
     return json({ success: false, error: "Method not allowed" }, 405);
   }
 
+  const log = createLogger("send-sms", req);
   try {
     // Auth gate. Service-role / CRON for SMS sends; the read-only health
     // probe is open to any caller the Supabase gateway already authenticated
@@ -189,7 +191,7 @@ Deno.serve(async (req) => {
         .gte("created_at", oneHourAgo);
 
       if ((count || 0) >= MAX_SMS_PER_USER_PER_HOUR) {
-        console.warn(`[SMS] Rate limited user ${userId}`);
+        log.warn("rate limited", { userId });
         return json({ success: false, error: "Rate limited" }, 429);
       }
     }
@@ -222,10 +224,10 @@ Deno.serve(async (req) => {
         } else {
           status = "failed";
           providerRef = data?.error || data?.status || `HTTP-${res.status}`;
-          console.error(`[SMS] relay rejected:`, data);
+          log.error("relay rejected", { status: data?.status, error: data?.error, httpStatus: res.status });
         }
       } catch (fetchErr) {
-        console.error(`[SMS] relay unreachable: ${(fetchErr as Error).message}`);
+        log.error("relay unreachable", { error: (fetchErr as Error).message });
         status = "failed";
         providerRef = "relay_unreachable";
       }
@@ -247,9 +249,7 @@ Deno.serve(async (req) => {
         });
 
         if (!res.ok) {
-          console.error(
-            `[SMS] txt.co.zw HTTP ${res.status}: ${res.statusText}`
-          );
+          log.error("txt.co.zw http error", { httpStatus: res.status, statusText: res.statusText });
           status = "failed";
           providerRef = `HTTP-${res.status}`;
         } else {
@@ -260,23 +260,22 @@ Deno.serve(async (req) => {
             status = "sent";
           } else if (responseText.startsWith("ERROR:")) {
             const errorDesc = responseText.substring(7).trim();
-            console.error(`[SMS] txt.co.zw error: ${errorDesc}`);
+            log.error("txt.co.zw error", { errorDesc });
             status = "failed";
             providerRef = errorDesc;
           } else {
-            console.error(`[SMS] Unexpected response: ${responseText}`);
+            log.error("txt.co.zw unexpected response", { response: responseText.slice(0, 100) });
             status = "failed";
             providerRef = responseText.slice(0, 100);
           }
         }
       } catch (fetchErr) {
-        console.error(
-          `[SMS] txt.co.zw unreachable: ${(fetchErr as Error).message}`
-        );
+        log.error("txt.co.zw unreachable", { error: (fetchErr as Error).message });
         status = "failed";
       }
     } else {
-      console.log(`[SMS SIM] To: ${phone} | ${body}`);
+      // SIM path only — no relay/direct creds configured (never in prod).
+      log.info("sms simulated", { phone, eventType });
       status = "simulated";
       providerRef = `SIM-${Date.now()}`;
     }
@@ -294,14 +293,14 @@ Deno.serve(async (req) => {
         cost_usd: status === "sent" ? COST_PER_SMS_USD : 0,
       })
       .then(({ error }) => {
-        if (error) console.error("[SMS] sms_log insert failed:", error.message);
+        if (error) log.error("sms_log insert failed", { error: error.message });
       });
 
     return json({ success: status !== "failed", status, reference: providerRef });
   } catch (err) {
-    console.error("[SMS] Unhandled error:", err);
+    log.error("unhandled error", { error: (err as Error).message });
     return json(
-      { success: false, error: (err as Error).message },
+      { success: false, error: "SMS send failed" },
       500
     );
   }

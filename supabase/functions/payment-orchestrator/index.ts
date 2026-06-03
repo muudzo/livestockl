@@ -352,7 +352,7 @@ serve(async (req: Request) => {
     });
   } catch (err: any) {
     log.error("Orchestrator error", { error: err.message, stack: err.stack });
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

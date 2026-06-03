@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "email_already_registered", admin_email: body.admin_email }, 409);
     }
     log.error("createUser failed", { error: msg });
-    return jsonResponse({ error: msg }, 500);
+    return jsonResponse({ error: "account_creation_failed" }, 500);
   }
 
   const newUserId = createRes.data.user.id;
@@ -165,7 +165,7 @@ Deno.serve(async (req) => {
     if (delRes.error) {
       log.error("orphan auth user cleanup failed", { error: delRes.error.message, user_id: newUserId });
     }
-    return jsonResponse({ error: rpcErr.message }, 500);
+    return jsonResponse({ error: "provisioning_failed" }, 500);
   }
 
   log.info("tenant provisioned", { tenant_id: tenantId, slug, lead_id: lead.id, admin_email: body.admin_email });

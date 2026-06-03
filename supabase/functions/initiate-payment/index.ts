@@ -464,6 +464,6 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     log.error("Payment initiation error", { error: (err as Error).message, stack: (err as Error).stack });
-    return jsonResponse({ error: (err as Error).message }, 500);
+    return jsonResponse({ error: "Payment initiation failed" }, 500);
   }
 });

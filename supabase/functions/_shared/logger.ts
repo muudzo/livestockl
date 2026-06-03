@@ -12,6 +12,16 @@ interface LogContext {
   [key: string]: any;
 }
 
+const LEVEL_ORDER: Record<LogLevel, number> = { debug: 10, info: 20, warn: 30, error: 40 };
+
+// Threshold from env (default 'info' in prod). A future debug() added for local
+// troubleshooting won't ship verbose, possibly-PII output to the Supabase logs
+// unless LOG_LEVEL=debug is explicitly set.
+function thresholdLevel(): number {
+  const raw = (globalThis as any).Deno?.env?.get?.("LOG_LEVEL")?.toLowerCase();
+  return LEVEL_ORDER[raw as LogLevel] ?? LEVEL_ORDER.info;
+}
+
 class Logger {
   private context: LogContext;
   private functionName: string;
@@ -22,6 +32,7 @@ class Logger {
   }
 
   private log(level: LogLevel, message: string, data?: Record<string, any>) {
+    if (LEVEL_ORDER[level] < thresholdLevel()) return;
     const entry = {
       timestamp: new Date().toISOString(),
       level,
