@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       const { count } = await svc.from("billers_cache").select("*", { count: "exact", head: true });
       if (!count || count === 0) {
         for (const biller of SIM_BILLERS) {
-          await svc.from("billers_cache").upsert(biller, { onConflict: "biller_code" });
+          await svc.from("billers_cache").upsert(biller as any, { onConflict: "biller_code" });
         }
       }
 
@@ -211,7 +211,7 @@ Deno.serve(async (req) => {
         products: b.Products || [],
         raw_config: b,
         updated_at: now,
-      }, { onConflict: "biller_code" });
+      } as any, { onConflict: "biller_code" });
     }
 
     // Return freshly cached data
