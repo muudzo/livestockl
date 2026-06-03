@@ -341,7 +341,7 @@ export function AuthScreen() {
 // ── primitives ────────────────────────────────────────────────
 
 const inputCls =
-  "w-full border-0 border-b border-ink-900/25 bg-transparent px-0 py-2.5 font-body text-[17px] text-ink-900 placeholder:text-ink-500/50 focus:border-ring-red focus:outline-none focus:ring-0 transition-colors";
+  "w-full border-0 border-b-2 border-ink-900/25 bg-transparent px-0 py-2.5 font-body text-[17px] text-ink-900 placeholder:text-ink-500/50 focus:border-ring-red focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-red/40 focus-visible:ring-offset-0 transition-colors";
 
 function Field({ n, label, htmlFor, children }: { n: string; label: string; htmlFor: string; children: React.ReactNode }) {
   return (

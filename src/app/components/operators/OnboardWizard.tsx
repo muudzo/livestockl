@@ -711,7 +711,7 @@ function FieldText({
         maxLength={maxLength}
         autoComplete={autoComplete}
         inputMode={inputMode}
-        className="mt-2 block w-full border-b border-ink-900/25 bg-transparent py-3 font-body text-[18px] text-ink-900 placeholder:text-ink-500/50 focus:border-ring-red focus:outline-none"
+        className="mt-2 block w-full border-b-2 border-ink-900/25 bg-transparent py-3 font-body text-[18px] text-ink-900 placeholder:text-ink-500/50 focus:border-ring-red focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-red/40"
       />
       {helper && <p className="mt-2 text-[12px] leading-[1.5] text-ink-500">{helper}</p>}
     </label>
@@ -755,7 +755,7 @@ function FieldNumber({
             const v = Number(e.target.value);
             if (Number.isFinite(v)) onChange(Math.min(max, Math.max(min, v)));
           }}
-          className="flex-1 bg-transparent font-mono text-[18px] text-ink-900 focus:outline-none"
+          className="flex-1 bg-transparent font-mono text-[18px] text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring-red/40 rounded-sm"
         />
         {suffix && <span className="font-mono text-[14px] text-ink-500">{suffix}</span>}
       </div>
