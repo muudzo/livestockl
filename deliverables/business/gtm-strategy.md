@@ -1,301 +1,264 @@
-# Go-to-Market Strategy
+# ZimLivestock — Go-to-Market & Strategy
 
-> **Product:** ZimLivestock — software-as-a-professional-service for Zimbabwean livestock auction houses
-> **Status:** v2.0  ·  **Author:** Tatenda Nyemudzo  ·  **Date:** June 2026
-> **Supersedes:** v1.0 (May 2026). Where any figure here disagrees with an earlier doc, **this version wins.**
-> **Companion:** [`business-case.md`](business-case.md) · [`pilot-proposal.md`](pilot-proposal.md)
-
----
-
-## What's changed since v1.0 (read this first)
-
-v1.0 was written before the product had real distribution surfaces and before we re-baselined the financials against what a Zimbabwean auction house will actually pay — and against how this business is actually funded. This refresh is **leaner and more honest**, not more optimistic. Four substantive changes:
-
-1. **Channels shipped.** What was a web PWA is now a five-surface distribution system — web/PWA, a live WhatsApp bot (0773819300), a USSD simulator for feature phones, BillPay-as-biller (AUTH live), and a Facebook Messenger bot (code-complete). This is now the strategy's distribution moat, not a footnote. See [§4](#4-sales-motion--multi-channel-distribution).
-2. **Financials reframed as a bootstrap, not a fundraise.** v1.0 implied a default-alive Zimbabwe business by Q2 2028 at ~10 houses, and earlier drafts modelled the early years as "investment-stage" — burning capital toward a future break-even. That framing is wrong for this market. **There is no VC to raise from in Zimbabwe and USD is scarce, so this is an owner-operated, self-financed business that is cash-positive from the first live house.** The founder draws no salary; the bottom line is **operating surplus = founder income**. The honest base case is a **3-house floor** that generates founder income of **+US$6k → +US$18k → +US$32k** across three years on **US$0 external capital**. We lead with that. See [§7](#7-unit-economics--the-bootstrap-economics) and [§8](#8-24-month-milestones-re-baselined-to-june-2026).
-3. **Pricing revised down.** Realistic Zim auction-house willingness-to-pay in USD is **below** the May figures. Tier A engagement moved US$10–12k → **US$8k**; Tier A retainer US$2,000–2,500/mo → **US$1,500/mo**. The old numbers anchored too high for this market. See [§3](#3-pricing--packaging-canonical).
-4. **Panel asks addressed.** All six asks from the 2026-05-08 demo are reflected as shipped channels, partnerships, or honestly-named blockers on Paynow. See [§5](#5-partnerships) and [§9](#9-what-kills-this-plan-and-what-we-do-about-it).
-
-**The one sentence for the panel:** *This is an owner-operated business prying open a manual, cash-based, legacy auction system — cash-positive from the first house, self-funded with zero external capital, where the binding constraint is operator capacity, not adoption — and the fastest-growing number we produce is GMV routed onto Paynow's rails.*
+**Version:** v3.0
+**Author:** Tatenda Nyemudzo
+**Date:** June 2026
+**Supersedes:** v2.0 — where any figure here disagrees with an earlier document, **this wins**.
+**Companion docs:** [business-case.md](./business-case.md) · [pilot-proposal.md](./pilot-proposal.md)
 
 ---
 
-## 0. The frame
+## What changed since v2.0 (read first)
 
-This is a SaPS (software-as-a-professional-service) business, not a SaaS business. The implications cascade through everything below:
+v2.0 modeled a deliberately conservative, owner-operated, **three-house bootstrap** with no founder salary and no external capital — a floor designed to prove the thing could survive, not that it would scale. That was the right posture for its moment. It is no longer the posture.
 
-| If we were SaaS | We are SaPS, so… |
-|---|---|
-| Self-serve signup landing page | First customer is found at a livestock association meeting, not through Google Ads |
-| Per-seat or per-tx pricing on a public price list | Pricing is bespoke and quoted after a discovery conversation |
-| Marketing-led growth | Founder-led + relationship-led growth |
-| 10,000 customers, low ACV | 30–50 customers, high ACV |
-| Cancel-and-walk-away churn | Engagement-style relationships measured in renewal of annual commitments |
+v3.0 reframes the business as a **scaling B2B-SaaS platform** — auction houses onboard and pay as isolated tenants — **that diversifies into B2B2C consumer revenue through transport** over time. The B2B layer is monetized today; the consumer layer is upside the B2B layer makes possible.
 
-The growth ceiling is set by **how many auction houses we can operate well** — not by how many we can sign. Sales velocity is *deliberately* throttled to operations capacity.
+Two concrete things make the growth story warranted now, where it was not before:
 
-There is a second implication the SaPS frame makes explicit: this is **owner-operated and self-financed**. There is no funding round behind it — there is nowhere in Zimbabwe to raise one, and USD is scarce. The founder takes no salary; the founder's income **is** the operating surplus the houses throw off. Each house's surplus funds the next. That makes the business cash-positive from the first live floor and slow, durable, and capital-free by necessity. We say so plainly throughout.
+1. **A self-serve onboarding wizard.** Each new auction house used to be a multi-week, per-house engineering build. It is now a request at `/operators` → admin approval → a ~6-minute, no-SQL, RLS-isolated live tenant. Adding the tenth house costs roughly what adding the second did. That is the precondition for scale, and only now is it true.
+2. **Five live distribution channels** — web/PWA, WhatsApp Cloud bot, USSD, BillPay-as-biller, and Facebook Messenger — that meet Zimbabwean buyers and sellers where they already transact, instead of forcing them to a single app.
+
+> **One sentence for the panel:** ZimLivestock is a settlement-and-payout platform that auction houses pay to onboard onto today, and that monetizes final consumers through delivery as the installed base grows — moderate scale (~20 houses, a third of the market, by Year 5), largely self-funded, with every dollar of GMV routed onto Paynow rails.
 
 ---
 
-## 1. Target market — sized and segmented
+# The v3.0 Reframe: From Bootstrap Floor to Settlement Platform
 
-### Total addressable market
-- **Zimbabwe: ~40–60 livestock auction houses** running regular sales (weekly or fortnightly). Concentrated in Mashonaland (Harare belt), Matabeleland (Bulawayo + cattle country), and Midlands (Gweru, Kwekwe).
-- Many smaller operators (informal village auctions) — out of scope for v1; addressable later via a "ZimLivestock community edition" SKU.
+## The Frame
 
-### Serviceable obtainable market (3-year horizon — base case)
-- **1 house live by end of Year 1 → 2 by end of Year 2 → 3 by end of Year 3.** This is the honest floor, set by operations capacity and the difficulty of converting a cash-based, relationship-driven incumbent. We are not modelling 10 houses.
-- The 3-house floor is **cash-positive from the first live house** and **self-funded** — each house's surplus underwrites the next. Growth is bounded by how many houses one owner-operator (plus cheap part-time help) can run well, not by capital and not by adoption — see [§7](#7-unit-economics--the-bootstrap-economics).
+ZimLivestock v2.0 was written defensively. It modeled a three-house, owner-operated business with no salary and no external capital — a deliberate floor that proved the thing could survive, not that it would scale. That framing was correct for its moment, but it has been superseded. Two things changed what is reachable: a self-serve onboarding wizard that turns each new auction house from a multi-week engineering build into a ~6-minute, admin-approved, RLS-isolated tenant; and five live distribution channels — web/PWA, WhatsApp, USSD, BillPay-as-biller, and Facebook Messenger — that meet Zimbabwean buyers and sellers where they already are. When onboarding stops being bespoke labor, adding the tenth house costs roughly what adding the second did. That is the precondition for a growth story, and only now is it true.
 
-### Segmentation by tier
+So v3.0 states it plainly: this is a B2B SaaS platform that monetizes auction-house onboarding **today**, and evolves into a B2B2C marketplace that monetizes final consumers — through transport — **over time**. The order is not cosmetic. The B2B layer funds and de-risks the business now; the consumer layer is upside that the B2B layer makes possible.
 
-| Tier | # in market | Sale-day GMV | Sales cadence | Engagement fee | Retainer |
-|---|---:|---|---|---:|---:|
-| **Tier A — Anchor houses** | ~8 | US$80–120k | Weekly | US$8,000 | US$1,500/mo |
-| **Tier B — Mid-market** | ~20 | US$40–80k | Weekly or fortnightly | US$6,000 | US$1,200/mo |
-| **Tier C — Small/regional** | ~20 | US$10–30k | Fortnightly or monthly | US$4,000 | US$900/mo |
+## The B2B2C Flywheel
 
-Tier A is the strategic acquisition target — landing **one** of them well is the entire Year-1 game. Tier B builds the recurring base in Year 2. Tier C extends reach but is rate-limited by ops capacity — the operator-capacity ceiling, not capital, governs how fast we add houses.
+The sequence is the strategy. Auction houses onboard as paying tenants. Each house brings its own sellers and buyers onto the platform — people who were already transacting, now settling on rails instead of in cash and WhatsApp groups. As those buyers and sellers transact, consumer transaction volume accumulates inside the platform. That volume is the precondition for consumer revenue: a single house generates too few post-sale deliveries to matter, but twelve houses' worth of buyers, each needing cattle moved after a sale, is a real book of logistics demand. Transport revenue then makes the platform stickier for the houses themselves — a house whose buyers get reliable delivery and whose sellers stop losing sales to delivery friction has a harder reason to leave.
+
+The discipline here is refusing to invert the order. You cannot monetize consumers before the houses bring them. Every consumer-revenue line in v3.0 sits downstream of B2B onboarding, which is why the model leans on house retainers in the early years and only lets transport margin become material as the installed base of houses — and therefore buyers — grows.
+
+## Why Transport, and Why Only Transport
+
+Transport is the right consumer line for three concrete reasons, not aspiration. First, it is already shipped: sellers toggle delivery on a listing, buyers get a distance-based quote at checkout (geocoding plus haversine, US$15 base + US$0.35/km, capped at US$250), and the margin is captured per booking. There is no new product to build. Second, it solves the single biggest unsolved friction we observed on a full sale day — cattle delivery is the #1 post-sale seller complaint, the thing that breaks otherwise-good sales. Third, the buyer already expects to pay for delivery; we are not inventing a fee, we are intermediating a cost the consumer was always going to bear, and taking a margin for making it reliable and accountable.
+
+That is also why transport is the *only* modeled consumer line. Buyer transaction fees, diaspora FX margin, financing, and data-sale revenue are all plausible future optionality, and we will name them as such — but none are in the numbers. Modeling revenue we have not shipped against frictions we have not validated is exactly the over-promising v2.0 was built to avoid. We keep that discipline.
+
+## Operating Model
+
+This is no longer a solo bootstrap, but it is not a venture burn either. Running ~20 houses by the end of Year 5 — roughly a third of the ~40-60 house market, ramping about 5 → 8 → 12 → 16 → 20 — needs a small team, added in phases as the house count justifies it: the founder on product, partnerships, and the anchor Tier A accounts; then an operations/onboarding lead as the wizard pipeline fills; then a support person as live tenants and their buyers generate day-to-day volume and the transport book needs coordinating. The wizard is what keeps this lean — low-touch onboarding means headcount tracks support load, not onboarding labor.
+
+The constraint is real and we plan inside it: Zimbabwe has effectively no venture capital and scarce USD. v3.0 is a growth story that still aims to be largely self-funded, with house retainers covering opex as the base scales. The ambition is moderate by design — a third of the market, not all of it — precisely because the financing environment rewards a business that funds its own next house rather than one that needs outside capital to reach the one after.
+
+## Paynow Alignment
+
+Every channel settles on Paynow, and every payout to a seller runs the same rails (Integration ID 23997; Stripe is the diaspora/card fallback only). This is the strategically load-bearing point. Zimbabwe has four national livestock-digitization initiatives — Mastercard's E-Livestock RFID identity, the government Digital Stock Card, per-kg online auction networks, VFEX tokenization — and three of the four are identity, title, or asset layers with no money layer underneath them. They can tell you which animal is which and who owns it; they cannot move the money or transfer the title against a settled payment. ZimLivestock is exactly that missing settlement-and-payout engine. Which means the fastest-growing and most strategically legible number in v3.0 is not revenue — it is GMV routed onto Paynow rails. Every house we onboard, every channel we light up, and every delivery we book is volume moving onto rails that were not carrying it before. That is the number to watch, and it is the one Paynow should care about most.
 
 ---
 
-## 2. Customer journey (one auction house, end-to-end)
+## Target Market & the Onboarding Thesis
 
-| Stage | Duration | What happens | Owner |
+Zimbabwe has roughly **40-60 auction houses** running regular (weekly/fortnightly) sales, concentrated in three belts: Mashonaland (the Harare belt), Matabeleland (Bulawayo and cattle country), and the Midlands (Gweru/Kwekwe). The market segments cleanly by sale-day GMV and cadence.
+
+| Tier | Profile | Sale-day GMV | Cadence | Count in market |
+|---|---|---|---|---|
+| **A — anchor** | Highest-volume regional houses; credibility-builders | US$80-120k | Weekly (~4 sale-days/mo) | ~8 |
+| **B — mid-market** | Established but smaller throughput | US$40-80k | Weekly–fortnightly (~3/mo) | ~20 |
+| **C — small/regional** | Fee-sensitive regional houses | US$10-30k | Fortnightly (~2/mo) | ~20 |
+
+**The onboarding thesis.** The wizard makes an *anchors-first, land-and-fill* motion operable on a small team. We sign the scarce Tier A houses early — they carry the most GMV and the most credibility — then fill toward the market's true B/C-heavy shape as we scale. The ramp is **5 → 8 → 12 → 16 → 20 live houses** at year-end (Years 1-5), reaching ~1/3 of the market. We do not pretend we can manufacture more anchors than exist: by Year 5 we have captured ~7 of ~8 Tier A houses, and incremental growth in Years 4-5 is necessarily mid-market and regional.
+
+Per-year onboarding mix: **Y1** +3A/+1B/+1C (anchor-led launch) · **Y2** +1A/+1B/+1C · **Y3** +1A/+2B/+1C · **Y4** +1A/+2B/+1C · **Y5** +1A/+2B/+1C (final anchor signed; growth now B/C). Houses do not churn inside the 5-year window (12-month renewable commitment; anchors are sticky).
+
+What we recapture is the segment the manual floor excludes. Field research on a full sale day showed a US$1,000 cash deposit gate and 12% combined house fees (5% seller + 7% buyer) push sub-US$500 trades onto WhatsApp groups that have no settlement, escrow, or audit. Those are exactly the trades our settlement+payout layer brings onto rails — which is why our modeled adoption is the *remote/sub-deposit* slice, not the whole sale.
+
+---
+
+## Pricing & Packaging
+
+> **Canonical.** This section supersedes pricing in business-case.md.
+
+The v2.0 one-off (US$4k-US$8k) was priced as a bespoke engineering engagement — weeks of per-house custom build. The wizard collapses that to ~6-minute, no-SQL provisioning, so the fee can no longer be sold as "we build you a system." It is **cut ~55-60%** and reframed as a setup + training + branding + verification package covering real human cost — not engineering. The recurring subscription becomes the spine; the take-rate stays thin and GMV-elastic.
+
+### Onboarding fee (one-time)
+
+| Tier | Fee | What it covers |
+|---|---|---|
+| **Tier A (anchor)** | **US$3,500** | Wizard provisioning, branded sub-domain + logo/colors, staff training (2 sessions + sale-day shadowing on first live sale), seller/buyer verification setup, Paynow Integration ID linking + settlement-account validation, USSD + WhatsApp + Messenger activation, digital police-clearance workflow config. |
+| **Tier B (mid-market)** | **US$2,500** | Wizard provisioning, branding, 1 training session + first-sale support, verification + Paynow settlement linking, activation across web/PWA + WhatsApp + USSD. |
+| **Tier C (small/regional)** | **US$1,500** | Wizard provisioning, branding, group/remote training (1 session), Paynow settlement linking, web/PWA + WhatsApp activation. A deliberately low barrier for fee-sensitive regional houses. |
+| **Pilot (any tier, 90 days)** | **US$1,000** | Discounted setup to remove the trial barrier: wizard provisioning, branding, one training session, Paynow linking. **Credited toward the full tier onboarding fee on conversion** — a converting house never pays twice. Functions as a refundable trial deposit, not a sunk cost. |
+
+### Platform subscription (monthly)
+
+The v2.0 monthly "retainer" is renamed to a **platform subscription** and the numbers are **held intact** — they are already field-calibrated to Zimbabwe USD willingness-to-pay, and v2.0 proved the recurring line is the spine (~75% of Year-3 revenue). Holding the price while the platform now does materially *more* (five live channels, multi-tenant RLS isolation, the shipped transport surface, digital police clearance, the missing settlement/payout/title layer) strengthens value-per-dollar rather than weakening it.
+
+| Tier | Monthly | What it includes |
+|---|---|---|
+| **Tier A (anchor)** | **US$1,500** | All five channels, unlimited live sale-days, real-time auction engine + escrow/settlement on Paynow, transport booking surface, digital police-clearance workflow, multi-user staff accounts, **priority sale-day support SLA**, analytics. |
+| **Tier B (mid-market)** | **US$1,200** | Full auction + settlement engine, core channels (web/PWA, WhatsApp, USSD, BillPay), transport booking, police-clearance workflow, multi-user accounts, standard support. |
+| **Tier C (small/regional)** | **US$900** | Auction + settlement engine, web/PWA + WhatsApp, transport booking, police-clearance workflow, standard support. Entry tier held at the v2.0 floor so a fortnightly US$10-30k house clears it from a single sale-day's activity. |
+| **Pilot (any tier, 90 days)** | **US$1,000** | Full feature access during the pilot regardless of target tier, then converts to the signed tier's rate. |
+
+Subscription is now **feature-gated** (channel access + SLA scale by tier), not sold as undifferentiated retainer hours.
+
+### Transaction take-rate
+
+**0.75% of settled GMV, on top of Paynow's own fee — unchanged from v2.0.** It stays thin and unchanged for three reasons: (1) v2.0 proved this line is intentionally small — forcing adoption 15%→30% moves monthly net by only ~US$200, so it is a GMV-scaling line, not a margin lever; (2) houses already levy 12% combined fees, and our positioning is explicitly *undercut on fees* — a fat platform take on top of Paynow's fee contradicts that and risks pushing sub-US$500 trades back to the unsettled WhatsApp channel we exist to capture; (3) it is the line that compounds with the consumer story and the 5→20-house ramp, scaling automatically without per-house renegotiation. It is also the metric Paynow cares about most.
+
+### Transport (the consumer line)
+
+Already shipped: buyer-facing quote of **US$15 base + US$0.35/km, capped US$250**, computed from haversine distance between the auction hub and the buyer's drop-off. In v3.0 the platform's economics are modeled conservatively as a **flat coordination/booking fee**, not a per-beast haulage spread the model would have to defend against fuel:
+
+- The platform charges the **fixed US$15 booking/coordination leg**; the transporter sets and keeps the **entire distance-based haul price (US$0.35/km)**. The haul's fuel/driver/return economics are the transporter's to clear, on a full truck route-batched across buyers from the same sale — not ours to defend per beast.
+- **Platform net margin per booked delivery = US$15 − ~US$3 processing (payment + confirmation SMS + Nominatim geocoding) = US$12.00.**
+- **Transport revenue = digital transactions × attach-rate × US$12.00.** Attach ramps **5% → 9% → 14% → 19% → 24%**, deliberately conservative because many dealers still self-haul; it climbs as the consumer channels pull in buyers (end consumers, women farmers, diaspora-funded, peri-urban) who structurally *cannot* self-haul.
+
+We never keep a per-beast spread that must beat diesel. This is a software coordination fee — defensible to anyone who has ever hired a cattle truck, because we are not the haulier and we do not price the haul.
+
+---
+
+## The Diversification Progression: a Phased B2B → B2B2C Arc
+
+The whole strategy is the order of operations. The consumer (transport) line is strictly *derivative*: it can only take a cut of deliveries booked on digital sales that ride on auction-house GMV flowing through the platform. The dependency chain is **B2B → B2B2C** — onboard houses → houses bring digital GMV → only then does a delivery attach-rate have a denominator to multiply against.
+
+| Phase | Years | What's happening | Consumer revenue |
 |---|---|---|---|
-| **0. Awareness** | — | They hear about us from another auction house, the ZLPA conference, or Paynow's BD team | BD |
-| **1. Discovery call** | 1 hour, on-site | We visit their floor, observe a sale, talk to the owner + their bookkeeper | Founder + BD |
-| **2. Proposal** | 1 week | Custom-quoted engagement based on their tier, sale-day GMV, complexity | Founder |
-| **3. Signature** | — | Deployment fee invoiced 50% upfront, 50% on go-live | BD |
-| **4. Deployment** | ~6 min onboarding + 4–6 wks hand-hold | Self-serve tenant via `/operators` wizard (live tenant in ~6 minutes, no SQL editor), then branded skin, data migration, Paynow merchant-ID setup, on-floor training day | Engineering + ops |
-| **5. Go-live** | Day 1 | First sale runs through the platform alongside the physical floor | Ops |
-| **6. Hand-hold** | Months 1–3 | High-touch support. Daily check-ins for the first 4 weeks. Weekly thereafter. | Ops |
-| **7. Steady-state** | Months 4+ | Monthly retainer in steady state. Quarterly business review with the owner. | Ops |
-| **8. Expansion** | Month 9+ | Add second-tier surfaces: transport delivery quotes, deeper analytics, branded mobile app | Founder + ops |
-| **9. Renewal** | Month 12 | 12-month commitment renewal. ~90% expected. | BD |
+| **1 — Land the spine** | Y1 | Anchor-led launch (5 houses, A-heavy). Subscription + onboarding carry the business. Buyers still mostly self-hauling dealers. | Negligible (1.3% of revenue) |
+| **2 — Thicken the base** | Y2-Y3 | Ramp to 8→12 houses; consumer transaction volume accumulates; transport attach begins to bite as non-dealer buyers arrive. | Emerging (3.1% → 4.8%) |
+| **3 — Compound the consumer line** | Y4-Y5 | 16→20 houses; both multiplicands grow (more deliverable transactions *and* a rising attach rate) as the buyer mix shifts toward those who cannot self-haul. | Material minority (6.7% → 8.8%) |
 
-The deployment step is materially faster than v1.0 assumed: the **SaPS multi-tenant onboarding wizard** (`/operators` → request access → admin approval → wizard → live tenant in ~6 minutes, tenant-isolated RLS verified) replaced the SQL-editor provisioning that made each house a custom engineering project. The human work — training, trust, hand-holding — is unchanged. The plumbing is now self-serve.
+### Revenue mix over time (the centerpiece)
 
----
+| Year | Houses live | Auction-house revenue | Consumer (transport) revenue |
+|---|---|---|---|
+| **1** | 5 | **98.7%** | **1.3%** |
+| **2** | 8 | **96.9%** | **3.1%** |
+| **3** | 12 | **95.2%** | **4.8%** |
+| **4** | 16 | **93.3%** | **6.7%** |
+| **5** | 20 | **91.2%** | **8.8%** |
 
-## 3. Pricing & packaging (canonical)
+The consumer slice climbs **~7x** off a near-zero Year-1 base as both multiplicands grow — more live houses and digital transactions (the deliverable-transaction base), and a rising delivery attach rate (5% → 24%). By Year 5 transport is a **meaningful but still-minority 8.8%** of revenue: a real, compounding consumer line layered onto a B2B-SaaS spine, not yet a co-equal pillar — which is exactly the B2B → B2B2C arc this reframe describes. Subscription remains the spine at **~74% of Year-5 revenue**.
 
-**This table is the single source of truth and supersedes the May-2026 figures in `business-case.md`.** It was revised **down** to reflect realistic Zimbabwean auction-house willingness-to-pay in USD. (For reference: old Tier A was US$10–12k engagement / US$2,000–2,500 retainer — too high an anchor for this market.)
-
-| Tier | Engagement (one-off) | Retainer (monthly) | Sale-day GMV | Sale days / mo |
-|---|---:|---:|---:|---:|
-| **A — Anchor house** | US$8,000 | US$1,500 | US$80–120k | 4 (weekly) |
-| **B — Mid-market** | US$6,000 | US$1,200 | US$40–80k | 3 (weekly–fortnightly) |
-| **C — Small / regional** | US$4,000 | US$900 | US$10–30k | 2 (fortnightly) |
-| **Pilot (any tier)** | US$5,000 *(disc. from US$8k list)* | US$1,000/mo for 90 days, then converts to tier rate | varies | varies |
-
-Plus, across all tiers:
-- **Transaction surcharge: 0.75%** of settled GMV, on top of Paynow's own fee. Auditable in the monthly report.
-- **Transport** (new revenue surface — see [§5](#5-partnerships)): US$15 base + US$0.35/km, capped US$250 per delivery. Base-case-excluded upside.
-- **Pass-through costs:** SMS — no markup. (Bisafe escrow and Paynow merchant-transfer once integrated; both are still dependencies, not live capabilities.)
-- **Commitment:** 12-month renewable from month-4 of pilot or day-one of standard engagement.
-
-### How we quote
-- We **do not publish a price list**. SaPS sales work on conversation and discovery, not catalog SKUs.
-- We **always lead with the engagement, not the retainer**. The first sale is a project the auction house bookkeeper can categorize.
-- We **never discount the retainer**. Discount the engagement to win the pilot, hold the retainer firm to set the future pricing anchor.
+A note on honesty here: the consumer slice is *higher* than the earlier draft (8.8% vs 6.7% at Y5) even though absolute transport dollars are similar. That is because correcting the subscription go-live timing (see the model notes below) cut the house-side denominator by ~US$147.6k over five years — so the same consumer line is now a larger share of a *smaller, more honest* house-revenue base. The arc didn't get more optimistic; the base got more truthful.
 
 ---
 
-## 4. Sales motion + multi-channel distribution
+## The 5-Year Financial Model
 
-### Why distribution is the moat now
+> Self-funded growth case, moderate scale, anchors-first. Every cell recomputes from the stated drivers; the mix sums to exactly 100.0 each year; cumulative surplus closes on the surplus total.
 
-v1.0 sold a single web surface. v2.0 reaches the auction floor through **five channels**, which is the direct answer to the panel's "maximise accessibility" ask. A WhatsApp-group competitor reaches one surface; we reach the buyer wherever they are — smartphone, feature phone, chat, or biller menu.
+### Revenue by line
 
-| Channel | Who it reaches | Status |
-|---|---|---|
-| **Web / PWA** | Smartphone buyers, diaspora, sellers | Live (production) |
-| **WhatsApp Cloud bot** (0773819300) | The buyer who already lives in WhatsApp — 7-step sell flow + browse/view/bid | Live |
-| **USSD simulator** (`/ussd-simulator`) | Feature-phone bidders with no data — no telco integration needed to demo | Live |
-| **BillPay-as-biller** | Anyone with a Paynow/EcoCash biller menu — pay a ZimLivestock invoice from the standard biller list | AUTH live (200 + member payload); PAY pending Paynow vendor-portal registration |
-| **Facebook Messenger bot** | Facebook-native buyers | Code-complete; awaiting Meta page-token rotation |
+| Year | Onboarding | Subscription | Transaction take (0.75%) | Transport | **Total** |
+|---|---:|---:|---:|---:|---:|
+| **1** | 14,500 | 39,600 | 6,710 | 826 | **61,636** |
+| **2** | 7,500 | 100,800 | 18,474 | 4,093 | **130,867** |
+| **3** | 10,000 | 151,200 | 27,625 | 9,521 | **198,346** |
+| **4** | 10,000 | 208,800 | 39,831 | 18,628 | **277,259** |
+| **5** | 10,000 | 266,400 | 53,618 | 31,677 | **361,695** |
+| **5yr** | 52,000 | 766,800 | 146,258 | 64,745 | **1,029,803** |
 
-This multi-channel reach is the **distribution advantage vs WhatsApp competitors**: they have one channel and no settlement; we have five channels and Paynow settlement behind all of them. Every channel funnels GMV onto Paynow's rails — which is the number that matters most to this panel ([§6](#6-metrics--what-we-track-each-month)).
+*All figures US$.*
 
-### Year 1 — founder-led, relationship-led
+### Revenue mix
 
-Three acquisition channels, in priority order:
-
-**1. Direct founder-led BD**
-- Founder visits Tier A and Tier B auction houses in person. Saturday floor visits.
-- One discovery call per week. Conversion target: 1 in 5 (20% close rate).
-- Year-1 target: **1 paying house live by end of Year 1** (signed pilot converting to commitment). Not three signings — one house, deployed well, used as the reference.
-
-**2. Paynow channel partnership**
-- Position ZimLivestock as Paynow's "vertical solution for livestock". Paynow BD mentions us when an auction house asks about EcoCash settlement.
-- Revenue share with Paynow on referrals — 5% of engagement fee + 5% of first year's retainer.
-- Year-1 target: **2 referrals from Paynow BD, 1 advancing to discovery.**
-
-**3. ZLPA + livestock-industry conferences**
-- Sponsor or speak at the Zimbabwe Livestock Producers Association annual conference.
-- Speak on "Digital infrastructure for the modern auction floor."
-- Year-1 target: **5 warm leads from one conference appearance.**
-
-### Year 2 — productize what works
-
-- Land **house #2** (one Tier A or strong Tier B). Founder still runs both personally.
-- Stand up a referral programme — existing customers introduce other houses, get 1 month free retainer per closed referral.
-- Light farmer-facing awareness (drive listing volume on existing floors), **not** B2B auction-house ad spend.
-
-### Year 3 — proof, then grow on the strength of the surplus
-
-- House #1 is in its second renewal; quote its numbers in every pitch. Land **house #3**.
-- Growth from here is **self-funded**: the surplus the live houses throw off pays for adding the next one. There is no funding round — there is nowhere in Zimbabwe to raise one — so we add houses only as fast as the operating surplus and the operator's own capacity allow. Slow and durable beats fast and capital-hungry here ([§7](#7-unit-economics--the-bootstrap-economics)).
-- Begin light discovery in neighbouring markets (Zambia, Mozambique, Botswana — same auction culture, similar payments fragmentation) **only** if ops can reliably run the Zimbabwe portfolio.
-
----
-
-## 5. Partnerships
-
-### Paynow — the strategic spine
-- Most important relationship, full stop. Paynow has the BD network, the brand, and the payment rails behind all five of our channels.
-- Position: ZimLivestock is the "vertical solution" Paynow points livestock-industry prospects at.
-- Reciprocal: **every settlement runs through Paynow.** We route US$43,200 of GMV onto Paynow rails in Year 1, US$223,200 in Year 2, US$545,400 in Year 3 — the GMV line grows fastest of anything we produce ([§6](#6-metrics--what-we-track-each-month)). We grow their GMV; they grow our pipeline.
-- Make it formal — co-marketing agreement, named on each other's case studies.
-- **Bisafe escrow** — sandbox/docs requested from Paynow; integration not yet built. Named as a dependency, not a shipped feature.
-
-### Transport providers (new revenue surface)
-- Cattle delivery is the post-sale friction point — field research flagged it as the biggest seller complaint.
-- **Already shipped:** seller delivery toggle on listings; buyers get distance-based quotes at checkout (Nominatim geocoding + haversine). Pricing US$15 base + US$0.35/km, capped US$250.
-- This is a **new revenue surface excluded from the base case** — upside, not a load-bearing assumption. At scale it contributes ~US$150/house/month of transport margin on top of the operating surplus.
-- Strategic: extends platform value beyond settlement and makes us stickier with both buyers and houses.
-
-### Veterinary services
-- Every animal at a Zimbabwean auction needs a vet inspection certificate.
-- Partner with local vet practices to attach digital vet certs to listings.
-- No revenue — pure value extension that makes the platform stickier with auction houses.
-
-### Government — Ministry of Lands, Agriculture and Rural Resettlement
-- The platform is a record-keeping tool that could feed national livestock census data.
-- Engage early; position as augmenting state data infrastructure, not replacing the constable workflow.
-- Strategic upside: if the state mandates digital traceability (likely within 3 years per regional trends), we are the existing solution.
-
----
-
-## 6. Metrics — what we track each month
-
-### North-star metric
-**Number of auction houses where ≥30% of a sale day's GMV settles through our platform.**
-
-This is still the only number that captures whether we deployed, whether customers used it, and whether ops kept it running. At base case this is 1 → 2 → 3 over three years.
-
-### Leading metrics (new in v2.0)
-- **GMV routed onto Paynow rails** — US$43,200 (Y1) → US$223,200 (Y2) → US$545,400 (Y3). The number that matters most to Paynow, and the fastest-growing line we produce.
-- **Multi-channel adoption** — share of bids/payments arriving via WhatsApp, USSD, BillPay, and Facebook vs web. This is the accessibility proof and the early signal that a non-tech-native floor is actually using the product.
-- Discovery calls per month.
-- Days from first contact to signed engagement.
-- Operations hours per house per month (capacity check — the real growth governor).
-
-### Lagging
-- **Operating surplus = founder income** (revenue − operating cost). The owner-operator draws no salary; this line *is* the take-home. Cash-positive from the first live house.
-- Monthly recurring revenue (retainer × live houses) — the reliable spine; retainer-led by design.
-- GMV-tied transaction surcharge revenue — small but compounds.
-- Engagement signings (lead → close conversion).
-
-### Health checks
-- NPS from auction-house owners, quarterly.
-- Time-to-resolution on operations tickets.
-- Incidents per house per month (target: < 1).
-
----
-
-## 7. Unit economics & the bootstrap economics
-
-### The per-house economics already work
-
-At a **mature house at 15% adoption**, recurring economics are healthy:
-
-| | Tier A | Tier B |
+| Year | Auction-house % | Consumer (transport) % |
 |---|---:|---:|
-| Mature recurring contribution (retainer + surcharge), per year | **~US$21,420** | **~US$15,390** |
+| 1 | 98.7 | 1.3 |
+| 2 | 96.9 | 3.1 |
+| 3 | 95.2 | 4.8 |
+| 4 | 93.3 | 6.7 |
+| 5 | 91.2 | 8.8 |
 
-A single mature house contributes roughly **US$15–21k/year**. The per-unit math is not the problem — and because the founder draws no salary, that contribution flows straight to operating surplus.
+### Costs
 
-### The binding constraint is operator capacity — not adoption, not capital
+| Year | Infrastructure | Payroll | Pass-through + transporter | Other (BD/travel/mktg) | **Total** |
+|---|---:|---:|---:|---:|---:|
+| **1** | 3,600 | 36,000 | 241 | 9,000 | **48,841** |
+| **2** | 3,960 | 66,000 | 314 | 14,000 | **84,274** |
+| **3** | 4,440 | 108,000 | 370 | 20,000 | **132,810** |
+| **4** | 4,920 | 150,000 | 445 | 26,000 | **181,365** |
+| **5** | 5,400 | 198,000 | 530 | 32,000 | **235,930** |
 
-This is the rigorous insight we want the panel to leave with. The owner-operator is the production capacity. So:
+*All figures US$.* Payroll is the dominant cost — **73.7% of opex in Y1 rising to 83.9% in Y5** — and the single throttle lever: the Y3/Y4/Y5 hires can be delayed if revenue underperforms, since the self-serve wizard keeps onboarding low-touch.
 
-- **Pushing adoption from 15% → 30% moves Year-3 monthly net by only ~US$200.** Adoption is *not* the lever at this scale.
-- **The ceiling is how many houses one owner-operator (plus cheap part-time help) can run well** — each mature house demands hand-holding, monthly reviews, and ops attention. That, not capital and not conversion, is what caps the portfolio.
+### Surplus & GMV onto Paynow rails
 
-That reframes the whole plan: we are not adoption-constrained and not capital-constrained, we are **operator-capacity constrained.** The job is to add houses at the rate one operator can actually run them well — and let each one's surplus fund the next — not to over-engineer conversion on a tiny base.
+| Year | Revenue | Costs | **Surplus** | **Cumulative surplus** | **GMV onto Paynow** |
+|---|---:|---:|---:|---:|---:|
+| **1** | 61,636 | 48,841 | **+12,795** | **12,795** | **894,600** |
+| **2** | 130,867 | 84,274 | **+46,593** | **59,388** | **2,463,200** |
+| **3** | 198,346 | 132,810 | **+65,536** | **124,924** | **3,683,300** |
+| **4** | 277,259 | 181,365 | **+95,894** | **220,818** | **5,310,800** |
+| **5** | 361,695 | 235,930 | **+125,765** | **346,583** | **7,149,100** |
+| **5yr** | **1,029,803** | **683,220** | **+346,583** | — | **19,501,000** |
 
-### Base case (leanest, deliberately conservative — 3-house floor, self-financed)
+*All figures US$.* Surplus is positive every single year and cumulative surplus never dips below zero — there is no negative drawdown trough requiring equity. GMV onto Paynow rails compounds from **~US$0.9M to ~US$7.1M annually** (~US$19.5M over five years) — the number Paynow should track above all others.
 
-| | Year 1 | Year 2 | Year 3 | 3-year |
-|---|---:|---:|---:|---:|
-| Houses live (end of year) | 1 | 2 | 3 | — |
-| Revenue | US$12,321 | US$28,071 | US$48,987 | **US$89,379** |
-| Operating cost | US$6,240 | US$10,480 | US$16,720 | US$33,440 |
-| **Founder income (operating surplus, no salary drawn)** | **+US$6,081** | **+US$17,591** | **+US$32,267** | **+US$55,939** |
-| GMV onto Paynow rails | US$43,200 | US$223,200 | US$545,400 | US$811,800 |
+### Funding & self-funded honesty note
 
-**Year-3 revenue mix:** US$36,900 retainer + US$8,000 engagement + US$4,087 transaction surcharge. Revenue is **retainer-led** — the recurring retainer is the reliable spine; the surcharge is small but compounds with GMV.
+**Self-funded, but the cushion is genuinely thin in Year 1 — I will not pretend otherwise.** After the two blocker corrections, surplus is positive every year (Y1 +12,795 → Y5 +125,765) and cumulative surplus never goes negative, so there is no equity-requiring trough. **But** Y1 surplus fell from the draft's +53,233 to +12,795 once subscription was corrected for half-year go-live (new houses billed ~6 months in the year they launch, matching the same go-live timing already used for GMV). That +12,795 is only **~3.5 weeks of Y1 opex** of headroom, so intra-year cash-timing risk is material, not cosmetic: onboarding fees are lumpy (collected at signing, concentrated in the ramp window), the first cohort's subscription only reaches full run-rate in Year 2, and payroll is monthly from month one.
 
-**Read this honestly:** the founder draws **no salary** — the operating surplus *is* the founder's income. The business is **cash-positive from the first live house (month 6)** and requires **US$0 external capital**. The deepest the founder is ever out of pocket is **~US$2,250** in the pre-launch months before the first house goes live — and that is self-financed, not borrowed and not raised. There is no runway to burn, no break-even month to chase, and no investor to satisfy: the house is paying for itself from the first sale day it routes GMV onto Paynow. We are not going to hockey-stick this for the panel. The base case is a credible, conservative floor — conservative by necessity, not by choice.
+A working-capital cushion of **~2-3 months of opex (Y1 ~US$8-12k; Y5 ~US$40-60k)** is prudent to bridge payroll before subscription reaches run-rate and onboarding cash lands — a cash-timing buffer, *not* equity. The deepest realistic in-year dip is inside Year 1 before the founding cohort's recurring billing matures; if a single anchor signature slips a quarter, Y1 could go slightly cash-negative intra-year even though it closes positive — which is the honest reason to hold the buffer.
 
-### How the business grows — self-funded, by necessity
+**On headcount, honestly:** US$198k of Y5 payroll is *not* a "lean 4-person team" at ~US$49.5k/head. At realistic Zimbabwe USD ops/support wages (~US$6-18k/yr) plus a USD founder draw, US$198k funds a real operating org of **roughly 9-13 people** — which is what is actually required to run 20 live houses across 5 channels at ~60+ sale-days/month *and* staff transporter dispatch. I keep the dollar figure (it is the defensible number) and drop the "lean 4-person" framing. **Transport dispatch ops is explicitly assumed to live inside this payroll, not for free.** If Zimbabwe USD wage inflation runs hot, Y4-Y5 payroll could rise faster than modeled and compress surplus — though it would not turn the year negative on these revenue figures.
 
-Growth here is **self-financed**: each house's surplus funds the work of standing up the next. There is no funding round — there is nowhere in Zimbabwe to raise one, and USD is scarce — so the business compounds slowly and durably on its own cash.
+### Model drivers & corrections (for the auditor)
 
-> **At scale:** more houses, with the early ones matured at the ~15% adoption seen on real floors, plus the optional +US$150/house/month transport margin as upside on top of the operating surplus.
+Every cell recomputes from these drivers:
 
-- The lever is **operator capacity**, not adoption (the difference between 15% and 30% adoption is ~US$200/mo). Add houses only as fast as one operator (plus cheap part-time help) can run them well.
-- The funding is **the prior houses' surplus** — no external capital, no investor, no debt. The founder is the only stakeholder.
+- **Houses live (EOY):** 5 / 8 / 12 / 16 / 20. Tier mix: Y1 3A/1B/1C → Y5 7A/8B/5C (anchors-first, regressing to the market's B/C-heavy shape).
+- **Blended digital adoption:** ~10.5 / 11.5 / 12.3 / 13.0 / 13.7% — field-honest, on a cohort-maturation curve (entry ~10.5% → mature ~15%), deliberately below any "30% digitization" optimism. New low-adoption cohorts every year keep the blended number drifting up only gently.
+- **Avg digital ticket:** US$650 (constant) — skews to the smaller/remote/sub-US$500 trades the deposit + 12% fees currently push to WhatsApp; a lower ticket is the conservative choice (more transactions per GMV dollar).
+- **Digital transactions = GMV / US$650:** ~1,376 / 3,790 / 5,667 / 8,170 / 10,999.
+- **Subscription** (monthly A/B/C = US$1,500/1,200/900), prior cohorts billed 12 months, current-year cohort billed 6 (one go-live convention applied to *both* subscription and GMV).
+- **Onboarding** (one-off A/B/C = US$3,500/2,500/1,500), pilots convert and credit the US$1,000 deposit toward the full fee — no separate pilot line.
+- **Transaction take = GMV × 0.75%.** **Transport = digital transactions × attach% × US$12.00** (attach 5→24%).
+- **Pass-through** = US$200 base + digital_tx × US$0.03 confirmation SMS (no haul payout flows through us — transport revenue is a pure booking fee net of processing). **Infrastructure** = US$3,000 base + US$120/live house.
 
-The trajectory doesn't depend on a heroic adoption number or on a capital injection that doesn't exist in this market. It depends on **adding houses at a rate the operator can sustain and letting the surplus self-fund the next one** — exactly the lever the unit economics identify. That is the bet, stated plainly.
+**Corrections vs the audited draft (all flagged defects resolved):**
+
+1. **Subscription/GMV go-live timing [BLOCKER, fixed].** The draft billed every new house a full 12 months while haircutting *their* GMV by half — an internal contradiction overstating subscription by ~US$147,600 over five years. Fixed: one half-year go-live convention applied to both lines.
+2. **Transport unit economics [re-grounded].** The draft's per-beast spread sat below diesel cost and assumed consolidation it never established. Re-modeled as a flat US$15 booking fee → US$12.00 net; the transporter prices and clears the haul, not us. Attach lowered to a conservative 5→24%.
+3. **Y1 adoption [softened].** Lowered the all-new Y1 cohort from the optimistic top of its band (12.0%) to the entry midpoint (~10.5%), rescaling GMV onto rails accordingly. This trims the v2.0→v3.0 Y1 rails step-up from ~23.7x to ~20.7x — still a deliberate funded-team base-case change, not a v2.0 continuation.
+4. **Payroll narrative [reconciled].** Dollar figures kept; the indefensible "lean 4-person team" framing dropped (see the funding note).
 
 ---
 
-## 8. 24-month milestones (re-baselined to June 2026)
+## Metrics, Partnerships & What Kills This Plan
 
-All dates are ≥ June 2026. v1.0 treated Q3 2026 as "now"; now is June 2026. These are tied to the **honest** numbers — the 3-house floor, cash-positive from the first house, self-funded with zero external capital and no founder salary.
+### Metrics that matter (in priority order)
 
-| Quarter | Milestone | What's true if we hit it |
+1. **GMV routed onto Paynow rails** — the headline. ~US$0.9M → ~US$7.1M annually; ~US$19.5M cumulative. The number Paynow should care about most.
+2. **Houses live** (5 → 20) and **tier mix** vs the anchors-first plan.
+3. **Blended digital adoption** held field-honest at 10.5-13.7% — watched as a maturity floor, *not* inflated as a growth lever.
+4. **Transport attach-rate** (5% → 24%) — the leading indicator of the consumer line maturing.
+5. **Subscription run-rate vs. billed** — the cash-timing canary behind the Year-1 thin-cushion risk.
+6. **Surplus & cumulative surplus** — must stay positive every year (the self-funded invariant).
+
+### Partnerships
+
+- **Paynow (the spine).** Settlement + payout on Integration ID 23997, across all five channels; Stripe is the diaspora/card fallback only. This is also the strategic moat: we are the settlement+payout+title-transfer layer that three of Zimbabwe's four national livestock-digitization initiatives lack.
+- **Transport providers.** A dispatch network of local cattle-truck owners/hauliers — we own no trucks and carry no fleet capex/insurance/fuel risk. We coordinate; they haul and clear the haul economics on route-batched, full-truck loads.
+
+### What kills this plan, and the mitigation
+
+| Risk | Why it bites | Mitigation |
 |---|---|---|
-| **Q3 2026** (Jul–Sep) | Signed pilot engagement #1, Harare belt. BillPay PAY round-trip unblocked with Paynow. | First paying customer running their floor on the platform across web + WhatsApp + USSD. The first house is live and routing GMV — the surplus starts covering the founder's income from here. |
-| **Q4 2026** | Pilot at week-12 review hits the ≥30% GMV criterion. Seller settlement function live (pending merchant-transfer API docs). | The product works in the wild on a real floor. We can quote a real number — and the founder is no longer out of pocket. |
-| **Q1 2027** | House #1 converts to a 12-month commitment; first case study drafted. | We have a reference customer, not just a pilot. Year-1 founder income lands at ~US$6,081 on US$0 external capital. |
-| **Q2 2027** | Paynow formalises us as their livestock vertical solution. Facebook bot live; Paab cash flow unblocked IF Paynow sandbox + docs land. | Distribution unlocks; the fifth channel comes online. |
-| **Q3 2027** | **House #2 live** (Tier A or strong Tier B), funded by house #1's surplus — no outside capital. | The 3-house base case is on track; second floor routing GMV onto Paynow rails. Founder income roughly triples toward ~US$17.6k. |
-| **Q4 2027** | House #1 annual renewal hit. Recurring spine proven across a full year. | Renewal economics demonstrated; retainer-led model validated. |
-| **Q1 2028** | **House #3 live.** End-of-Year-3 base case (~US$48,987 revenue, founder income ~+US$32,267) realised. | Base-case floor delivered: three houses, cash-positive throughout, US$0 raised, ~US$56k of founder earnings banked over three years. |
-| **Q2 2028** | Decision gate: add house #4 (funded by accumulated surplus) or hold the portfolio at three and consolidate. | The lever is **operator capacity, not adoption or capital** — growth is paced to what one operator plus cheap part-time help can run well, and self-funded from the surplus. |
-
-No milestone here cites 10 houses, a default-alive Zimbabwe by 2028, a funding round, or the old inflated pricing ranges. Those were v1.0 optimism. This is the floor we can actually stand on — and pay for ourselves from.
+| **Operator / team capacity** | 20 houses × 5 channels × ~60+ sale-days/mo + transporter dispatch is a real operating load — not a 4-person job. | Headcount phased to house count; the wizard keeps *onboarding* low-touch so payroll tracks support load. Y3-5 hires are delayable if revenue lags. |
+| **Adoption on a cash floor** | The US$1,000 deposit gate + 12% fees cap how much sale-day GMV settles digitally; v2.0 showed forcing adoption barely moves net. | Adoption modeled honestly at 10.5-13.7% blended — *below* the ~15% mature ceiling. The growth story rides on more houses + transport, not adoption inflation. |
+| **USD scarcity / wage inflation** | Zimbabwe has ~no VC and scarce USD; hot USD wage inflation could push Y4-Y5 payroll past model. | Largely self-funded with a 2-3 month opex working-capital buffer; payroll is the throttle lever (delay hires). Even hot inflation does not turn a year negative on these revenues. |
+| **Transport execution** | A platform-arranged livestock haul is a trust purchase; a bad delivery damages the consumer line and house stickiness. | Modeled as later-year derivative upside (1.3% → 8.8%), never a Year-1 pillar. We coordinate, don't haul — variance sits with the transporter; we price the transporter generously early to build a reliable network. |
+| **Paynow dependency / blockers** | The entire settlement spine runs on Paynow; a rails outage or integration block stalls the core value prop. | Poll-URL fallback is live (don't rely on webhook alone); browser-relay pattern bypasses Cloudflare server-to-server blocks. Deep alignment with Paynow is the mitigation *and* the strategic point. |
 
 ---
 
-## 9. What kills this plan (and what we do about it)
+## Supersession Note
 
-1. **Operator-capacity ceiling — the binding constraint.** A mature house contributes ~US$15–21k/yr straight to operating surplus, and the founder draws no salary, so each house added is income-positive from the first sale day. The limit is not money and not adoption — it is **how many houses one owner-operator (plus cheap part-time help) can run well.** *Mitigation:* pace growth to operator capacity; add houses only as fast as we can hand-hold and run them well, and let each house's surplus self-fund the next. Don't over-optimise adoption on a tiny base — adoption 15%→30% moves Y3 monthly net by only ~US$200.
+v3.0 is now canonical. The following sibling documents **lag this doc and need reconciliation**:
 
-2. **No capital cushion — by necessity.** There is no VC to raise from in Zimbabwe and USD is scarce, so there is **no external capital buffer.** The deepest the founder is ever out of pocket is ~US$2,250 in the pre-launch months, self-financed. A bad month or a delayed pilot has to be absorbed out of pocket or out of surplus — there is no runway to fall back on. *Mitigation:* stay cash-positive from the first live house; keep operating cost low (no hire-ahead-of-revenue, no salary draw beyond the surplus); never commit to a house the existing surplus can't stand up.
+- **business-case.md** — pricing section is superseded by this document (one-off cut ~55-60%; retainer renamed to subscription with numbers held; 0.75% take held). Reconcile its pricing tables and any owner-operated-bootstrap framing to the scaling SaaS-into-B2B2C model here.
+- **Financial deck / model** — replace v2.0 bootstrap figures (Revenue 12,321 → 28,071 → 48,987; GMV onto rails 43,200 → 223,200 → 545,400) with the v3.0 5-year model (Revenue 61,636 → 361,695; GMV onto rails 894,600 → 7,149,100; cumulative surplus 346,583). Drop the "lean 4-person team" line; carry the half-year go-live correction and the conservative transport unit economics.
+- **pilot-proposal.md** — update the pilot to the US$1,000 creditable-deposit structure (credited toward the full tier onboarding fee on conversion) and the US$1,000/mo pilot subscription, consistent with this doc's pricing.
 
-3. **Paynow-dependency blockers (named honestly — asks of Paynow).** Four items are external dependencies on Paynow, and we will not pretend otherwise:
-   - **Paab cash payments** — RED, awaiting Paynow sandbox + docs. The only red on the board. Cash-collection accessibility is parked until this lands.
-   - **BillPay PAY round-trip** — awaiting Paynow vendor-portal registration with rotated creds. AUTH is live (200 + member payload); the pay leg is blocked.
-   - **Paynow merchant-transfer API docs** — needed for the seller settlement function.
-   - **txt.co.zw REMOTE creds** — blocking the SMS notifications branch.
-   *Mitigation:* multi-rail by design (Paynow primary, Stripe diaspora fallback) so no single blocker stops the platform; and each blocker is on the supervisor ask list, not silently absorbed.
-
-4. **Operations capacity bottlenecks before sales does.** This is the binding constraint, restated operationally. *Mitigation:* the SaPS onboarding wizard removed per-house engineering setup (~6-min tenant provisioning), so capacity is now bounded by human support, not deployment. Bring on cheap part-time ops help — funded by the surplus, not ahead of it — as we approach house #3.
-
-5. **An auction house churns publicly.** *Mitigation:* high-touch support in months 1–3 is non-negotiable. The first houses are reference customers — and on a self-funded book they are also the source of the capital that funds the next house, so we treat them accordingly.
-
-6. **Adoption is slow on a manual, cash-based incumbent.** This is real — we are prying open a legacy system. *Mitigation:* the economics tell us adoption is *not* the binding lever at this scale, so we don't bet the business on it; we bet on multi-channel reach lowering the activation barrier (USSD + WhatsApp + BillPay meet buyers where they already are) and on adding houses within operator capacity.
-
-7. **USD scarcity & cash habits.** Zimbabwe runs on scarce USD and deeply ingrained cash behaviour; getting GMV to settle digitally at all is the daily fight. *Mitigation:* meet buyers where they pay (BillPay biller menu, EcoCash via Paynow, cash-collection via Paab once unblocked); the ≥30% GMV north-star metric is set deliberately modest because we expect cash to persist alongside us.
-
-8. **Currency volatility wipes out unit economics.** *Mitigation:* all engagement + retainer pricing in **USD**, and founder income (the operating surplus) is measured in USD. Transaction surcharge invoiced in USD-equivalent of settled value. With no capital cushion, USD-denominated pricing is the primary defence against currency shocks.
-
----
-
-*Prepared for the Paynow internship-return demo, 2026-06-04. The framing throughout is deliberate: this is an owner-operated, self-financed business built on Paynow's rails, presented honestly. There is no fundraise behind it — there is nowhere in Zimbabwe to raise one — so it is cash-positive from the first house, capital-free, and grown out of its own surplus. The per-house economics work; the constraint is operator capacity; and the number that grows fastest is the GMV we route onto Paynow.*
+Where any of these disagree with figures here, **this document wins**.
