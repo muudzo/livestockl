@@ -1,5 +1,13 @@
 -- Row Level Security Policies for ZimLivestock
 -- Run this after schema.sql
+--
+-- NOTE (2026-06-04): The DEPLOYED source of truth is supabase/migrations/*.
+-- The tenant-scoped SELECT policies below (livestock_items, bids, payments,
+-- notifications) were hand-reconciled to the multi-tenancy migration
+-- (20260511100000). They were previously the pre-multi-tenancy using(true) /
+-- owner-only form and would have leaked rows across tenants. A full pg_dump
+-- regeneration of this file + a CI diff gate against prod is the durable fix
+-- (pending Docker); the UPDATE/INSERT policies here may still trail prod.
 
 -- Enable RLS on all tables
 alter table public.profiles enable row level security;
@@ -22,8 +30,11 @@ create policy "Users can update own profile"
   );
 
 -- LIVESTOCK ITEMS
-create policy "Listings are viewable by everyone"
-  on public.livestock_items for select using (true);
+-- Tenant-scoped (migration 20260511100000): a member sees only listings in
+-- tenants they belong to. The old using(true) is NOT what prod runs.
+create policy "Listings viewable to tenant members"
+  on public.livestock_items for select
+  using (tenant_id in (select public.user_tenant_ids()));
 
 create policy "Authenticated users can create listings"
   on public.livestock_items for insert
@@ -46,9 +57,11 @@ create policy "Sellers can delete own listings with no bids"
   using (auth.uid() = seller_id and bid_count = 0 and status = 'active');
 
 -- BIDS
--- SELECT is open (auction bid history is public by design).
-create policy "Bids are viewable by everyone"
-  on public.bids for select using (true);
+-- Tenant-scoped (migration 20260511100000): bid history is visible only to
+-- members of the listing's tenant, not globally public.
+create policy "Bids viewable to tenant members"
+  on public.bids for select
+  using (tenant_id in (select public.user_tenant_ids()));
 
 -- NO direct INSERT policy. Bids MUST go through the place_bid() RPC which is
 -- SECURITY DEFINER and enforces every auction rule (amount > current_bid,
@@ -69,9 +82,9 @@ grant execute on function public.place_bid_on_behalf(uuid, text, numeric) to ser
 -- No UPDATE / DELETE policy either — bids are immutable from the user side.
 
 -- PAYMENTS
-create policy "Users can view own payments"
+create policy "Users view own payments in their tenants"
   on public.payments for select
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id and tenant_id in (select public.user_tenant_ids()));
 
 create policy "Authenticated users can create payments"
   on public.payments for insert
@@ -80,9 +93,9 @@ create policy "Authenticated users can create payments"
 -- No user-facing update policy -- only service role updates payments
 
 -- NOTIFICATIONS
-create policy "Users can view own notifications"
+create policy "Users view own notifications in their tenants"
   on public.notifications for select
-  using (auth.uid() = user_id);
+  using (auth.uid() = user_id and tenant_id in (select public.user_tenant_ids()));
 
 create policy "Users can update own notifications"
   on public.notifications for update
