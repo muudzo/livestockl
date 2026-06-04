@@ -48,10 +48,15 @@ export default {
 
     let targetUrl;
     if (target === "poll" && explicitUrl) {
-      // Allow callers to poll any pollurl Paynow handed them — must be
-      // paynow.co.zw so we don't turn into an open redirect proxy.
+      // Allow callers to poll any pollurl Paynow handed them — must be a
+      // paynow.co.zw host over https so we don't become an open proxy.
+      // endsWith("paynow.co.zw") alone also matches evilpaynow.co.zw — anchor
+      // on a leading dot (plus the apex/www) and require https.
       const parsed = new URL(explicitUrl);
-      if (!parsed.hostname.endsWith("paynow.co.zw")) {
+      const host = parsed.hostname.toLowerCase();
+      const allowed =
+        host === "paynow.co.zw" || host === "www.paynow.co.zw" || host.endsWith(".paynow.co.zw");
+      if (parsed.protocol !== "https:" || !allowed) {
         return new Response(JSON.stringify({ error: "poll url host not allowed" }), {
           status: 400,
           headers: { "Content-Type": "application/json" },
