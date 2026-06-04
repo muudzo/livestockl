@@ -4,9 +4,9 @@
 > **Audience:** ZimLivestock operations lead (and the founder hiring them)
 > **Companion docs:** [`business-case.md`](business-case.md) · [`gtm-strategy.md`](gtm-strategy.md) · [`pilot-proposal.md`](pilot-proposal.md)
 
-This is the document a new operations hire reads on day one. It is not for customers. It is opinionated and specific to ZimLivestock at this stage — three engagements, one customer profile (Mr. Mawere), one core integration (Paynow), one critical day of the week (Saturday).
+This is the document a new operations hire reads on day one. It is not for customers. It is opinionated and specific to ZimLivestock at this stage — an early cohort of onboarded auction houses, one anchor customer profile (Mr. Mawere) used as the worked example, one core integration (Paynow), one critical day of the week (Saturday).
 
-Numbers in this document are illustrative defaults. Where you see "<2h" or "30%" treat that as the starting baseline; adjust per engagement once we have data.
+Numbers in this document are illustrative defaults. Where you see "<2h" or "30%" treat that as the starting baseline; adjust per house once we have data.
 
 ---
 
@@ -14,9 +14,9 @@ Numbers in this document are illustrative defaults. Where you see "<2h" or "30%"
 
 Three things to internalise before anything else:
 
-1. **The retainer exists because Mr. Mawere refuses to operate the platform himself.** Every time you find yourself thinking "the customer should just do X in the admin panel" — stop. *You* do X. That is the job. The retainer is not paying for occasional support; it is paying for you to be the person who never bothers him.
+1. **The subscription exists because Mr. Mawere refuses to operate the platform himself.** Every time you find yourself thinking "the customer should just do X in the admin panel" — stop. *You* do X. That is the job. The subscription is not paying for occasional support; it is paying for the platform plus the person who never bothers him.
 2. **Saturday is sacred.** Most auction houses run their main sale on Saturday morning. Everything we do — deploys, schema changes, communications, even a friendly check-in call — bends around that. There is no neutral Saturday on this team.
-3. **You are the relationship.** The auction-house owner does not call "ZimLivestock." He calls *you* by name. If you leave the company without a 30-day handover, we lose the customer. That is not a flaw of the model; it is the model. Plan accordingly.
+3. **You are the relationship.** The auction-house owner does not call "ZimLivestock." He calls *you* by name. If you leave the company without a 30-day handover, we risk the customer. That is a real concentration risk of the early-cohort stage; as the team grows we deliberately spread coverage so no single house depends on one person. Plan accordingly.
 
 ---
 
@@ -35,7 +35,7 @@ Three things to internalise before anything else:
 | Sale-day incident command | **Own (incident commander)** | Notified, joins if SEV-1 | **Fixes** under your direction |
 | Schema / RLS / Edge Function changes | Surface symptoms; never edit | Approves | **Owns** |
 | New feature decisions | Surface requests with context | **Owns** | Implements |
-| Discovery calls with new prospects | Joins from engagement #2 onward | **Owns** | — |
+| Discovery calls with new prospects | Joins from the second house onward | **Owns** | — |
 | Pricing negotiations | Never alone | **Owns** | — |
 | Pass-through cost itemisation | **Own (gather + report)** | — | Provides raw data |
 | Constable workflow tuning | **Own (talk to constables)** | — | Implements changes |
@@ -46,9 +46,9 @@ If you ever find yourself doing something not on the "Own" column in your row, s
 
 ### What "ops lead owns" actually means at this stage
 
-We are a small team. You will sometimes do things that, at a larger company, would not be your job — answer a buyer's WhatsApp at 8pm Friday, drive to the auction house at 5am Saturday to be on-site for the first sale, write a refund email by hand because the bulk-refund tool isn't built yet. That's the SaPS shape. The retainer prices it in.
+We are a small, growing team — founder plus an ops/onboarding lead and support, scaling toward roughly 9–13 people by year 5 as house count climbs from 5 toward 20. In the early cohort you will sometimes do things that, at a larger company, would not be your job — answer a buyer's WhatsApp at 8pm Friday, drive to the auction house at 5am Saturday to be on-site for the first sale, write a refund email by hand because the bulk-refund tool isn't built yet. That's the shape of a high-touch B2B SaaS platform in its first houses. As the cohort grows, the self-serve onboarding wizard and tooling absorb the repetitive work, and these one-off heroics give way to repeatable playbooks. The subscription prices the high-touch period in.
 
-What "ops lead owns" does *not* mean: writing code, touching the database, deploying. If a problem requires those, escalate. We pay an engineer for a reason.
+What "ops lead owns" does *not* mean: writing code, touching the database, deploying. If a problem requires those, escalate. We have an engineer for a reason.
 
 ---
 
@@ -197,7 +197,7 @@ The rough rule: if it touches **data correctness, money, or security**, page the
 
 ## 4. Communication cadence per customer
 
-Each engaged auction house has the following baseline cadence in steady state. Adjust upward (more touch) when you see health indicators slipping; never adjust downward without the founder agreeing.
+Each onboarded auction house has the following baseline cadence in steady state. Adjust upward (more touch) when you see health indicators slipping; never adjust downward without the founder agreeing.
 
 ### Daily — internal only
 
@@ -236,7 +236,7 @@ A formal **Quarterly Business Review (QBR)** on-site at the auction house. Struc
 
 The renewal conversation (section 10). Founder leads, you set it up and are in the room.
 
-### Cadence by engagement age
+### Cadence by customer age
 
 | Customer age | Daily | Weekly | Monthly | Quarterly |
 |---|---|---|---|---|
@@ -322,7 +322,7 @@ Do not send this unless the founder has approved the wording. Pre-approve a temp
 | SEV-2 outside sale window | You | Engineer next business hour | — |
 | SEV-3 / SEV-4 | You, queue normally | — | — |
 
-**You are always the first page.** Even at 5am on Saturday. That is what the retainer pays for.
+**You are always the first page.** Even at 5am on Saturday. That is what the subscription pays for.
 
 ### Common incidents and their first-step playbooks
 
@@ -340,7 +340,7 @@ Do not send this unless the founder has approved the wording. Pre-approve a temp
 
 ## 6. Monthly report template
 
-The monthly report is the single most important artefact you produce. The bookkeeper validates it. The owner reads it. It is what justifies the retainer to the auction house every 30 days.
+The monthly report is the single most important artefact you produce. The bookkeeper validates it. The owner reads it. It is what justifies the subscription to the auction house every 30 days.
 
 Deliver it on the **first Monday of the month**, in person (if local) or by video call, with a PDF and a CSV attached for the bookkeeper.
 
@@ -358,7 +358,7 @@ Prepared by: [Operations lead name], delivered [date]
    - Avg per sale day:                    US$ ______
    - % of total floor GMV through platform: ____%
 
-2. Transaction surcharge
+2. Transaction take
    - 0.75% of settled GMV:                US$ ______
    - Invoiced this month
    - Itemised line-by-line in appendix A
@@ -388,7 +388,7 @@ Prepared by: [Operations lead name], delivered [date]
    - [3 specific things we are doing in the coming month, plain language]
 
 ────────────────────────────────────────
-Appendix A: Transaction-surcharge line items
+Appendix A: Transaction-take line items
 Appendix B: Pass-through costs (Bisafe, SMS)
 Appendix C: Settlement reconciliation
             (each settled payment, matched to Paynow dashboard ID)
@@ -432,7 +432,7 @@ The QBR is the conversation that earns you the renewal nine months before it's d
 | 0:00–0:10 | Coffee, small talk, the owner's recent news | The owner | Relationship temp-check |
 | 0:10–0:25 | Quarter in numbers — GMV, transactions, buyers, listings, incidents | You | Shared understanding of the quarter |
 | 0:25–0:40 | What worked / what didn't (theirs first) | The owner | Honest feedback you write down |
-| 0:40–0:55 | What we changed in response to last quarter's feedback | You | Demonstrates that the retainer pays for itself |
+| 0:40–0:55 | What we changed in response to last quarter's feedback | You | Demonstrates that the subscription pays for itself |
 | 0:55–1:10 | What we're seeing on other floors — anonymised | Founder | Demonstrates we are in the market |
 | 1:10–1:25 | Next quarter plan — three concrete things we'll do | Founder + you | Signed-off priorities |
 | 1:25–1:30 | Anything else | Anyone | Catch the unspoken |
@@ -452,7 +452,7 @@ The Q4 QBR (month 9) is the renewal-staging conversation. Section 10 covers this
 
 ## 8. Customer health metrics — leading indicators of churn
 
-A SaPS customer rarely churns suddenly. They go cold for two months, then announce at renewal that "we're going back to the way we did it before." By the time they tell you, you've already lost them.
+A platform customer rarely churns suddenly. They go cold for two months, then announce at renewal that "we're going back to the way we did it before." By the time they tell you, you've already lost them.
 
 The leading indicators below catch the slide early, while you can still do something about it.
 
@@ -512,11 +512,11 @@ This is unusual — we deliberately keep the engineer off the customer-facing fr
 
 **Result:** 70% of "I don't trust your tech anymore" situations resolve.
 
-#### Save play 3 — "Restructure the engagement"
+#### Save play 3 — "Restructure the subscription"
 
 **Trigger:** Owner says "I don't see what I'm paying for."
 
-**Move:** Founder steps in. The conversation is: "What if we changed the retainer to be tied to GMV through the platform — you pay more only as you make more?" or "What if we dropped the retainer 30% for the next 90 days while we re-prove the value, then revisit?"
+**Move:** Founder steps in. The conversation is: "What if we changed the subscription to be tied to GMV through the platform — you pay more only as you make more?" or "What if we dropped the subscription 30% for the next 90 days while we re-prove the value, then revisit?"
 
 **Important:** This is the founder's conversation. You set it up. You are in the room. You do not propose terms yourself.
 
@@ -528,11 +528,11 @@ This is unusual — we deliberately keep the engineer off the customer-facing fr
 
 **Move:** Arrange a peer call with another auction-house owner we work with (only one with a strong relationship; ask permission first). 30 minutes, peer-to-peer, no us in the room.
 
-**Result:** Powerful but only usable once we have a second engaged customer. By engagement #2, this becomes our strongest save play.
+**Result:** Powerful but only usable once we have a second onboarded customer. By the second house, this becomes our strongest save play.
 
 ### What to never do in a save play
 
-- Discount the retainer below 30% off. We anchor our retainer firm; deeper than 30% off means we'd rather lose the customer than reset the pricing benchmark.
+- Discount the subscription below 30% off. We anchor our subscription firm; deeper than 30% off means we'd rather lose the customer than reset the pricing benchmark.
 - Promise a feature that isn't on the engineering roadmap. Promises broken in a save situation kill the relationship for good.
 - Apologise without action. "I'm sorry you feel that way" is worse than not calling.
 - Move alone. Save plays go through the founder. Always.
@@ -565,32 +565,32 @@ The 12-month commitment ends at month 12. The renewal conversation begins at mon
 
 | Tier | Year-1 terms | Year-2 standard renewal terms |
 |---|---|---|
-| Engagement fee | One-off, already paid | None — no re-engagement fee |
-| Retainer | Pilot rate (often discounted) | Standard rate for their tier (per GTM doc) |
-| Transaction surcharge | 0.75% | 0.75%, unchanged |
+| Onboarding fee | One-off, already paid (pilot's US$1,000 credited toward the signed tier) | None — no re-onboarding fee |
+| Subscription | Pilot rate (US$1,000/mo) or signed-tier rate | Standard subscription for their tier (per GTM doc) |
+| Transaction take | 0.75% | 0.75%, unchanged |
 | Commitment | 12 months | 12 months |
 | Add-ons | None | Quoted separately if asked: branded mobile app, deeper analytics, transport referrals |
 
 ### What we never offer
 
 - A multi-year lock-in. We always renew at 12 months. The owner needs the option to walk for the relationship to feel mutual.
-- A retainer discount in year 2. The reason we discounted year 1 was pilot risk; year 2 is a proven engagement.
-- A volume-based retainer tier-down. If their GMV grew, retainer holds (tier-up only).
+- A subscription discount in year 2. The reason we held a pilot rate in year 1 was pilot risk; year 2 is a proven house.
+- A volume-based subscription tier-down. If their GMV grew, the subscription holds (tier-up only).
 
 ### The script the founder uses
 
 ```
 "Mr. Mawere — we're at month 11 now. Time to talk about year two.
 
-Here's what year one looked like: [GMV through platform, surcharge collected,
+Here's what year one looked like: [GMV through platform, transaction take collected,
 buyers reached, incidents handled]. Compared to your floor twelve months ago,
 that's [specific delta].
 
 For year two we're proposing:
-  - same operations engagement, no new engagement fee
-  - retainer at our standard tier-B rate of US$1,500/month (up from your
-    pilot rate of US$1,200), reflecting what we now operate for you
-  - same 0.75% transaction surcharge
+  - same platform subscription, no new onboarding fee
+  - subscription at our standard tier-B rate of US$1,200/month (up from your
+    pilot rate of US$1,000), reflecting what we now operate for you
+  - same 0.75% transaction take
   - same 12-month term, your option to walk at month 24
 
 If there's anything in this you want to change, that's the conversation
@@ -690,7 +690,7 @@ Not an exhaustive list — just the ones you'll touch daily.
 | The monthly report template | Customer reporting | Monthly |
 | This document | Reread the relevant section before any unfamiliar situation | As needed |
 
-You do **not** get write access to the Supabase database, the Paynow integration credentials, or the Edge Function deploy pipeline. Those live with the engineer. This is deliberate; the SaPS service is *operations*, not *engineering*. If you find yourself needing write access, the answer is to escalate to the engineer, not to get the access.
+You do **not** get write access to the Supabase database, the Paynow integration credentials, or the Edge Function deploy pipeline. Those live with the engineer. This is deliberate; your role is *operations*, not *engineering*. If you find yourself needing write access, the answer is to escalate to the engineer, not to get the access.
 
 ---
 
@@ -700,13 +700,13 @@ A few things the role does not teach itself:
 
 **The customer is not the buyer or seller on the platform — it is the auction house owner.** When the owner's interests and a buyer's interests conflict, you advocate for the owner. (Within the law and within fair-trade rules. We do not run scams. But marginal product calls go to the owner.)
 
-**The retainer is paying for invisibility, not visibility.** Mr. Mawere is happiest when he does not have to think about us. Counterintuitive for someone in a customer-success role to internalise, but: the best month is the one where you spoke to him three times, the platform processed half a million USD, and he never had to mention us to his bookkeeper.
+**The subscription is paying for invisibility, not visibility.** Mr. Mawere is happiest when he does not have to think about us. Counterintuitive for someone in a customer-success role to internalise, but: the best month is the one where you spoke to him three times, the platform processed half a million USD, and he never had to mention us to his bookkeeper.
 
 **Boring is the goal.** Every "good news" story is a story about a sale day that ran without incident. Every "bad news" story is a SEV-1 we wish hadn't happened. The job is to make next month's report boring in the same way last month's was.
 
 **You will be tempted to take credit.** Resist. The auction house's success is the auction house's story. We are infrastructure. The case study credits Mr. Mawere first.
 
-**You will be tempted to skip Saturday morning once it's "running well."** Resist that for the first two years. The Saturday-morning presence — even remote, even just "I'm awake, here's my number, call if anything happens" — is the operational tax that earns the retainer, and the trust we accumulate by being there compounds in ways no one will write down.
+**You will be tempted to skip Saturday morning once it's "running well."** Resist that for the first two years. The Saturday-morning presence — even remote, even just "I'm awake, here's my number, call if anything happens" — is the operational tax that earns the subscription, and the trust we accumulate by being there compounds in ways no one will write down.
 
 **When in doubt, write it down.** Memory degrades. The next ops lead — and there will be one — needs to be able to read your notes and pick up where you left off. The handover discipline starts the day you start, not the day you leave.
 
@@ -747,7 +747,7 @@ A few things the role does not teach itself:
 
 ## 15. Things to update in this document over time
 
-This is a v1 playbook for a three-customer business. Re-read it every quarter and update specifically:
+This is a v1 playbook for the early-cohort stage (the first five-or-so houses). Re-read it every quarter and update specifically — and expect it to evolve as the cohort grows toward 20 houses and the team grows with it:
 
 - Response SLA numbers, once we have 90 days of real ticket data
 - The six health signals — drop any that don't correlate with churn, add any that do
