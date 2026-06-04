@@ -1,17 +1,21 @@
 #!/usr/bin/env python3.13
 """
-ZimLivestock — Financial Model  (v2.0, June 2026 — honest startup base case)
+ZimLivestock — Financial Model  (v2.1, June 2026 — Zimbabwe bootstrap base case)
 
-A 36-month projection for the SaPS business, rebuilt on DELIBERATELY CONSERVATIVE
-assumptions for an early-stage startup prying open a legacy, manual, cash-based
-livestock-auction market. This supersedes the May-2026 model, whose adoption,
-customer-ramp and pricing assumptions were over-optimistic for Zimbabwe.
+A 36-month projection for the SaPS business, built on a ZIMBABWE BOOTSTRAP frame:
+no external capital (there is no VC to raise from), no founder salary (the founder's
+income IS the operating surplus), no hire-ahead-of-revenue. This supersedes the
+May-2026 model, whose adoption, customer-ramp and pricing assumptions were
+over-optimistic, AND drops the first-world startup framing (burn / runway /
+break-even-month) that does not apply to how a business is actually built here.
 
-What changed from v1.0:
+What changed:
 - Customer ramp:   10 houses in 33 months  ->  3 houses (1 -> 2 -> 3)
 - Adoption ceiling: 70% of physical GMV    ->  15% (slow trust-building)
 - Pricing:          Tier A $10-12k/$2-2.5k ->  Tier A $8k/$1.5k (realistic WTP)
-- Costs:            funded org chart        ->  founder-lean
+- Costs/framing:    funded org chart + burn -> bootstrap (no salary, no capital);
+                    bottom line is OPERATING SURPLUS = founder income, positive
+                    from the first live house. Max ever out-of-pocket ~$2,250.
 
 Revenue lines (unchanged in shape, repriced):
 - Engagement fee (one-off):     $5-8k per house
@@ -55,12 +59,16 @@ def penetration(life_month):
     return 0.15
 
 def monthly_cost(m):
-    founder  = 2000
-    support  = 1200 if m >= 18 else 0   # part-time support when house #2 lands
-    support2 = 1000 if m >= 30 else 0   # second support late in year 3
+    # ZIMBABWE BOOTSTRAP: the founder draws NO salary. Their income IS the
+    # operating surplus (see the P&L tab). There is no external capital and no
+    # hire-ahead-of-revenue — costs are lean operating only. Help is cheap
+    # part-time local labour, paid out of operations once a house can carry it.
+    founder  = 0
+    support  = 400 if m >= 18 else 0    # part-time help once house #2 lands
+    support2 = 400 if m >= 30 else 0    # second part-timer at house #3
     active   = sum(1 for (mo, *_) in SCHEDULE if mo <= m)
     infra    = 250 + 120 * active        # Supabase/Vercel/Cloudflare + per-house SMS/tools
-    misc     = 300                       # accounting / legal / tools
+    misc     = 200                       # accounting / tools
     return founder, support + support2, infra + misc
 
 # ----------------------------------------------------------------------------
@@ -178,13 +186,13 @@ row_input(row, "Sale days per month — Tier A", 4, fmt="int", note="Weekly"); r
 row_input(row, "Sale days per month — Tier B", 3, fmt="int", note="Weekly-fortnightly"); row += 1
 
 row += 1
-section(row, "COSTS — founder-lean (USD/month)"); row += 1
-row_input(row, "Founder draw",                          2000, note="Modest early-stage draw"); row += 1
-row_input(row, "Part-time support (from house #2)",     1200, note="Added month 18"); row += 1
-row_input(row, "Second support (late year 3)",          1000, note="Added month 30"); row += 1
+section(row, "COSTS — Zimbabwe bootstrap (USD/month, no founder salary)"); row += 1
+row_input(row, "Founder draw (income = surplus, NOT a cost)", 0, note="Bootstrap: founder takes operating surplus, draws no salary"); row += 1
+row_input(row, "Part-time help (from house #2)",         400, note="Cheap local part-time, added month 18"); row += 1
+row_input(row, "Second part-timer (house #3)",           400, note="Added month 30"); row += 1
 row_input(row, "Base infrastructure / month",            250, note="Supabase + Vercel + Cloudflare"); row += 1
 row_input(row, "Variable infra per active house / mo",   120, note="SMS, support tools"); row += 1
-row_input(row, "Misc opex / month",                      300, note="Accounting, legal, tools"); row += 1
+row_input(row, "Misc opex / month",                      200, note="Accounting, tools"); row += 1
 
 # ============================================================================
 # TAB 2 — CUSTOMER RAMP
@@ -333,11 +341,11 @@ founders = [monthly_cost(m)[0] for m in range(1, 37)]
 supports = [monthly_cost(m)[1] for m in range(1, 37)]
 infras   = [monthly_cost(m)[2] for m in range(1, 37)]
 
-section_band(ws4, 4, "PEOPLE")
-ws4.cell(row=5, column=1, value="Founder draw"); style_label(ws4.cell(row=5, column=1))
+section_band(ws4, 4, "PEOPLE  (bootstrap — founder draws no salary)")
+ws4.cell(row=5, column=1, value="Founder draw (none)"); style_label(ws4.cell(row=5, column=1))
 for m in range(1, 37):
     c = ws4.cell(row=5, column=m + 1, value=founders[m - 1]); style_calc(c); fmt_currency(c)
-ws4.cell(row=6, column=1, value="Support (part-time)"); style_label(ws4.cell(row=6, column=1))
+ws4.cell(row=6, column=1, value="Part-time help"); style_label(ws4.cell(row=6, column=1))
 for m in range(1, 37):
     c = ws4.cell(row=6, column=m + 1, value=supports[m - 1]); style_calc(c); fmt_currency(c)
 hc_total = 7
@@ -387,7 +395,7 @@ for m in range(1, 37):
 ws5.cell(row=5, column=1, value="Costs"); style_label_bold(ws5.cell(row=5, column=1))
 for m in range(1, 37):
     c = ws5.cell(row=5, column=m + 1, value=f"=-'4. Costs'!{get_column_letter(m+1)}{cost_total}"); style_calc(c); fmt_currency(c)
-ws5.cell(row=6, column=1, value="NET")
+ws5.cell(row=6, column=1, value="SURPLUS (founder income)")
 ws5.cell(row=6, column=1).font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
 ws5.cell(row=6, column=1).fill = PatternFill("solid", fgColor=DARK)
 for m in range(1, 37):
@@ -396,7 +404,7 @@ for m in range(1, 37):
     c.fill = PatternFill("solid", fgColor=GOLD)
     c.alignment = Alignment(horizontal="right", vertical="center")
     fmt_currency(c)
-ws5.cell(row=7, column=1, value="Cumulative net"); style_label_bold(ws5.cell(row=7, column=1))
+ws5.cell(row=7, column=1, value="Cumulative surplus"); style_label_bold(ws5.cell(row=7, column=1))
 for m in range(1, 37):
     formula = "=B6" if m == 1 else f"={get_column_letter(m+1)}6+{get_column_letter(m)}7"
     c = ws5.cell(row=7, column=m + 1, value=formula); style_calc(c); fmt_currency(c)
@@ -413,7 +421,7 @@ for ci, lbl in enumerate(["", "Year 1", "Year 2", "Year 3", "3-yr total"]):
 ranges = [("B", "M"), ("N", "Y"), ("Z", "AK")]
 ws5.cell(row=12, column=1, value="Revenue"); style_label_bold(ws5.cell(row=12, column=1))
 ws5.cell(row=13, column=1, value="Costs"); style_label_bold(ws5.cell(row=13, column=1))
-ws5.cell(row=14, column=1, value="NET")
+ws5.cell(row=14, column=1, value="SURPLUS (founder income)")
 ws5.cell(row=14, column=1).font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
 ws5.cell(row=14, column=1).fill = PatternFill("solid", fgColor=DARK)
 for yi, (a_, b_) in enumerate(ranges):
@@ -429,13 +437,13 @@ ws5.cell(row=16, column=1, value="NOTES — read before quoting any number")
 ws5.cell(row=16, column=1).font = Font(name="Calibri", size=11, bold=True, color=TERRACOTTA)
 ws5.merge_cells("A16:F16")
 notes = [
-    "LEANEST BASE CASE. 3 houses (1 -> 2 -> 3), 15% adoption ceiling, founder-lean costs. Deliberately conservative for a startup breaking a manual market.",
-    "Investment-stage through all 3 years: Y1 net ~-$19k, Y2 ~-$13k, Y3 ~-$7k. Standalone break-even sits BEYOND month 36.",
-    "The binding constraint is SCALE + FIXED COST, not adoption. Pushing adoption 15% -> 30% improves Y3 monthly net by only ~$200. A mature house contributes ~$15-21k/yr; fixed cost is ~$48-55k/yr.",
+    "ZIMBABWE BOOTSTRAP. 3 houses (1 -> 2 -> 3), 15% adoption ceiling. No external capital, no founder salary, no hire-ahead. The bottom line is OPERATING SURPLUS = the founder's income.",
+    "Cash-positive from the first live house (month 6). Founder income: ~$6k (Y1) -> ~$18k (Y2) -> ~$32k (Y3); ~$56k over 3 years. Deepest the founder is ever out-of-pocket is ~$2,250 (pre-launch months) -- self-financed, no raise.",
+    "No 'runway' or 'break-even month' here -- those are first-world startup artifacts. There is no burn to recover because there is no capital being burnt.",
+    "Constraint is SCALE + OPERATOR CAPACITY, not adoption. Pushing adoption 15% -> 30% adds only ~$200/mo. Each mature house adds ~$15-30k of surplus; growth is capped by how many an owner + cheap part-time help can run, and is self-funded from surplus.",
     "Revenue is retainer-led (Y3: ~$37k retainer of ~$49k total). The recurring spine is reliable; tx-surcharge is small but compounds with adoption.",
-    "GMV routed onto Paynow rails: ~$43k (Y1) -> ~$223k (Y2) -> ~$545k (Y3). This is the number that matters most to Paynow and grows fastest.",
-    "PATH-TO-VIABILITY (NOT base case): with 6 houses by m44, 20% adoption, and transport margin, cumulative net turns positive ~month 36 and reaches ~+$103k by month 60.",
-    "All figures USD. Not modelled: fundraising (none assumed), corporate tax, working-capital float, transport revenue (upside).",
+    "GMV routed onto Paynow rails: ~$43k (Y1) -> ~$223k (Y2) -> ~$545k (Y3). The number that matters most to Paynow and grows fastest.",
+    "ZIMBABWE-SPECIFIC RISKS: USD scarcity / collection friction in a cash economy; ZWL/ZiG volatility (price in USD); no capital cushion, so any shock is absorbed by the founder. Corporate tax and transport revenue (upside) not modelled. All figures USD.",
 ]
 for i, n in enumerate(notes):
     ws5.cell(row=17 + i, column=1, value=f"•  {n}")
@@ -454,12 +462,12 @@ cover["A1"].font = Font(name="Georgia", size=24, bold=True, color="FFFFFF")
 cover["A1"].fill = PatternFill("solid", fgColor=DARK)
 cover["A1"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
 cover.row_dimensions[1].height = 50
-cover["A2"] = "Financial Model — 36-month SaPS projection (v2.0, honest base case)"
+cover["A2"] = "Financial Model — 36-month SaPS projection (v2.1, Zimbabwe bootstrap)"
 cover["A2"].font = Font(name="Georgia", size=14, italic=True, color=GOLD)
 cover["A2"].fill = PatternFill("solid", fgColor=DARK)
 cover["A2"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
 cover.row_dimensions[2].height = 28
-cover["A3"] = "v2.0  ·  Tatenda Nyemudzo  ·  June 2026  ·  supersedes the May-2026 model"
+cover["A3"] = "v2.1  ·  Tatenda Nyemudzo  ·  June 2026  ·  bootstrap frame (no capital, no salary)"
 cover["A3"].font = Font(name="Calibri", size=11, italic=True, color=MUTED)
 cover["A3"].alignment = Alignment(horizontal="left", indent=1)
 cover.row_dimensions[3].height = 24
@@ -471,47 +479,47 @@ readme_rows = [
     "1. Assumptions   — All inputs in gold cells. Pricing, adoption ramp, GMV, lean costs.",
     "2. Customer ramp — The 3-house schedule (pilot -> Tier B -> Tier A).",
     "3. Revenue       — Month-by-month across all 3 houses and 3 revenue lines.",
-    "4. Costs         — Founder-lean headcount + infrastructure.",
-    "5. P&L summary   — Month-by-month revenue, costs, net, cumulative + notes.",
+    "4. Costs         — Lean operating costs only (NO founder salary — bootstrap).",
+    "5. P&L summary   — Month-by-month revenue, costs, surplus, cumulative + notes.",
     "",
     "",
-    "WHY v2.0 — WHAT CHANGED FROM THE MAY MODEL",
+    "THE FRAME — A ZIMBABWE BOOTSTRAP",
     "",
-    "·  The May model assumed 10 houses in 33 months and 70% digital adoption. For a startup",
-    "   breaking a legacy, manual, cash-based market in Zimbabwe, both were over-optimistic.",
-    "·  Customer ramp:    10 houses  ->  3 houses (1 -> 2 -> 3).",
-    "·  Adoption ceiling: 70%        ->  15% (slow trust-building vs $1,000 cash deposits).",
-    "·  Pricing:          Tier A $10-12k/$2-2.5k  ->  $8k/$1.5k (realistic USD WTP).",
-    "·  Costs:            funded org chart        ->  founder-lean.",
+    "·  This is NOT modelled like a first-world startup. There is no VC to raise from, no",
+    "   founder salary financed by capital, and no 'burn toward a break-even month'.",
+    "·  The founder is an owner-operator. Their income IS the operating surplus below.",
+    "·  No external capital is assumed or required. Growth is funded out of surplus.",
+    "·  vs the May model: 10 houses -> 3; 70% adoption -> 15%; Tier A $10-12k/$2-2.5k -> $8k/$1.5k.",
     "",
     "",
-    "HONEST HEADLINE OUTPUTS (leanest base case)",
+    "HONEST HEADLINE OUTPUTS (Zimbabwe bootstrap)",
     "",
-    "·  Year 1 revenue:        ~$12,000     net  ~-$19,000   (1 house)",
-    "·  Year 2 revenue:        ~$28,000     net  ~-$13,000   (2 houses)",
-    "·  Year 3 revenue:        ~$49,000     net   ~-$7,000   (3 houses)",
-    "·  3-year revenue:        ~$89,000     3-yr net  ~-$39,000",
-    "·  Standalone break-even: BEYOND month 36 — investment-stage throughout.",
-    "·  GMV onto Paynow rails: ~$43k -> ~$223k -> ~$545k  (grows fastest).",
+    "·  Year 1:  revenue ~$12,000   cost ~$6,000    founder income ~+$6,000   (1 house)",
+    "·  Year 2:  revenue ~$28,000   cost ~$10,000   founder income ~+$18,000  (2 houses)",
+    "·  Year 3:  revenue ~$49,000   cost ~$17,000   founder income ~+$32,000  (3 houses)",
+    "·  3-year:  revenue ~$89,000   founder earns ~+$56,000 over 3 years.",
+    "·  Cash-positive from the first live house. Max ever out-of-pocket ~$2,250 (self-financed).",
+    "·  External capital required: $0.   GMV onto Paynow rails: ~$43k -> ~$223k -> ~$545k.",
     "",
     "THE KEY INSIGHT",
     "",
-    "·  Constraint is SCALE + FIXED COST, not adoption. Per-house economics work",
-    "   (~$15-21k/yr contribution per mature house); the model needs ~5-6 houses to cover the",
-    "   founder + support base. Doubling adoption (15% -> 30%) recovers only ~$200/mo.",
+    "·  Constraint is SCALE + OPERATOR CAPACITY, not adoption. Per-house economics work",
+    "   (~$15-30k/yr surplus per mature house). Doubling adoption (15% -> 30%) adds only ~$200/mo.",
+    "·  More houses = more income, capped by what one owner + cheap part-time help can run well.",
     "",
-    "PATH TO VIABILITY (upside, NOT base case)",
+    "HOW IT SCALES (no capital, no raise)",
     "",
-    "·  6 houses by month 44 + 20% adoption + transport margin  ->  cumulative break-even",
-    "   ~month 36, and ~+$103,000 cumulative by month 60. See 5. P&L summary notes.",
+    "·  Each new house is funded from the surplus of the last. The founder reinvests part of",
+    "   the surplus into part-time help to take on the next house. Slow, self-funded, durable.",
     "",
+    "·  Zim risks: USD scarcity / collection friction, currency volatility, no capital cushion.",
     "·  All figures USD. No fundraising or corporate tax modelled.",
 ]
 for i, txt in enumerate(readme_rows, start=5):
     cover[f"A{i}"] = txt
-    if txt.strip() in ("WHAT'S IN THIS WORKBOOK", "WHY v2.0 — WHAT CHANGED FROM THE MAY MODEL",
-                        "HONEST HEADLINE OUTPUTS (leanest base case)", "THE KEY INSIGHT",
-                        "PATH TO VIABILITY (upside, NOT base case)"):
+    if txt.strip() in ("WHAT'S IN THIS WORKBOOK", "THE FRAME — A ZIMBABWE BOOTSTRAP",
+                        "HONEST HEADLINE OUTPUTS (Zimbabwe bootstrap)", "THE KEY INSIGHT",
+                        "HOW IT SCALES (no capital, no raise)"):
         cover[f"A{i}"].font = Font(name="Calibri", size=11, bold=True, color=TERRACOTTA)
     else:
         cover[f"A{i}"].font = Font(name="Calibri", size=10, color=DARK)

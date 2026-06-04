@@ -52,18 +52,23 @@ Across all tiers: **0.75% transaction surcharge** on settled GMV (on top of Payn
 
 ## The honest numbers
 
-We lead with the floor, not a hockey stick. The **3-house base case** is **investment-stage through Year 3** and does **not** reach standalone break-even within 60 months:
+This is a bootstrap, not a financed startup — there is no funding round to raise in Zimbabwe, and USD is scarce. So there is no founder salary line: the founder is an owner-operator whose **income is the operating surplus**. Conservative by necessity, not choice.
 
-| | Year 1 | Year 3 | 3-year |
-|---|---:|---:|---:|
-| Houses live (end of year) | 1 | 3 | — |
-| Revenue | US$12,321 | US$48,987 | — |
-| Net | US$-19,119 | US$-6,733 | **US$-39,061** |
-| GMV onto Paynow rails | US$43,200 | US$545,400 | — |
+| | Year 1 | Year 2 | Year 3 | 3-year |
+|---|---:|---:|---:|---:|
+| Houses live (end of year) | 1 | 2 | 3 | — |
+| Revenue | US$12,321 | US$28,071 | US$48,987 | US$89,379 |
+| Operating cost | US$6,240 | US$10,480 | US$16,720 | — |
+| **Founder income** (= surplus, no salary drawn) | **+US$6,081** | **+US$17,591** | **+US$32,267** | **+US$55,939** |
+| GMV onto Paynow rails | US$43,200 | US$223,200 | US$545,400 | — |
 
-**The insight to take away:** per-house economics already work (a mature house contributes US$15–21k/yr); the binding constraint is **scale + fixed cost, not adoption** — pushing adoption 15%→30% moves Year-3 monthly net by only ~US$200. **GMV routed onto Paynow's rails is the fastest-growing line we produce: US$43,200 → US$223,200 → US$545,400.**
+**Cash-positive from the first live house (month 6). External capital required: US$0.** The deepest the founder is ever out of pocket is **~US$2,250** in the pre-launch months — self-financed, and recovered once house #1 settles its first sale. Revenue is retainer-led (Year-3: US$36,900 retainer of US$48,987); at a 15% adoption assumption a mature house contributes ~US$21,420/yr (Tier A) or ~US$15,390/yr (Tier B).
 
-**Path-to-viability (UPSIDE — explicitly NOT the base case):** at 6 houses by month 44 with early ones matured (20% adoption ceiling), **cumulative break-even lands ~month 36** and reaches +US$103,345 cumulative by month 60. The bet is scale, not heroic adoption.
+**The insight to take away:** the binding constraint is **operator capacity, not adoption.** Each mature house adds US$15–21k of income; doubling adoption 15%→30% adds only ~US$200/month. The ceiling is simply how many houses one owner-operator plus cheap part-time help can run *well*. **GMV routed onto Paynow's rails is the fastest-growing line we produce: US$43,200 → US$223,200 → US$545,400.**
+
+**Growth is self-funded:** each house's surplus funds the next one. There is no funding round because there is nowhere to raise one — and that is fine. The path is slow, durable, and cash-positive the whole way.
+
+**The Zimbabwe-specific risks we manage to:** USD scarcity and entrenched cash habits on the floor; currency volatility (we price and settle in USD to neutralise it); no capital cushion, so a missed retainer hurts immediately; and the operator-capacity ceiling — the one founder is the bottleneck until part-time help is trained.
 
 ---
 
@@ -86,4 +91,4 @@ We lead with the floor, not a hockey stick. The **3-house base case** is **inves
 
 ---
 
-*Prepared for the Paynow internship-return demo, 2026-06-04. The per-house economics work; the path to viability is scale; and the number that grows fastest is the GMV we route onto Paynow.*
+*Prepared for the Paynow internship-return demo, 2026-06-04. Cash-positive from the first house, US$0 external capital, ~US$56k of founder earnings over three years — and the number that grows fastest is the GMV we route onto Paynow.*

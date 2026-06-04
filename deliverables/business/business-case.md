@@ -165,23 +165,36 @@ The honest test is per-house. A **mature Tier B house at just 15% digital adopti
 | Variable cost to serve (per-house infra) | −$1,440 |
 | **Contribution / yr** | **~$15,390** |
 
-Plus a one-off **$6,000 engagement** in year 1. A mature **Tier A** house contributes ~$21,400/yr on the same basis.
+Plus a one-off **$6,000 engagement** in year 1. A mature **Tier A** house contributes ~$21,420/yr on the same basis.
 
-**The unit is sound. The portfolio is not — yet.** One house contributes ~$15–21k/yr; the founder-lean cost base is ~$48–55k/yr. So the business needs **~5–6 houses with the early ones matured** to cover its fixed cost. That is the whole game — and it is why the only thing we throttle is operations capacity. See [`financial-model.xlsx`](financial-model.xlsx) for the month-by-month build.
+**The unit is sound — and there is no large fixed cost sitting behind it waiting to be covered.** The founder draws no salary; the founder's income *is* the operating surplus. So there is no fixed annual base that a portfolio of houses has to first earn back before the founder sees a dollar. Each mature house is **income from the day it matures** — ~$15,390/yr (Tier B) to ~$21,420/yr (Tier A), straight to the founder. The thing we throttle is not capital; it is **operator capacity** — how many houses one owner-operator, plus cheap part-time help, can run well. See [`financial-model.xlsx`](financial-model.xlsx) for the month-by-month build.
 
 ### Costs
 
-- **Founder-lean by design.** A modest founder draw, one part-time support person added when the second house lands, a second late in year 3 — not a funded org chart. Total fixed cost ~US$48–55k/yr.
+This is a **bootstrap**, not a financed startup. There is no funding round to raise in Zimbabwe and USD is scarce, so the model is built to need none.
+
+- **No founder salary.** The founder is an owner-operator. There is no fixed payroll line, no hire-ahead-of-revenue, no funded org chart. The founder's income is whatever the operating surplus is — nothing more, nothing less. The first cheap part-time support person is added only after a second house lands and is paying, funded by that house — never before the revenue exists to cover it.
+- **Operating cost is operator-capacity, not fixed cost.** It scales with the book: ~US$6,240 in year 1 (one house), ~US$10,480 in year 2 (two houses), ~US$16,720 in year 3 (three houses). These are the real running costs — infra, pass-throughs, modest part-time help — and they only grow as paying houses are added.
 - Infrastructure: Supabase + Vercel + Cloudflare ≈ **US$250/month base** + ~US$120/active house; grows slowly with the book.
 - Variable: Bisafe escrow, SMS, Paynow merchant-transfer fees — all pass-through.
+- **$0 external capital.** The deepest the founder is ever out of pocket is **~US$2,250**, in the pre-launch months before the first house goes live — self-financed, not borrowed, not raised.
 
-### Path to break-even — honest version
+### The money story — honest version
 
-The leanest base case (3 houses, 15% adoption) is **investment-stage through all three years**: Year 1 ~−$19k, Year 2 ~−$13k, Year 3 ~−$7k net; standalone break-even sits beyond month 36.
+Because the founder takes no salary, the bottom line is simply the **operating surplus = founder income**. There is no burn and no fixed base to earn back — the business is cash-positive from the first live house (month 6):
 
-The constraint is **scale, not adoption** — doubling adoption (15% → 30%) recovers only ~$200/month. What flips the model is house count: with **6 houses by month 44, 20% adoption, and the transport margin**, cumulative net turns positive ~month 36 and reaches ~+$103k by month 60. That path-to-viability is upside we earn — never the plan of record.
+| Year | Houses | Revenue | Operating cost | Founder income (surplus) |
+|---|---:|---:|---:|---:|
+| 1 | 1 | $12,321 | $6,240 | **+$6,081** |
+| 2 | 2 | $28,071 | $10,480 | **+$17,591** |
+| 3 | 3 | $48,987 | $16,720 | **+$32,267** |
+| **3-yr** | — | **$89,379** | — | **+$55,939** |
 
-The growth ceiling is set by how many auction houses we can *operate* well, not by software margins. Fewer customers, modest revenue per customer, high service intensity — and a deliberately slow, honest climb.
+Revenue is **retainer-led** — by year 3, $36,900 of the $48,987 is recurring retainer, the durable spine that doesn't depend on one big sale day. GMV routed onto Paynow rails grows **$43,200 → $223,200 → $545,400** over the three years.
+
+**The constraint is operator capacity, not adoption.** Doubling digital adoption (15% → 30%) adds only ~$200/month — the surcharge is small by design. What moves the number is house count, and house count is bounded by how many houses one owner-operator plus cheap part-time help can run *well*. Each mature house adds ~$15–21k of income; the ceiling is hands, not demand and not software margins.
+
+**Growth is self-funded.** Each house's surplus funds the onboarding of the next. There is no funding round because there is nowhere in Zimbabwe to raise one — and the model is deliberately built so it doesn't need one. The result is a slow, durable climb: conservative by necessity, not by choice. Fewer customers, modest revenue per customer, high service intensity, and a founder who eats only what the houses actually produce.
 
 ---
 
@@ -194,6 +207,10 @@ The growth ceiling is set by how many auction houses we can *operate* well, not 
 | A bigger company copies us | Low (no obvious threat) | Local auction-house relationships are not buildable at the speed software is. The relationship moat compounds faster than the code moat. |
 | Police-clearance digitization gets blocked by the state | Medium | v1 ships *with* the constable on-site, not without — we augment, not replace. The state has reasons to like an audit trail. |
 | Regulatory ambiguity around digital animal trading | Medium | Engage the Ministry of Lands early; position as a *record-keeping* tool that improves national livestock census data. |
+| **USD scarcity & entrenched cash habits** | High | We price in USD and settle on Paynow rails buyers already trust; the long-tail tier meets cash-preferring sellers where they are rather than forcing a behaviour change. |
+| **Currency volatility (ZWL swings)** | High | All pricing and contracts are denominated in **US$**, never local currency — the founder's income and the houses' obligations are insulated from the swing. |
+| **No capital cushion** | Structural | The model is built to need none: $0 external capital, max ~$2,250 ever out of pocket, growth funded from each house's own surplus. A bad month dents income, never solvency. |
+| **Operator-capacity ceiling** | Structural | The binding constraint is how many houses one owner + part-time help can run well. We grow only as fast as we can operate well, and add cheap help only after the revenue to pay for it has landed. |
 
 ---
 
