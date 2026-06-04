@@ -8,7 +8,7 @@
 
 ## 0. What this call is, and isn't
 
-The discovery call is **stage 1 of the customer journey** in the GTM. It is an in-person visit to the auction house, ideally on a sale day, lasting **60–90 minutes**. The visit produces enough information to **size the engagement and write a tailored pilot proposal within seven days**.
+The discovery call is **stage 1 of the customer journey** in the GTM. It is an in-person visit to the auction house, ideally on a sale day, lasting **60–90 minutes**. The visit produces enough information to **size the onboarding and write a tailored pilot proposal within seven days**.
 
 | This call is | This call is not |
 |---|---|
@@ -98,19 +98,21 @@ Goal: understand scale, history, ownership shape.
 | 1 | "How long has the floor been running, and how did you come to it?" | *Three-generation business? First-generation? Origin story tells us how much "brand" matters and whether his decision frame is legacy or growth.* |
 | 2 | "Walk me through a typical sale day — what time does it start, what time does it end, roughly how many lots cross the stage?" | *Lots per day × average lot value = GMV per sale day. We need this for tier-sizing.* |
 | 3 | "On a good Saturday, what does the floor do in total value? On a slow one?" | *Range, not a point estimate. We're triangulating to a tier (A, B, C) under the GTM segmentation.* |
-| 4 | "How often do you run a sale — every week, every other week, monthly?" | *Cadence × per-sale GMV = annual GMV. Sets the retainer band.* |
+| 4 | "How often do you run a sale — every week, every other week, monthly?" | *Cadence × per-sale GMV = annual GMV. Sets the subscription band.* |
 | 5 | "Who else is in the business with you — family, partners, employees on the books?" | *Tells us how the decision will be made. Family business → owner is the decision-maker. Partnership → there will be a second meeting.* |
 | 6 | "Are you part of the Livestock Producers Association? Do you see the other floors as peers or competitors?" | *Channel signal. ZLPA membership is our second-customer pipeline.* |
 
 #### 🎯 Tier sizing — pricing reference for the founder
 
-As they answer Q2–Q4, mentally map their answers onto this table. Don't share it on the call. (Numbers anchored in `business-case.md` § 6.)
+As they answer Q2–Q4, mentally map their answers onto this table. Don't share it on the call. (Numbers anchored in `gtm-strategy.md` v3.0.)
 
-| Tier | Sale-day GMV | Sale days / mo | Engagement | Retainer |
+| Tier | Sale-day GMV | Sale days / mo | Onboarding (one-off) | Subscription |
 |---|---|---|---:|---:|
-| **A — Anchor** | $80–200k | 4 (weekly) | $10–12k | $2,000–2,500/mo |
-| **B — Mid** | $30–80k | 3 (weekly–fortnightly) | $7–8k | $1,500/mo |
-| **C — Small** | $10–30k | 2 (fortnightly) | $5k | $1,200/mo |
+| **A — Anchor** | $80–200k | 4 (weekly) | $3,500 | $1,500/mo |
+| **B — Mid** | $30–80k | 3 (weekly–fortnightly) | $2,500 | $1,200/mo |
+| **C — Small** | $10–30k | 2 (fortnightly) | $1,500 | $900/mo |
+
+A 90-day **pilot** is priced at **$1,000 onboarding + $1,000/mo**, with the pilot onboarding fee credited toward the full tier onboarding fee on conversion — a converting house never pays twice. On top of any tier we take **0.75% of settled GMV** routed through Paynow.
 
 Sale-day GMV below **US$10k** → walk away (see § 8 disqualification matrix).
 
@@ -125,7 +127,8 @@ Goal: understand the actual operational mechanics. This is where the platform fi
 | 3 | "After the hammer falls — how long before the seller has their money?" | *Settlement time is one of the sharpest pain points we relieve. Hours vs. days vs. weeks tells us how to frame "Paynow merchant transfer in hours, not days".* |
 | 4 | "When the constable's on site, how does the brand-verification step work? What happens if there's a dispute?" | *Police-clearance workflow. The platform's constable tool needs to fit this exact process.* |
 | 5 | "Who handles the cash — counting it, banking it, reconciling it against the day's sales?" | *Names the bookkeeper. Tells us who needs to be in the proposal conversation.* |
-| 6 | "On a bad day, what's most likely to slow the floor down?" | *Whatever he names is the first feature we'll demo. He'll have told us the priority.* |
+| 6 | "Once the hammer's fallen and it's paid for — how does the animal actually get to where the buyer wants it? Do they sort their own transport, or does that land on you?" | *Surfaces the delivery problem — the #1 post-sale complaint in field research. This is the post-sale transport hook: the B2B2C line we attach later, where the buyer books a haul and the platform takes the flat booking leg.* |
+| 7 | "On a bad day, what's most likely to slow the floor down?" | *Whatever he names is the first feature we'll demo. He'll have told us the priority.* |
 
 ### 3.3 Buyer / seller base (8 minutes)
 
@@ -160,7 +163,7 @@ The rule: **ask, then shut up**. Count to five in your head before re-prompting.
 
 ### 3.5 Tech sophistication (5–7 minutes)
 
-Goal: gauge digital comfort and existing tool usage. Calibrates how much hand-holding the deployment will need.
+Goal: gauge digital comfort and existing tool usage. Calibrates how much hand-holding the onboarding will need.
 
 | # | Question (verbatim) | *Signal we're listening for* |
 |---|---|---|
@@ -191,10 +194,10 @@ Instead, ask what he pays for things adjacent to what we sell. We back into a bu
 |---|---|---|
 | 1 | "Do you send SMS to your buyer list before a sale? Who's the provider, and what does that cost you each month?" | *TXT.co.zw, Bulk SMS Zim, or similar. Tells us his line-item budget tolerance for messaging.* |
 | 2 | "Do you have an accounting package — Pastel, QuickBooks, anything like that? Roughly what does that cost a year?" | *Anchors what he already pays for "back-office software". Usually US$30–80/month — a useful comparator.* |
-| 3 | "What's your spend on security and cash-handling — a guard, an armoured pickup, banking fees on cash deposits?" | *This is often the biggest hidden cost. If he says "two thousand a month between everything", our retainer is suddenly very competitive.* |
+| 3 | "What's your spend on security and cash-handling — a guard, an armoured pickup, banking fees on cash deposits?" | *This is often the biggest hidden cost. If he says "two thousand a month between everything", our subscription is suddenly very competitive.* |
 | 4 | "Do you spend anything on marketing or advertising the floor — Facebook, the Sunday Mail, the radio?" | *Marketing budget existence. If yes, our "branded buyer list" angle pays for itself.* |
 
-**Invert the question, every time.** We are learning *what he already values enough to pay for*, not asking for his ceiling. The retainer (US$1,200–2,500/mo) needs to land inside the sum of items 1, 2, 3 above — if it does, it's a non-event.
+**Invert the question, every time.** We are learning *what he already values enough to pay for*, not asking for his ceiling. The subscription (US$900–1,500/mo) needs to land inside the sum of items 1, 2, 3 above — if it does, it's a non-event.
 
 ---
 
@@ -233,7 +236,7 @@ If he asks "what does it look like?", show three sharp moments. **Not a feature 
 - The buyer dashboard with all its features.
 - Any internal tooling.
 
-**Then put the phone away.** Demo over. Return to the conversation. *"That's the gist of it — but the actual value is the team behind it running it for you. Tell me more about the registration queue I was watching earlier…"*
+**Then put the phone away.** Demo over. Return to the conversation. *"That's the gist of it — but the real value is a platform that fits your floor, that you and your bookkeeper run yourselves, with us on call when you need us. Tell me more about the registration queue I was watching earlier…"*
 
 ---
 
@@ -316,11 +319,11 @@ If the ops lead flags a hard "no" — walk away. Don't ship a proposal you can't
 
 ## 8. Disqualification criteria — when to walk away politely
 
-Not every floor is a fit. Walking away early is cheaper than walking away after deployment. Six hard-walk signals:
+Not every floor is a fit. Walking away early is cheaper than walking away after onboarding. Six hard-walk signals:
 
 | # | Signal | Why it kills the deal |
 |---|---|---|
-| 1 | **Monthly GMV under US$10k** (single sale day < US$2.5k) | The unit economics don't carry the retainer. 0.75% of US$120k/year is US$900 — doesn't cover a single ops conversation. Tag for the future "community edition" SKU. |
+| 1 | **Monthly GMV under US$10k** (single sale day < US$2.5k) | The unit economics don't carry the subscription. 0.75% of US$120k/year is US$900 — doesn't cover a single ops conversation. Tag for the future "community edition" SKU. |
 | 2 | **Owner is not the decision-maker** | If we leave the call having met the manager, not the owner, the deal will die at the next layer. Insist on the owner before sending the proposal. |
 | 3 | **Refusal to consider a paid pilot** — "we'll try it free for six months" | Tells us willingness-to-pay is zero. Free pilots teach us nothing useful and consume operations capacity we owe paying customers. |
 | 4 | **No bookkeeper or anyone tracking the cash side** | Means there's no internal counterpart to reconcile against. We will become the auction's accounting system by accident — out of scope and uninsurable. |
@@ -363,7 +366,7 @@ In all three: **hand over the printed one-pager again** on the way out, even if 
 | **He won't stop asking technical questions.** | Take one in detail, then redirect: *"Happy to dig into that — and to make sure the answer fits your floor specifically, tell me how [adjacent workflow] runs today."* |
 | **He's bored 20 minutes in.** | Move to the floor. Walk and talk. The discovery questions work standing up too, and the floor will hand you new ones. |
 | **The bookkeeper shows up at minute 5, not minute 40.** | Adapt. Restart the framing for both of them. The bookkeeper will pull the conversation toward numbers — let them. |
-| **You don't know an answer.** | Say so: *"I don't know — I'll find out and put it in the proposal."* Never guess. Guesses come back to bite at deployment. |
+| **You don't know an answer.** | Say so: *"I don't know — I'll find out and put it in the proposal."* Never guess. Guesses come back to bite at onboarding. |
 | **He asks "how much does it cost?" in minute 15.** | *"Honestly, I won't know until I've heard more about your sale-day volume — and I'd rather quote you a real number in a week than a wrong one now. Can we come back to that at the end?"* |
 | **He says yes too fast.** | Slow him down: *"I appreciate that, and I want to make sure we earn it — let me send the proposal, you read it with [bookkeeper], and we'll talk again next week."* A too-fast yes often becomes a slow no later. |
 
@@ -423,4 +426,4 @@ POST-CALL (same day)
 
 ---
 
-> *The discovery call is the most leveraged hour in the entire sales motion. Everything downstream — the proposal, the deployment, the retainer renewal — is shaped by what we learn in this conversation. Treat it accordingly.*
+> *The discovery call is the most leveraged hour in the entire sales motion. Everything downstream — the proposal, the onboarding, the subscription renewal — is shaped by what we learn in this conversation. Treat it accordingly.*

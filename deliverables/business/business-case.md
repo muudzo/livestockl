@@ -1,18 +1,19 @@
 # ZimLivestock — Business Case
 
-> **Status:** v1.1  ·  **Author:** Tatenda Nyemudzo  ·  **Date:** May 2026 — *pricing + unit economics revised June 2026 to match the honest financial model*
+> **Status:** v3.0  ·  **Author:** Tatenda Nyemudzo  ·  **Date:** May 2026 — *pricing + unit economics revised June 2026 to the v3.0 scaling-platform model*
 > **Audience:** Paynow MD, ZimLivestock leadership, prospective auction-house partners
 > **Companion docs:** [`gtm-strategy.md`](gtm-strategy.md) · [`pilot-proposal.md`](pilot-proposal.md) · [`financial-model.xlsx`](financial-model.xlsx)
+> **Canonical numbers live in [`gtm-strategy.md`](gtm-strategy.md) (v3.0).** This document defers to it for all pricing and financials.
 
 ---
 
 ## 1. The pitch in one line
 
-> **"We run the digital floor for you."**
+> **"We run the digital floor — and you onboard in an afternoon."**
 >
-> ZimLivestock is a **software-as-a-professional-service** product for Zimbabwean livestock auction houses. We deploy a branded digital marketplace on top of the auction house's existing business, train their team, operate it on their behalf, and integrate it with Paynow for settlement and Bisafe for escrow. The auction house keeps their brand and their customer relationships. We provide the rails *and* the people running them.
+> ZimLivestock is a **B2B SaaS platform** for Zimbabwean livestock auction houses. Each house onboards as an isolated (RLS) tenant through a self-serve wizard, gets a branded digital marketplace on top of its existing business, and integrates with Paynow for settlement and Bisafe for escrow. The auction house keeps its brand and its customer relationships. Houses pay a one-off onboarding fee, a monthly platform subscription, and a thin transaction take on settled GMV. Over time the platform diversifies into B2B2C consumer revenue through **transport** (delivery). **B2B today, B2B2C tomorrow.**
 
-**Why SaPS, not SaaS:** auction houses are not tech-native customers. They need a partner, not a portal. The product is the platform *plus* the people who keep it operating — the same way Paynow itself sells integrations, not licences.
+**Why a platform that scales, not a bespoke service:** auction houses are not tech-native, but they don't need a per-house engineering build either. A self-serve onboarding wizard (`/operators` → admin approval → a ~6-minute RLS-isolated tenant, no SQL) makes onboarding low-touch, so the platform can grow to ~20 houses — about a third of the ~40–60 house market — over five years without a bespoke project behind each one. The product is the platform *plus* the wizard that makes it reachable at scale, across five live channels: web/PWA, WhatsApp, USSD, BillPay-as-biller, and Facebook Messenger.
 
 ---
 
@@ -76,15 +77,16 @@ WhatsApp groups have rushed in to fill the gap for sub-US$500 trades, but they h
 
 ### What he won't buy
 - A platform that disintermediates him. The marketplace must carry **his auction house's name**, not ours.
-- A self-service tool he has to operate himself. He hired one person to do EcoCash reconciliation — he is not hiring another to administer software.
 - A black-box payment flow. He needs to see every settlement, every cent, in a way he can show his bookkeeper.
-- An upfront fee that arrives with no people attached. If we're charging him money on day one, there'd better be a team in the room with him on day one.
+- A multi-year lock-in. He wants to be able to walk if it doesn't work.
+- A heavy IT project. He won't sit through a months-long bespoke build — onboarding has to be fast and low-touch, or it's not worth his Saturday.
 
 ### What he will buy
-- A **professional-service engagement** with named people: a deployment fee that includes a training day on his floor, with our operations lead present in person.
-- A monthly retainer in exchange for us *running* the platform on his behalf — he calls a number when something breaks, we fix it, he doesn't open the codebase.
-- A modest transaction surcharge on what we settle, framed as "shared upside" not "platform fee".
-- A 12-month renewable commitment, not a multi-year lock-in. He wants to be able to walk if it doesn't work.
+- A **subscription to a platform that carries his brand** — and onboarding he can complete in an afternoon. The self-serve wizard means his tenant is live (RLS-isolated, no SQL, no engineer on his floor) inside minutes, not weeks; he supplies his details, we approve, the marketplace goes up under his name.
+- A one-off **onboarding fee** that covers the setup, branding, and data migration — a project line he can show his bookkeeper and his association.
+- A monthly **platform subscription** for us running the platform on his behalf: he calls a number when something breaks, we fix it, he doesn't open the codebase. He hired one person for EcoCash reconciliation; he is not hiring another to administer software, and with the wizard he doesn't have to.
+- A modest transaction take on what we settle, framed as "shared upside" not "platform fee".
+- A 12-month renewable commitment, not a multi-year lock-in.
 
 ### Where we find him
 - The Zimbabwe Livestock Producers Association (ZLPA) annual conference.
@@ -107,94 +109,103 @@ The competitive moat isn't technology. The moat is **local presence + Paynow par
 
 ---
 
-## 6. Business model — Software as a Professional Service
+## 6. Business model — a scaling B2B SaaS platform
 
-We do not sell a licence. We sell an **engagement**: deployment + training + ongoing operations of a digital marketplace branded as the auction house's own. Three layered revenue lines, each tied to a different unit of value we deliver.
+We do not sell a licence and we do not sell a bespoke build. We sell a **subscription to a platform**: self-serve onboarding + a branded marketplace + ongoing operations, with the auction house live as an isolated tenant in an afternoon. Three B2B revenue lines today, plus a B2B2C consumer line (transport) that grows over time. **B2B today, B2B2C tomorrow.**
 
-### 📌 Pricing reference — single source of truth
+### 📌 Pricing reference — defers to the canonical model
 
-**This table is the canonical price list. Every other document (GTM, pilot proposal, playbook, financial model, sales script) references these numbers. If a number disagrees with this table, this table wins — update the sibling doc.**
+**The canonical price list lives in [`gtm-strategy.md`](gtm-strategy.md) (v3.0) and the financial model. The table below mirrors it. If a number ever disagrees, the GTM strategy wins — update this doc.**
 
-> **Revised June 2026.** The original May figures (Tier A $10–12k / $2,000–2,500/mo) assumed willingness-to-pay we have no field evidence for. These leaner numbers reflect what a Zimbabwean auction house — netting fees on a manual floor, paying in USD — will realistically commit to.
+> **Revised June 2026.** The figures reflect what a Zimbabwean auction house — netting fees on a manual floor, paying in USD — will realistically commit to, sized so onboarding is a one-off project line and the subscription is the recurring spine.
 
-| Tier | Engagement (one-off) | Retainer (monthly) | Sale-day GMV target | Sale days / mo |
+| Tier | Onboarding fee (one-off) | Subscription (monthly) | Sale-day GMV target | Sale days / mo |
 |---|---:|---:|---:|---:|
-| **A — Anchor house** | $8,000 | $1,500 | $80–120k | 4 (weekly) |
-| **B — Mid-market**   | $6,000 | $1,200 | $40–80k  | 3 (weekly–fortnightly) |
-| **C — Small / regional** | $4,000 | $900 | $10–30k | 2 (fortnightly) |
-| **Pilot (any tier)** | $5,000 *(discounted from $8k list)* | $1,000 for 90 days, then converts to tier-appropriate rate | varies | varies |
+| **A — Anchor house** | US$3,500 | US$1,500 | $80–120k | 4 (weekly) |
+| **B — Mid-market**   | US$2,500 | US$1,200 | $40–80k  | 3 (weekly–fortnightly) |
+| **C — Small / regional** | US$1,500 | US$900 | $10–30k | 2 (fortnightly) |
+| **Pilot (any tier)** | US$1,000 *(credited toward the full tier onboarding fee on conversion — a converting house never pays twice)* | US$1,000/mo for 90 days, then converts to the signed tier rate | varies | varies |
 
 Plus, across all tiers:
-- **Transaction surcharge: 0.75%** of settled GMV, sits on top of Paynow's own fee.
+- **Transaction take: 0.75%** of settled GMV, sits on top of Paynow's own fee.
+- **Transport (consumer line):** buyer quote US$15 base + US$0.35/km, capped US$250. The platform keeps only the flat US$15 booking leg (≈ US$12.00 net after ~US$3 processing); the transporter prices and keeps the entire distance-based haul.
 - **Pass-through costs:** Bisafe escrow, SMS, Paynow merchant-transfer — no markup.
-- **Commitment:** 12-month renewable from month-4 of pilot or day-one of standard engagement.
+- **Commitment:** 12-month renewable from month-4 of pilot or day-one of standard onboarding.
 
 ### Revenue streams
 
-**1. Deployment engagement (one-off, billed up front)**
-- US$5,000 – US$12,000 per auction house, sized to the house's scale.
-- Covers: discovery workshop, branded skin (their colours, their logo, their domain), data migration from existing customer lists, on-site training day for floor staff + constable, integration testing with their Paynow merchant account, hand-off to the operations engagement.
-- This is the deliverable Mr. Mawere can show his bookkeeper and his association — a project, not a subscription.
+**1. Onboarding fee (one-off, billed up front)**
+- US$1,500 – US$3,500 per auction house, sized to the house's tier.
+- Covers: discovery, branded skin (their colours, their logo, their domain), data migration from existing customer lists, integration testing with their Paynow merchant account, and the self-serve wizard that provisions their RLS-isolated tenant. Onboarding is low-touch — minutes in the wizard, not a months-long engineering project.
+- This is the deliverable Mr. Mawere can show his bookkeeper and his association — a project line, not a subscription.
 
-**2. Operations retainer (monthly, the recurring spine)**
-- US$1,200 – US$2,500/month per auction house, depending on volume tier.
-- Covers: we operate the platform on their behalf. Monitoring, customer support for buyers/sellers, payment reconciliation, monthly reporting, ongoing tuning. The auction house's staff handle the floor and the constable — *we* handle every screen, every USSD prompt, every webhook.
-- This is what makes it "as a professional service" — the auction house is buying our team's time, with software as the leverage.
+**2. Platform subscription (monthly, the recurring spine)**
+- US$900 – US$1,500/month per auction house, depending on volume tier.
+- Covers: we operate the platform on their behalf. Monitoring, customer support for buyers/sellers, payment reconciliation, monthly reporting, ongoing tuning across all five channels. The auction house's staff handle the floor and the constable — *we* handle every screen, every USSD prompt, every webhook.
+- This is the durable B2B spine — recurring revenue that scales with house count, not with any single sale day.
 
-**3. Transaction surcharge (small, tied to GMV)**
-- 0.75% of every sale that settles through the platform. Smaller than a SaaS-style commission because the retainer is doing most of the heavy lifting.
+**3. Transaction take (small, tied to GMV)**
+- 0.75% of every sale that settles through the platform. Smaller than a SaaS-style commission because the subscription is doing most of the heavy lifting.
 - Sits on top of Paynow's own fee — neutral to the auction house's takehome since the alternative (a buyer at the door) costs them roughly the same in cash-handling, security, and float.
+
+**4. Transport / delivery (the B2B2C consumer line, grows over time)**
+- Cattle delivery is the #1 post-sale complaint we found in the field. We monetise it on the buyer side: a flat US$15 booking leg the platform keeps (≈ US$12.00 net), with the transporter pricing and keeping the distance-based haul on a route-batched full truck.
+- This is where the platform diversifies from pure B2B into B2B2C. Attach-rate ramps 5% → 9% → 14% → 19% → 24% across Y1–Y5, lifting the consumer share of revenue from ~1.3% to ~8.8%.
 
 ### Why this shape (vs. a pure subscription or pure commission)
 
 A pure **commission** model rewards us for processing volume but doesn't pay for the human work of keeping a non-tech-native auction house operational. The first call about "how do I refund this buyer?" eats half a day per month — and there's no commission on that.
 
-A pure **subscription** model assumes the auction house can self-onboard. They can't. The deployment engagement is non-negotiable for the first 12 months.
+A pure **commission** also can't fund the day-one setup. The onboarding fee pays for that.
 
-A **layered SaPS** model lets the engagement fee pay for the day-one work, the retainer pay for the steady-state operations, and the small per-tx surcharge align long-term incentives. Every revenue line is tied to a different unit of value we deliver.
+A **layered platform** model lets the onboarding fee pay for the day-one work, the subscription pay for the steady-state operations, the small per-tx take align long-term incentives, and transport open a consumer line on top. Every revenue line is tied to a different unit of value we deliver — and the wizard keeps onboarding cheap enough that adding the next house doesn't require adding a bespoke project.
 
 ### Unit economics — the per-house unit works
 
-The honest test is per-house. A **mature Tier B house at just 15% digital adoption** — the conservative ceiling for a manual cash market — looks like this:
+The honest test is per-house. A **mature Tier B house at field-honest digital adoption (~13%)** — below the ~15% mature ceiling for a manual cash market — looks like this:
 
 | Line | Amount / yr |
 |---|---:|
-| Retainer ($1,200/mo × 12) | $14,400 |
-| Transaction surcharge (15% of ~$2.16M GMV × 0.75%) | $2,430 |
-| **Recurring revenue / yr** | **$16,830** |
-| Variable cost to serve (per-house infra) | −$1,440 |
-| **Contribution / yr** | **~$15,390** |
+| Subscription ($1,200/mo × 12) | $14,400 |
+| Transaction take (~13% of ~$2.16M GMV × 0.75%) | ~$2,100 |
+| **Recurring revenue / yr** | **~$16,500** |
+| Variable cost to serve (per-house infra + pass-through) | −$1,440 |
+| **Contribution / yr** | **~$15,060** |
 
-Plus a one-off **$6,000 engagement** in year 1. A mature **Tier A** house contributes ~$21,420/yr on the same basis.
+Plus a one-off **US$2,500 onboarding fee** in year 1. A mature **Tier A** house contributes ~$21k/yr on the same basis, and adoption sits field-honest in the 10.5–13.7% band — we never lean on adoption as a growth lever.
 
-**The unit is sound — and there is no large fixed cost sitting behind it waiting to be covered.** The founder draws no salary; the founder's income *is* the operating surplus. So there is no fixed annual base that a portfolio of houses has to first earn back before the founder sees a dollar. Each mature house is **income from the day it matures** — ~$15,390/yr (Tier B) to ~$21,420/yr (Tier A), straight to the founder. The thing we throttle is not capital; it is **operator capacity** — how many houses one owner-operator, plus cheap part-time help, can run well. See [`financial-model.xlsx`](financial-model.xlsx) for the month-by-month build.
+**The unit is sound, and it gets cheaper to add the next one.** Because onboarding runs through the self-serve wizard (a ~6-minute RLS-isolated tenant, no bespoke engineering), the cost of landing house N+1 is low-touch. What we scale on is **house count + transport**, not adoption — adoption is held field-honest. See [`financial-model.xlsx`](financial-model.xlsx) for the month-by-month build.
 
 ### Costs
 
-This is a **bootstrap**, not a financed startup. There is no funding round to raise in Zimbabwe and USD is scarce, so the model is built to need none.
+This is **largely self-funded**, not a financed startup. There is no funding round to raise in Zimbabwe and USD is scarce, so the model is built to need none — but it does carry a real team and a prudent working-capital buffer.
 
-- **No founder salary.** The founder is an owner-operator. There is no fixed payroll line, no hire-ahead-of-revenue, no funded org chart. The founder's income is whatever the operating surplus is — nothing more, nothing less. The first cheap part-time support person is added only after a second house lands and is paying, funded by that house — never before the revenue exists to cover it.
-- **Operating cost is operator-capacity, not fixed cost.** It scales with the book: ~US$6,240 in year 1 (one house), ~US$10,480 in year 2 (two houses), ~US$16,720 in year 3 (three houses). These are the real running costs — infra, pass-throughs, modest part-time help — and they only grow as paying houses are added.
-- Infrastructure: Supabase + Vercel + Cloudflare ≈ **US$250/month base** + ~US$120/active house; grows slowly with the book.
-- Variable: Bisafe escrow, SMS, Paynow merchant-transfer fees — all pass-through.
-- **$0 external capital.** The deepest the founder is ever out of pocket is **~US$2,250**, in the pre-launch months before the first house goes live — self-financed, not borrowed, not raised.
+- **The founder draws a salary, inside payroll.** Year 5 payroll of US$198k funds a real ~9–13 person org — not a lean one-person shop. People are hired against a scaling book, not ahead of imagined revenue.
+- **Costs scale with the book.** Total operating cost runs **US$48,841 → $84,274 → $132,810 → $181,365 → $235,930** over Y1–Y5, against revenue of **$61,636 → $130,867 → $198,346 → $277,259 → $361,695**. Payroll is the dominant line (US$36k → $198k); infrastructure stays modest (US$3,600 → $5,400).
+- Infrastructure: Supabase + Vercel + Cloudflare — grows slowly with the book (US$3,600/yr in Y1 to US$5,400/yr in Y5).
+- Variable: Bisafe escrow, SMS, Paynow merchant-transfer fees — all pass-through (US$241 → $530/yr).
+- **$0 external equity.** Growth is funded from operating surplus plus a held **2–3 month opex working-capital buffer** — not borrowed, not raised. Year 1's surplus cushion is thin (~3.5 weeks of opex), which is exactly why the buffer is non-negotiable.
 
-### The money story — honest version
+### The money story — the 5-year model
 
-Because the founder takes no salary, the bottom line is simply the **operating surplus = founder income**. There is no burn and no fixed base to earn back — the business is cash-positive from the first live house (month 6):
+The business is surplus-positive from Year 1 and the surplus compounds as houses are added and transport attaches. All figures US$:
 
-| Year | Houses | Revenue | Operating cost | Founder income (surplus) |
+| Year | Houses live (EOY) | Revenue | Operating cost | Surplus |
 |---|---:|---:|---:|---:|
-| 1 | 1 | $12,321 | $6,240 | **+$6,081** |
-| 2 | 2 | $28,071 | $10,480 | **+$17,591** |
-| 3 | 3 | $48,987 | $16,720 | **+$32,267** |
-| **3-yr** | — | **$89,379** | — | **+$55,939** |
+| 1 | 5 | $61,636 | $48,841 | **+$12,795** |
+| 2 | 8 | $130,867 | $84,274 | **+$46,593** |
+| 3 | 12 | $198,346 | $132,810 | **+$65,536** |
+| 4 | 16 | $277,259 | $181,365 | **+$95,894** |
+| 5 | 20 | $361,695 | $235,930 | **+$125,765** |
+| **5-yr** | — | **$1,029,803** | **$683,220** | **+$346,583** |
 
-Revenue is **retainer-led** — by year 3, $36,900 of the $48,987 is recurring retainer, the durable spine that doesn't depend on one big sale day. GMV routed onto Paynow rails grows **$43,200 → $223,200 → $545,400** over the three years.
+Cumulative surplus builds **$12,795 → $59,388 → $124,924 → $220,818 → $346,583**.
 
-**The constraint is operator capacity, not adoption.** Doubling digital adoption (15% → 30%) adds only ~$200/month — the surcharge is small by design. What moves the number is house count, and house count is bounded by how many houses one owner-operator plus cheap part-time help can run *well*. Each mature house adds ~$15–21k of income; the ceiling is hands, not demand and not software margins.
+Revenue is **subscription-led** — the subscription line alone runs $39,600 → $266,400 (5-yr $766,800), the durable spine that doesn't depend on any single sale day. GMV routed onto Paynow rails grows **$894,600 → $2,463,200 → $3,683,300 → $5,310,800 → $7,149,100** — about **US$19.5M over five years**. The revenue mix shifts from 98.7% auction-house / 1.3% consumer-transport in Y1 to 91.2% / 8.8% in Y5 as the B2B2C transport line matures.
 
-**Growth is self-funded.** Each house's surplus funds the onboarding of the next. There is no funding round because there is nowhere in Zimbabwe to raise one — and the model is deliberately built so it doesn't need one. The result is a slow, durable climb: conservative by necessity, not by choice. Fewer customers, modest revenue per customer, high service intensity, and a founder who eats only what the houses actually produce.
+**What moves the number is house count and transport, not adoption.** Blended digital adoption is held field-honest at 10.5 / 11.5 / 12.3 / 13.0 / 13.7% — deliberately below the mature ceiling, never used as a growth lever. We ramp from 5 live houses to 20 (5 → 8 → 12 → 16 → 20), anchors-first, and let transport attach behind the GMV. The single **most aggressive assumption** is landing 3 of ~8 Tier A anchors in Year 1 — that's the load-bearing bet, and we name it as such.
+
+**Growth is self-funded, with a buffer.** Operating surplus funds the next cohort of onboardings; the 2–3 month opex buffer absorbs the thin early-year cushion. There is no funding round because there is nowhere in Zimbabwe to raise one — and the model is built so it doesn't need external equity. The result is a durable, scaling climb run by a small team: moderate scale by choice (~1/3 of the market), modest revenue per customer, recurring subscription as the spine, and transport diversifying the line over time.
 
 ---
 
@@ -202,35 +213,35 @@ Revenue is **retainer-led** — by year 3, $36,900 of the $48,987 is recurring r
 
 | Risk | Likelihood | Mitigation |
 |---|---|---|
-| Auction houses don't pay — they take the software for free | Medium | Revenue share, not upfront subscription. We only make money when they do. |
+| Auction houses don't pay — they take the software for free | Medium | The marketplace runs under their brand on *our* platform — they can't fork it. The pilot deposit is creditable, so converting is the cheaper path, and the transaction take aligns us to their upside. |
 | Paynow changes terms / pulls integration | Low (we're internal-friendly) | Multi-rail by design — Paynow primary, Ecocash USSD direct as fallback, Stripe for diaspora buyers. |
 | A bigger company copies us | Low (no obvious threat) | Local auction-house relationships are not buildable at the speed software is. The relationship moat compounds faster than the code moat. |
 | Police-clearance digitization gets blocked by the state | Medium | v1 ships *with* the constable on-site, not without — we augment, not replace. The state has reasons to like an audit trail. |
 | Regulatory ambiguity around digital animal trading | Medium | Engage the Ministry of Lands early; position as a *record-keeping* tool that improves national livestock census data. |
 | **USD scarcity & entrenched cash habits** | High | We price in USD and settle on Paynow rails buyers already trust; the long-tail tier meets cash-preferring sellers where they are rather than forcing a behaviour change. |
-| **Currency volatility (ZWL swings)** | High | All pricing and contracts are denominated in **US$**, never local currency — the founder's income and the houses' obligations are insulated from the swing. |
-| **No capital cushion** | Structural | The model is built to need none: $0 external capital, max ~$2,250 ever out of pocket, growth funded from each house's own surplus. A bad month dents income, never solvency. |
-| **Operator-capacity ceiling** | Structural | The binding constraint is how many houses one owner + part-time help can run well. We grow only as fast as we can operate well, and add cheap help only after the revenue to pay for it has landed. |
+| **Currency volatility (ZWL swings)** | High | All pricing and contracts are denominated in **US$**, never local currency — payroll and the houses' obligations are insulated from the swing. |
+| **Thin early-year cushion** | Medium | Year 1 surplus is ~3.5 weeks of opex. Mitigation: hold a **2–3 month opex working-capital buffer**, self-funded, so a bad month dents surplus, never solvency. No external equity required. |
+| **Anchor-landing risk** | Medium-High | The most aggressive assumption is landing **3 of ~8 Tier A anchors in Year 1**. If anchors slip, the ramp slips. We sequence anchors-first, lead with a creditable pilot, and pace the team hire against signed houses rather than ahead of them. |
 
 ---
 
 ## 8. The ask
 
-A **paid 90-day engagement** with one Harare-area auction house, structured as the first deployment under the SaPS model:
+A **paid 90-day pilot** with one Harare-area auction house, structured as the first onboarding under the platform model:
 
-- US$5,000 deployment fee, billed at signing — discounted from list price (US$8,000) because the house is taking pilot risk with us.
-- US$1,000/month operations retainer, billed month-to-month for the pilot, convertible to a 12-month commitment (at the $1,200 Tier B rate) at month 4 if both sides are happy.
-- 0.75% transaction surcharge on settled sales.
+- US$1,000 onboarding deposit, billed at signing — **credited toward the full tier onboarding fee on conversion**, so a converting house never pays twice.
+- US$1,000/month platform subscription, billed month-to-month for the 90-day pilot, converting to the signed tier rate (e.g. the $1,200 Tier B rate) at month 4 if both sides are happy.
+- 0.75% transaction take on settled sales.
 - Paynow listed as the payment partner of record on all marketing and receipts.
 
 **Success criterion at month 3:**
 1. ≥ 30% of a single sale day's GMV runs through the platform.
-2. The house signs a 12-month operations commitment.
-3. The house agrees to be a named reference for engagement #2.
+2. The house signs a 12-month subscription commitment.
+3. The house agrees to be a named reference for the next onboarding.
 
-If we hit all three, we have a paying reference customer, a number, and a sales artefact. If we hit (1) but not (2)/(3) the issue is sales/relationship and we adjust how we pitch. If we miss (1) the issue is product/market fit and we revisit before signing engagement #2.
+If we hit all three, we have a paying reference customer, a number, and a sales artefact. If we hit (1) but not (2)/(3) the issue is sales/relationship and we adjust how we pitch. If we miss (1) the issue is product/market fit and we revisit before onboarding the next house.
 
-**Why paid, not free:** a free pilot teaches us nothing about willingness to pay — which is the only signal that matters for the SaPS model. Better to discount than to give it away.
+**Why paid, not free:** a free pilot teaches us nothing about willingness to pay — which is the only signal that matters. Better to credit the deposit on conversion than to give it away.
 
 ---
 

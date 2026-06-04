@@ -9,11 +9,11 @@
 
 ## What we're proposing
 
-A **90-day deployment + operations engagement** in which ZimLivestock builds, launches, and operates a digital marketplace branded as [auction house name] — running alongside your existing physical floor.
+A **90-day pilot** in which [auction house name] onboards onto the ZimLivestock platform — your own isolated, branded digital marketplace — running alongside your existing physical floor. You run your floor on the platform; we run the platform.
 
 You keep your name on the receipt, your buyers in your customer list, and your auctioneer on the stage.
 
-We bring the platform, the integrations, the daily operations, and a named team running it for you.
+We bring the platform, the integrations, the onboarding, and a named team keeping it live for you.
 
 ---
 
@@ -42,7 +42,7 @@ Every buyer who registers stays in your customer database — yours to remarket 
 
 ---
 
-## What we operate on your behalf
+## What the platform handles for you
 
 This is the part that makes us different from a software vendor:
 
@@ -66,15 +66,15 @@ This is the part that makes us different from a software vendor:
 
 ## Investment
 
-### One-off deployment fee — **US$5,000**
-> Discounted from list (US$8,000) because you're our pilot customer.
+### One-off onboarding deposit — **US$1,000**
+> Your onboarding deposit for the pilot. **Fully credited toward your full tier onboarding fee when you convert** — a converting house never pays twice.
 >
-> Covers: discovery, branded skin, data migration, Paynow integration testing, training day. Invoiced 50% on signature, 50% on go-live.
+> Covers: discovery, branded skin, data migration, Paynow integration testing, training day. Invoiced on signature.
 
-### Monthly operations retainer — **US$1,200/month**
+### Monthly pilot subscription — **US$1,000/month**
 > Includes: 24/7 monitoring, buyer/seller support, payment reconciliation, monthly reporting, ongoing tuning.
 >
-> Month-to-month for the 90-day pilot. Converts to a 12-month commitment at the pilot review — your decision, not ours.
+> Month-to-month for the 90-day pilot. Converts to a signed tier subscription at the pilot review — your decision, not ours.
 
 ### Transaction surcharge — **0.75% of settled GMV**
 > Sits on top of Paynow's own fee. Audited monthly. No surcharge on physical-floor sales — only on what we settle digitally.
@@ -92,9 +92,9 @@ At day 90, we sit down with you and check three things:
 |---|---|---|
 | 1 | **≥ 30% of a single sale day's GMV** has run through the platform | We've moved meaningful volume, not just demoed |
 | 2 | **At least one buyer or seller** active on the platform was *not* a regular at your physical floor before | The platform has expanded your reach, not just digitised existing customers |
-| 3 | **You'd sign a 12-month operations commitment** | You're getting value worth paying for next year |
+| 3 | **You'd sign a 12-month tier subscription** | You're getting value worth paying for next year |
 
-If we hit all three, we propose a 12-month commitment at the standard retainer (US$1,500/month for Tier B sized to your sale-day volume).
+If we hit all three, we propose a 12-month commitment on the standard tier subscription (US$1,200/month for Tier B sized to your sale-day volume), with the full tier onboarding fee (US$2,500 for Tier B) less your US$1,000 pilot deposit already paid.
 
 If we miss any, we sit down together and decide whether the pilot extends, adjusts, or ends — no contract lock-in.
 
@@ -118,7 +118,7 @@ Three reasons we believe this is the right time and the right team:
 
 2. **The Paynow relationship is real.** The DX team at Paynow have personally reviewed this integration. We're listed in their internal pipeline as the vertical solution for livestock. Your settlement will be on rails Paynow knows we're using.
 
-3. **The pricing is risk-shared.** A discounted deployment fee plus a month-to-month retainer means *we* carry the conviction. If we can't make this work for you in 90 days, you walk and we lose. That's a better incentive than a multi-year licence.
+3. **The pricing is risk-shared.** A small onboarding deposit — credited back to you on conversion — plus a month-to-month pilot subscription means *we* carry the conviction. If we can't make this work for you in 90 days, you walk and we lose. That's a better incentive than a multi-year licence.
 
 ---
 

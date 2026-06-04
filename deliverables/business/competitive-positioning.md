@@ -8,18 +8,18 @@
 
 ## 1. The one line
 
-> **"The only digital floor built for *your* floor — and run by people, not a login screen."**
+> **"The only digital floor built for *your* floor — with the settlement layer the others forgot."**
 
-Sub-line for the bookkeeper: *Branded under your auction house's name, integrated with Paynow, operated on your behalf as a professional service.*
+Sub-line for the bookkeeper: *Branded under your auction house's name, settled through Paynow, live on five channels (web/PWA, WhatsApp, USSD, BillPay, Facebook Messenger) — your isolated tenant, onboarded in minutes, not built bespoke.*
 
 ---
 
 ## 2. Where we sit in the landscape
 
-The two axes that matter to an auction-house owner are **"who runs it"** and **"built for Zim"**. Every alternative on the board either makes the owner do the work, or wasn't built for the rails his buyers actually use. We are the only option in the top-right quadrant.
+The two axes that matter to an auction-house owner are **"built for Zim"** and **"settles the money"**. Every alternative on the board either wasn't built for the rails his buyers actually use, or it surfaces listings but leaves the payout to manual transfer and trust. We are the only option in the top-right quadrant — the one with the money layer wired in.
 
 ```
-                          BUILT FOR ZIM  (EcoCash USSD, Shona,
+                          BUILT FOR ZIM  (USSD, Shona,
                                           constable workflow, Paynow)
                                   ▲
                                   │
@@ -28,14 +28,14 @@ The two axes that matter to an auction-house owner are **"who runs it"** and **"
       │ Physical-only        │    │           ┌──────────────────┐
       │ auction house        │    │           │                  │
       │ (status quo)         │    │           │   ZimLivestock   │
-      └──────────────────────┘    │           │    (SaPS)        │
+      └──────────────────────┘    │           │  (B2B platform)  │
                                   │           │                  │
          ┌──────────────────┐     │           └──────────────────┘
          │  WhatsApp groups │     │
          └──────────────────┘     │
                                   │
         ◄─────────────────────────┼─────────────────────────────►
-        OWNER OPERATES IT                       WE OPERATE IT
+        NO SETTLEMENT LAYER                   SETTLEMENT WIRED IN
                                   │
          ┌──────────────────┐     │
          │ Facebook /       │     │
@@ -53,28 +53,28 @@ The two axes that matter to an auction-house owner are **"who runs it"** and **"
                         English-only, no constable)
 ```
 
-**Read it like this.** The status-quo cluster sits *left of the axis* — the owner runs the physical floor himself, watches sub-US$500 trades leak to WhatsApp groups (top-left) and Facebook (bottom-left), and the foreign SaaS platforms ask him to self-serve on a system not built for his rails (bottom-left). Every option to his left requires him to operate it. The only piece of the map that doesn't yet exist for him is *digital-and-Zimbabwean-and-run-by-someone-else*. That's the quadrant we occupy alone.
+**Read it like this.** The status-quo cluster sits *left of the axis* — listings without settlement. The owner watches sub-US$500 trades leak to WhatsApp groups (top-left) and Facebook (bottom-left), where the money still moves by hand and trust. The foreign SaaS platforms have a settlement layer, but it clears AUD/NZD cards, not the rails his buyers use (bottom-left). The one piece of the map that doesn't yet exist for him is *digital-and-Zimbabwean-and-actually-settles-the-money*. That's the quadrant we occupy alone — and the wizard that onboards his house as an isolated tenant in minutes is what lets us occupy it at scale across the ~40–60-house market, not one bespoke build at a time.
 
 ---
 
 ## 3. Detailed comparison
 
-| Dimension | **ZimLivestock (SaPS)** | WhatsApp groups | Physical-only (status quo) | Facebook / Classifieds | Auctions Plus AU / LMA NZ |
+| Dimension | **ZimLivestock (B2B platform)** | WhatsApp groups | Physical-only (status quo) | Facebook / Classifieds | Auctions Plus AU / LMA NZ |
 |---|---|---|---|---|---|
-| Settlement built in | Yes — Paynow + EcoCash USSD | No — manual transfer | Cash on the day | No | Yes (AUD / NZD cards) |
+| Settlement built in | Yes — Paynow spine (USSD + card) | No — manual transfer | Cash on the day | No | Yes (AUD / NZD cards) |
 | Escrow for buyer trust | Yes — Bisafe | No | US$1,000 cash deposit gate | No | Limited |
 | Police-clearance / constable workflow | Yes — digital chain of custody | No | Yes — on-site, paper | No | N/A (different jurisdiction) |
 | Branded under house's name | Yes — house's colours, logo, domain | N/A | Yes (their floor) | No — Facebook brand | No — Auctions Plus brand |
-| Who operates it | We do — managed service | Owner / admin | Owner | Owner | Owner self-serves on their platform |
-| What it costs the house to use | Engagement + retainer + 0.75% surcharge *(our fees)* | Free | n/a — the house *charges* 12% combined (5% seller / 7% buyer) | Free / listing fees | Subscription + per-tx |
+| Channels the buyer can reach you on | Five — web/PWA, WhatsApp, USSD, BillPay, Messenger | One — the chat group | One — the floor | One — the timeline | Web only |
+| What it costs the house to use | Onboarding fee + monthly subscription + 0.75% take on settled GMV *(our fees)* | Free | n/a — the house *charges* 12% combined (5% seller / 7% buyer) | Free / listing fees | Subscription + per-tx |
 | Reach beyond physical floor | Yes — 24/7 listings, remote bidders, diaspora | Group members only | Saturday attendees only | Wide but undifferentiated | Wide — but wrong audience for Zim |
-| EcoCash USSD integration | Yes — primary rail | No | N/A | No | No |
+| USSD payment rail | Yes — via Paynow spine | No | N/A | No | No |
 | Shona / local language | Roadmap — UI strings Q3 2026; copy-deck workflow already supports both | Yes (it's just chat) | Yes (it's a person) | Partial | No |
 | Audit trail for inspectors | Yes — per-animal, timestamped | None | Paper | None | Yes (foreign jurisdiction) |
-| Time to start using | 4–6 weeks deployment | Minutes | Already running | Hours | Weeks + payment-rail blocker |
+| Time to go live | ~6-min self-serve wizard → admin approval | Minutes | Already running | Hours | Weeks + payment-rail blocker |
 | Real cost to owner | Layered, transparent | Zero direct cost, large indirect cost | Status-quo opex | Zero direct, large indirect | Multi-currency, FX exposure |
 
-Read row-by-row, no alternative is in front on more than two dimensions. The honest concessions are on the **time-to-start** row (WhatsApp wins) and **direct cost** row (WhatsApp and Facebook are free at point of use). Own those — see § 4 and § 6.
+Read row-by-row, no alternative is in front on more than two dimensions. The honest concessions are on the **time-to-go-live** row (WhatsApp is instant; even our self-serve wizard waits on an admin approval) and the **direct cost** row (WhatsApp and Facebook are free at point of use). Own those — see § 4 and § 6.
 
 ---
 
@@ -86,16 +86,16 @@ Four reasons we don't get out-positioned, with the receipt for each.
 Foreign platforms were built for paddock-side cattle sales in NSW. They don't know that the constable stamps each animal's brand, that the deposit gate is US$1,000 cash, that the auctioneer calls in Shona-English code-switch. We do — because we sat through a full sale day in March 2026 and documented it.
 *Evidence: 8 findings in the field-research deliverable, 4 of which became load-bearing product decisions.*
 
-**2. Paynow is wired in, not promised.**
-Four Paynow products are already integrated and demoed end-to-end: Core Express Checkout, BillPay biller-inbound (coded this week), TXT.co.zw SMS, and the planned Bisafe escrow hook. Competitors talking about "EcoCash support" mean a roadmap line. We mean a webhook receipt.
+**2. We are the money layer the others forgot.**
+Three of the four national livestock-digitization initiatives have *no settlement layer* — they catalogue animals and stop at the handshake. Paynow is wired into ours, not promised. Four Paynow products are integrated and demoed end-to-end: Core Express Checkout, BillPay biller-inbound (coded this week), TXT.co.zw SMS, and the planned Bisafe escrow hook. Competitors talking about "EcoCash support" mean a roadmap line. We mean a webhook receipt.
 *Evidence: 8 May 2026 live demo to Paynow leadership; biller-inbound API merged on the same day.*
 
-**3. We run it. Nobody else offers to.**
-Every alternative — WhatsApp, Facebook, foreign SaaS — hands the owner a tool and walks away. We hand the owner a *team*. That moat exists because nobody else in this segment thinks the unit economics work for a managed service. We think they do, because our research shows a single Tier-A house yields ~$35k/year recurring, and a managed service is the only way to land that contract.
-*Evidence: business case § 6 — SaPS unit economics. Pilot proposal includes named operations lead.*
+**3. The wizard makes scale cheap — five channels make us hard to route around.**
+Every alternative reaches the buyer on one surface: a chat group, a timeline, the Saturday floor. We meet him on five — web/PWA, WhatsApp, USSD, BillPay-as-biller, Facebook Messenger — all settling through the same Paynow spine. And onboarding the next house isn't a bespoke engineering build: a self-serve wizard (/operators → admin approval) stands up an RLS-isolated tenant in about six minutes, no SQL. That's what lets one small team take roughly a third of the ~40–60-house market without a per-house human deployment behind each contract.
+*Evidence: business case § 6 — platform economics; gtm-strategy.md § onboarding wizard.*
 
 **4. The relationship moat compounds faster than the code moat.**
-An auction-house owner trusts the founder he can call on a Saturday. He doesn't trust a SaaS dashboard. A foreign competitor would need 18 months to build the introductions we already have — and by then the first three Tier-A houses are referencing us to their peers. Software is copyable; the Saturday visits aren't.
+An auction-house owner trusts the founder he can call on a Saturday. A foreign competitor would need 18 months to build the introductions we already have — and an anchors-first land means the early Tier-A houses are referencing us to their peers before anyone else has a Zimbabwean settlement rail to point to. Software is copyable; the Saturday visits aren't.
 *Evidence: GTM strategy § 4 — founder-led BD, Saturday floor visits, ZLPA conference, Paynow channel partnership.*
 
 ---
