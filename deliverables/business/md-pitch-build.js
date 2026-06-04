@@ -1,5 +1,5 @@
 // ZimLivestock — MD Pitch Deck
-// Software-as-a-Professional-Service for Zimbabwean livestock auction houses
+// A scaling B2B SaaS platform for Zimbabwean livestock auction houses, diversifying into consumer transport.
 // Reuses the terracotta/cream/gold palette from the return-day deck.
 
 const pptxgen = require("pptxgenjs");
@@ -80,7 +80,7 @@ function addTitle(slide, text, opts = {}) {
     color: COLOR.cream, margin: 0,
   });
 
-  s.addText("A professional-service product for Zimbabwean livestock auction houses, built on the Paynow ecosystem.", {
+  s.addText("A scaling B2B SaaS platform for Zimbabwean livestock auction houses, built on the Paynow ecosystem — B2B today, consumer transport tomorrow.", {
     x: 0.7, y: 2.7, w: 8.6, h: 1.0,
     fontFace: FONT.header, fontSize: 22, italic: true,
     color: COLOR.gold, margin: 0,
@@ -159,14 +159,15 @@ function addTitle(slide, text, opts = {}) {
   addEyebrow(s, "THE PRODUCT");
 
   addTitle(s, "A digital floor running under the auction house's own brand —");
-  s.addText("and a named team running it on their behalf.", {
+  s.addText("each house onboarded as its own isolated tenant, in minutes.", {
     x: 0.7, y: 1.65, w: 8.6, h: 0.6,
     fontFace: FONT.header, fontSize: 24, italic: true,
     color: COLOR.terracotta, margin: 0,
   });
 
   const items = [
-    "24/7 listings + asynchronous bidding under the auction house's name.",
+    "Self-serve onboarding wizard: /operators → admin approval → an RLS-isolated tenant in ~6 minutes, no SQL.",
+    "Five live channels: web/PWA, WhatsApp, USSD, BillPay-as-biller, Facebook Messenger — buyers meet us where they already transact.",
     "Paynow settlement, BillPay biller-inbound, EcoCash USSD, SMS notifications — every product in the ecosystem.",
     "Bisafe escrow replaces the US$1,000 cash deposit. Remote bidders become real bidders.",
     "Constable workflow tool turns paper clearance into a chain-of-custody record.",
@@ -174,14 +175,14 @@ function addTitle(slide, text, opts = {}) {
   ];
 
   items.forEach((it, i) => {
-    const y = 2.6 + i * 0.5;
+    const y = 2.5 + i * 0.44;
     s.addShape(pres.shapes.OVAL, {
-      x: 0.7, y: y + 0.13, w: 0.18, h: 0.18,
+      x: 0.7, y: y + 0.11, w: 0.16, h: 0.16,
       fill: { color: COLOR.gold }, line: { type: "none" },
     });
     s.addText(it, {
-      x: 1.0, y, w: 8.3, h: 0.5,
-      fontFace: FONT.body, fontSize: 14, color: COLOR.body, margin: 0,
+      x: 1.0, y, w: 8.3, h: 0.44,
+      fontFace: FONT.body, fontSize: 12.5, color: COLOR.body, margin: 0,
       valign: "top",
     });
   });
@@ -190,7 +191,7 @@ function addTitle(slide, text, opts = {}) {
 }
 
 // ============================================================================
-// 4 — THE MODEL (SaPS)
+// 4 — THE MODEL (B2B SaaS platform)
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -198,17 +199,17 @@ function addTitle(slide, text, opts = {}) {
   addAccentBar(s);
   addEyebrow(s, "THE BUSINESS MODEL");
 
-  addTitle(s, "We sell an engagement, not a licence.");
+  addTitle(s, "We sell a subscription, not a licence.");
 
-  s.addText("Three revenue lines, each tied to a different unit of value we deliver.", {
+  s.addText("Four revenue lines: three B2B today, plus a consumer-transport line that grows the upside.", {
     x: 0.7, y: 1.85, w: 8.6, h: 0.4,
     fontFace: FONT.body, fontSize: 13, color: COLOR.muted,
   });
 
   const streams = [
-    { tag: "ENGAGEMENT", title: "$5,000 – $12,000", sub: "one-off", body: "Discovery, branded skin, data migration, Paynow integration, training day on the floor." },
-    { tag: "RETAINER",   title: "$1,200 – $2,500", sub: "/ month",  body: "We operate the platform on their behalf. Monitoring, support, reconciliation, monthly reports." },
-    { tag: "TX SURCHARGE", title: "0.75%", sub: "of settled GMV", body: "Aligns long-term incentives. Smaller than a SaaS commission because the retainer carries the load." },
+    { tag: "ONBOARDING", title: "$1,500 – $3,500", sub: "one-off", body: "Tier A $3,500 · B $2,500 · C $1,500. Branded tenant, data migration, Paynow integration, training day. Pilot $1,000, credited on conversion." },
+    { tag: "SUBSCRIPTION", title: "$900 – $1,500", sub: "/ month", body: "Tier A $1,500 · B $1,200 · C $900. Platform access, monitoring, support, reconciliation, monthly reports." },
+    { tag: "TX TAKE",     title: "0.75%", sub: "of settled GMV", body: "On top of Paynow's fee. Aligns long-term incentives — the subscription carries the load. Transport adds a 4th, consumer line over time." },
   ];
 
   const w = 2.85, startX = 0.7;
@@ -272,7 +273,7 @@ function addTitle(slide, text, opts = {}) {
   s.addText([
     { text: "50-something, third-generation auction-house owner outside Harare.", options: { breakLine: true } },
     { text: "Runs the floor every Saturday. Knows the regular buyers by name.", options: { breakLine: true } },
-    { text: "Bought into EcoCash three years ago. Won't run his own SaaS.", options: { breakLine: true } },
+    { text: "Bought into EcoCash three years ago. Won't write a line of code.", options: { breakLine: true } },
     { text: "Decides on: keeps his brand? brings new buyers? when does the money land?", options: {} },
   ], {
     x: 0.7, y: 2.75, w: 4.3, h: 2.3,
@@ -295,9 +296,9 @@ function addTitle(slide, text, opts = {}) {
     color: COLOR.terracotta, margin: 0,
   });
   s.addText([
-    { text: "✓  A people-attached engagement, not a portal", options: { breakLine: true } },
-    { text: "✓  A retainer that pays our team to run it", options: { breakLine: true } },
-    { text: "✓  A small tx surcharge — shared upside", options: { breakLine: true } },
+    { text: "✓  A branded tenant, onboarded in minutes — not a build", options: { breakLine: true } },
+    { text: "✓  A subscription that keeps the platform running", options: { breakLine: true } },
+    { text: "✓  A small 0.75% take — shared upside", options: { breakLine: true } },
     { text: "✓  A 12-month commitment, not a multi-year lock-in", options: {} },
   ], {
     x: 5.6, y: 3.0, w: 3.55, h: 1.95,
@@ -318,7 +319,7 @@ function addTitle(slide, text, opts = {}) {
 
   addTitle(s, "We sit in the empty quadrant.");
 
-  // 2x2 quadrant — axes: built-for-Zim × run-it-for-you
+  // 2x2 quadrant — axes: built-for-Zim × settlement-built-in
   const gridX = 1.7, gridY = 2.05, gridW = 7.0, gridH = 2.85;
   const midX = gridX + gridW / 2;
   const midY = gridY + gridH / 2;
@@ -344,7 +345,7 @@ function addTitle(slide, text, opts = {}) {
     fontFace: FONT.body, fontSize: 10, bold: true, charSpacing: 3,
     color: COLOR.muted, align: "center",
   });
-  s.addText("RUN-IT-FOR-YOU →", {
+  s.addText("SETTLEMENT BUILT IN →", {
     x: gridX - 1.0, y: gridY, w: 0.9, h: gridH,
     fontFace: FONT.body, fontSize: 10, bold: true, charSpacing: 3,
     color: COLOR.muted, align: "right", valign: "middle",
@@ -390,24 +391,28 @@ function addTitle(slide, text, opts = {}) {
   const s = pres.addSlide();
   s.background = { color: COLOR.cream };
   addAccentBar(s);
-  addEyebrow(s, "UNIT ECONOMICS");
+  addEyebrow(s, "THE NUMBERS");
 
-  addTitle(s, "~$35,000 per house, recurring, by year 2.");
+  addTitle(s, "$1.03M revenue over five years, off ~20 houses.");
 
-  s.addText("Illustrative numbers for a mid-tier auction house at 70% platform penetration. The model is high-revenue / low-volume — fewer customers, deeper relationships.", {
+  s.addText("The 5-year model: 5 → 8 → 12 → 16 → 20 live houses (about a third of the ~40–60 house market). Subscription is the spine; transaction take and transport ride on top. All US$.", {
     x: 0.7, y: 1.7, w: 8.6, h: 0.7,
     fontFace: FONT.body, fontSize: 13, color: COLOR.muted,
   });
 
-  // Table — manually rendered with shapes for control
+  // Table — manually rendered with shapes for control. Representative Y1/Y3/Y5 + 5yr-total columns.
   const rows = [
-    { label: "YEAR 1",        eng: "$8,000", ret: "$18,000", tx: "$4,800",  total: "$30,800" },
-    { label: "YEAR 2",        eng: "—",      ret: "$24,000", tx: "$11,200", total: "$35,200" },
+    { label: "Houses live",  y1: "5",       y3: "12",      y5: "20",      total: "20" },
+    { label: "Onboarding",   y1: "$14,500", y3: "$10,000", y5: "$10,000", total: "$52,000" },
+    { label: "Subscription", y1: "$39,600", y3: "$151,200", y5: "$266,400", total: "$766,800" },
+    { label: "Tx take",      y1: "$6,710",  y3: "$27,625", y5: "$53,618", total: "$146,258" },
+    { label: "Transport",    y1: "$826",    y3: "$9,521",  y5: "$31,677", total: "$64,745" },
+    { label: "Revenue",      y1: "$61,636", y3: "$198,346", y5: "$361,695", total: "$1,029,803" },
   ];
-  const headers = ["",          "Engagement", "Retainer (×12)", "Tx surcharge", "Total / yr"];
+  const headers = ["",          "Year 1",    "Year 3",       "Year 5",       "5-yr total"];
 
-  const tableY = 2.65, rowH = 0.62, tableX = 0.7, tableW = 8.6;
-  const colWs = [1.4, 1.7, 1.9, 1.9, 1.7];
+  const tableY = 2.45, rowH = 0.33, tableX = 0.7, tableW = 8.6;
+  const colWs = [1.8, 1.7, 1.7, 1.7, 1.7];
 
   // Header row
   let cx = tableX;
@@ -428,31 +433,39 @@ function addTitle(slide, text, opts = {}) {
 
   // Data rows
   rows.forEach((r, idx) => {
-    const y = tableY + rowH + 0.15 + idx * (rowH + 0.1);
+    const y = tableY + rowH + 0.1 + idx * rowH;
     cx = tableX;
-    const cells = [r.label, r.eng, r.ret, r.tx, r.total];
+    const cells = [r.label, r.y1, r.y3, r.y5, r.total];
+    const isRevenue = r.label === "Revenue";
     cells.forEach((c, i) => {
-      const isTotal = i === cells.length - 1;
+      const isTotalCol = i === cells.length - 1;
+      const emphasize = isRevenue || isTotalCol;
       s.addText(c, {
         x: cx, y, w: colWs[i], h: rowH,
         fontFace: i === 0 ? FONT.body : FONT.header,
-        fontSize: i === 0 ? 12 : 18,
-        bold: i === 0 || isTotal,
-        color: isTotal ? COLOR.terracotta : COLOR.body,
+        fontSize: i === 0 ? 12 : 14,
+        bold: i === 0 || emphasize,
+        color: emphasize ? COLOR.terracotta : COLOR.body,
         align: i === 0 ? "left" : "right", valign: "middle",
         margin: 0,
       });
       cx += colWs[i];
     });
+    if (isRevenue) {
+      s.addShape(pres.shapes.LINE, {
+        x: tableX, y, w: tableW, h: 0,
+        line: { color: COLOR.terracotta, width: 1 },
+      });
+    }
   });
 
   // Footnote
   s.addText([
-    { text: "Path to break-even:  ", options: { bold: true, color: COLOR.body } },
-    { text: "3 engaged houses ≈ $130k/yr (covers infra + 2 salaries).  6 houses ≈ $260k/yr — default-alive.", options: { color: COLOR.muted } },
+    { text: "Surplus & funding:  ", options: { bold: true, color: COLOR.body } },
+    { text: "+$12,795 Y1 surplus (a thin ~3.5-week opex cushion) building to a 5-yr cumulative surplus of $346,583 — self-funded with a 2–3 month working-capital buffer, no external equity.", options: { color: COLOR.muted } },
   ], {
-    x: 0.7, y: 4.85, w: 8.6, h: 0.3,
-    fontFace: FONT.body, fontSize: 11, italic: true, margin: 0,
+    x: 0.7, y: 4.95, w: 8.6, h: 0.3,
+    fontFace: FONT.body, fontSize: 10.5, italic: true, margin: 0,
   });
 
   addFooter(s, 7);
@@ -467,18 +480,18 @@ function addTitle(slide, text, opts = {}) {
   addAccentBar(s);
   addEyebrow(s, "GO-TO-MARKET");
 
-  addTitle(s, "Founder-led, relationship-led, Paynow-channelled.");
+  addTitle(s, "Anchors first, then a self-serve onboarding wizard.");
 
-  s.addText("Three engagements in year one. Six in year two. Operations capacity gates everything — sales velocity is deliberately throttled.", {
+  s.addText("Five houses live by end of Year 1, ramping to 20 by Year 5 — about a third of the market. The wizard turns each new house into a ~6-minute, admin-approved tenant, so growth rides on house count + transport, not bespoke labor.", {
     x: 0.7, y: 1.7, w: 8.6, h: 0.7,
     fontFace: FONT.body, fontSize: 13, color: COLOR.muted,
   });
 
   // 3-phase row
   const phases = [
-    { tag: "Q3 2026", title: "Pilot signed", body: "One Harare-area auction house. Paid engagement, discounted from list. Reference customer." },
-    { tag: "Q1–Q2 2027", title: "Category, not customer", body: "Engagements 2 + 3. First case study. Paynow formalises us as their vertical solution." },
-    { tag: "Q4 2028", title: "Ten houses, default-alive", body: "$250k+ recurring on Zimbabwe alone. Discovery begins in second market." },
+    { tag: "Year 1", title: "Anchors signed", body: "5 houses live — incl. 3 of ~8 Tier A anchors. Wizard live: /operators → admin approval → RLS-isolated tenant." },
+    { tag: "Years 2–3", title: "The category", body: "8 → 12 houses live. Case studies compound. Paynow formalises us as their vertical livestock solution." },
+    { tag: "Years 4–5", title: "20 houses, +transport", body: "16 → 20 live. $1.03M 5-yr revenue, $346,583 cumulative surplus. Consumer transport line ramps the B2B2C upside." },
   ];
 
   const w = 2.85, startX = 0.7;
@@ -592,9 +605,9 @@ function addTitle(slide, text, opts = {}) {
 
   // Terms — three boxes
   const terms = [
-    { label: "Deployment", value: "$5,000",  sub: "discounted from $8k list" },
-    { label: "Retainer",   value: "$1,200",  sub: "/month, month-to-month for pilot" },
-    { label: "Surcharge",  value: "0.75%",   sub: "of settled GMV" },
+    { label: "Onboarding", value: "$1,000",  sub: "credited toward tier on conversion" },
+    { label: "Subscription", value: "$1,000", sub: "/month for the 90-day pilot" },
+    { label: "Tx take",    value: "0.75%",   sub: "of settled GMV" },
   ];
   const w = 2.85, startX = 0.7;
   terms.forEach((t, i) => {
@@ -649,11 +662,11 @@ function addTitle(slide, text, opts = {}) {
   addTitle(s, "Five real risks, each with a mitigation we've already chosen.");
 
   const risks = [
-    { risk: "Ops capacity bottlenecks before sales does",        mit: "Hire ops lead by engagement #2, not #4. Don't sell what we can't run." },
+    { risk: "Landing 3 of ~8 Tier A anchors in Year 1",          mit: "The most aggressive assumption. Anchors-first GTM + a thin Y1 surplus and a 2–3 month buffer absorb a slow start." },
+    { risk: "Onboarding stays bespoke labor, capping scale",     mit: "Self-serve wizard: /operators → admin approval → ~6-min RLS tenant. The 10th house costs roughly what the 2nd did." },
     { risk: "Paynow channel goes cold",                          mit: "Multi-rail product — EcoCash USSD direct + Stripe diaspora as fallback." },
-    { risk: "First customer churns publicly",                    mit: "High-touch first 3 months is non-negotiable. Treat #1 like a founding investor." },
-    { risk: "Founder runs everything until burnout",             mit: "Hire ops + BD by engagement #3. Founder on Tier A only by month 12." },
-    { risk: "Currency volatility wipes out unit economics",      mit: "All pricing in USD. Tx surcharge invoiced in USD equiv of ZIG/ZWL settled." },
+    { risk: "Adoption runs hotter than we forecast",             mit: "We hold it field-honest (10.5–13.7%, below the ~15% ceiling). Growth rides on house count + transport, not an adoption bet." },
+    { risk: "Currency volatility wipes out unit economics",      mit: "All pricing in USD. Tx take invoiced in USD equiv of ZIG/ZWL settled." },
   ];
 
   const tableY = 2.05, rowH = 0.56, tableX = 0.7;
@@ -710,12 +723,12 @@ function addTitle(slide, text, opts = {}) {
   });
 
   s.addText([
-    { text: "There are roughly 50 livestock auction houses in Zimbabwe.  ", options: { color: COLOR.cream } },
-    { text: "None of them have a digital floor that runs under their own brand, with Paynow settlement built in.  ", options: { color: COLOR.cream } },
-    { text: "We have one — already shipping — and we can deploy it for them, train their team, and run it on their behalf.  ", options: { color: COLOR.cream } },
+    { text: "There are roughly 40–60 livestock auction houses in Zimbabwe, and 3 of 4 national livestock-digitization initiatives have no settlement layer.  ", options: { color: COLOR.cream } },
+    { text: "We are that layer: a branded digital floor with Paynow settlement built in, onboarded house-by-house through a self-serve wizard.  ", options: { color: COLOR.cream } },
+    { text: "It's already shipping. The 5-year plan reaches 20 houses — about a third of the market — for $1.03M revenue and a $346,583 cumulative surplus, self-funded.  ", options: { color: COLOR.cream } },
     { text: "We are looking for ", options: { color: COLOR.cream } },
-    { text: "one pilot engagement, $5,000 plus a $1,200 monthly retainer, ", options: { color: COLOR.gold, bold: true } },
-    { text: "to prove the playbook.  Three engagements take us to break-even.  Six take us to default-alive.", options: { color: COLOR.cream } },
+    { text: "one 90-day pilot, $1,000 onboarding (credited on conversion) plus a $1,000 monthly subscription, ", options: { color: COLOR.gold, bold: true } },
+    { text: "to land the first anchor and prove the playbook.", options: { color: COLOR.cream } },
   ], {
     x: 0.7, y: 1.15, w: 8.6, h: 2.5,
     fontFace: FONT.header, fontSize: 17, margin: 0, paraSpaceAfter: 4,
