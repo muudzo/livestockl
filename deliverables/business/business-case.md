@@ -1,8 +1,8 @@
 # ZimLivestock — Business Case
 
-> **Status:** v1.0 draft  ·  **Author:** Tatenda Nyemudzo  ·  **Date:** May 2026
+> **Status:** v1.1  ·  **Author:** Tatenda Nyemudzo  ·  **Date:** May 2026 — *pricing + unit economics revised June 2026 to match the honest financial model*
 > **Audience:** Paynow MD, ZimLivestock leadership, prospective auction-house partners
-> **Companion docs:** [`gtm-strategy.md`](gtm-strategy.md) · [`pilot-proposal.md`](pilot-proposal.md)
+> **Companion docs:** [`gtm-strategy.md`](gtm-strategy.md) · [`pilot-proposal.md`](pilot-proposal.md) · [`financial-model.xlsx`](financial-model.xlsx)
 
 ---
 
@@ -115,12 +115,14 @@ We do not sell a licence. We sell an **engagement**: deployment + training + ong
 
 **This table is the canonical price list. Every other document (GTM, pilot proposal, playbook, financial model, sales script) references these numbers. If a number disagrees with this table, this table wins — update the sibling doc.**
 
+> **Revised June 2026.** The original May figures (Tier A $10–12k / $2,000–2,500/mo) assumed willingness-to-pay we have no field evidence for. These leaner numbers reflect what a Zimbabwean auction house — netting fees on a manual floor, paying in USD — will realistically commit to.
+
 | Tier | Engagement (one-off) | Retainer (monthly) | Sale-day GMV target | Sale days / mo |
 |---|---:|---:|---:|---:|
-| **A — Anchor house** | $10,000 – $12,000 | $2,000 – $2,500 | $80–200k | 4 (weekly) |
-| **B — Mid-market**   | $7,000 – $8,000   | $1,500           | $30–80k  | 3 (weekly–fortnightly) |
-| **C — Small / regional** | $5,000 | $1,200 | $10–30k | 2 (fortnightly) |
-| **Pilot (any tier)** | $5,000 *(discounted from list)* | $1,200 for 90 days, then converts to tier-appropriate rate | varies | varies |
+| **A — Anchor house** | $8,000 | $1,500 | $80–120k | 4 (weekly) |
+| **B — Mid-market**   | $6,000 | $1,200 | $40–80k  | 3 (weekly–fortnightly) |
+| **C — Small / regional** | $4,000 | $900 | $10–30k | 2 (fortnightly) |
+| **Pilot (any tier)** | $5,000 *(discounted from $8k list)* | $1,000 for 90 days, then converts to tier-appropriate rate | varies | varies |
 
 Plus, across all tiers:
 - **Transaction surcharge: 0.75%** of settled GMV, sits on top of Paynow's own fee.
@@ -151,33 +153,35 @@ A pure **subscription** model assumes the auction house can self-onboard. They c
 
 A **layered SaPS** model lets the engagement fee pay for the day-one work, the retainer pay for the steady-state operations, and the small per-tx surcharge align long-term incentives. Every revenue line is tied to a different unit of value we deliver.
 
-### Unit economics (illustrative — non-pilot Tier B engagement)
+### Unit economics — the per-house unit works
 
-These numbers assume a **standard (non-pilot) Tier B house** signing at list pricing. The pilot customer's first-year economics are different — see [`pilot-proposal.md`](pilot-proposal.md) for that specific shape.
+The honest test is per-house. A **mature Tier B house at just 15% digital adoption** — the conservative ceiling for a manual cash market — looks like this:
 
-| Year | Engagement | Retainer (×12) | Tx surcharge | Total |
-|---|---:|---:|---:|---:|
-| Year 1 | $8,000 *(top of Tier B list)* | $18,000 ($1,500/mo × 12) | $4,800 (30% pen. × $80k × 24 sales × 0.75%) | **~$30,800** |
-| Year 2 | — | $24,000 ($2,000/mo — bottom of Tier A as the house grows) | $11,200 (70% pen.) | **~$35,200** |
+| Line | Amount / yr |
+|---|---:|
+| Retainer ($1,200/mo × 12) | $14,400 |
+| Transaction surcharge (15% of ~$2.16M GMV × 0.75%) | $2,430 |
+| **Recurring revenue / yr** | **$16,830** |
+| Variable cost to serve (per-house infra) | −$1,440 |
+| **Contribution / yr** | **~$15,390** |
 
-For comparison — **pilot customer year 1** (90-day pilot at $1,200/mo retainer, converts to $1,500/mo Tier B for the remaining 9 months):
-- $5,000 discounted engagement + ($1,200 × 3) + ($1,500 × 9) + $4,800 tx surcharge ≈ **~$26,900**
-- ~$4k lower than the standard Year 1 figure above — the cost of pilot-customer reference value.
+Plus a one-off **$6,000 engagement** in year 1. A mature **Tier A** house contributes ~$21,400/yr on the same basis.
 
-At year 2 steady state, **~$35k revenue per auction house, recurring**. That's a very different shape from a SaaS price book — it's a high-revenue, low-volume consulting business with productised infrastructure.
+**The unit is sound. The portfolio is not — yet.** One house contributes ~$15–21k/yr; the founder-lean cost base is ~$48–55k/yr. So the business needs **~5–6 houses with the early ones matured** to cover its fixed cost. That is the whole game — and it is why the only thing we throttle is operations capacity. See [`financial-model.xlsx`](financial-model.xlsx) for the month-by-month build.
 
 ### Costs
 
-- Infrastructure: Supabase + Vercel + Paynow + TXT.co.zw + Cloudflare ≈ **US$200–500/month** at single-digit-auction-house scale; grows linearly with GMV processed.
-- Variable: Bisafe escrow fees, SMS unit costs, Paynow merchant-transfer fees — all pass-through.
-- Headcount: one engineer + one operations lead to start, plus founder doing BD. Add headcount per cohort of 3–4 houses brought online.
+- **Founder-lean by design.** A modest founder draw, one part-time support person added when the second house lands, a second late in year 3 — not a funded org chart. Total fixed cost ~US$48–55k/yr.
+- Infrastructure: Supabase + Vercel + Cloudflare ≈ **US$250/month base** + ~US$120/active house; grows slowly with the book.
+- Variable: Bisafe escrow, SMS, Paynow merchant-transfer fees — all pass-through.
 
-### Path to break-even
+### Path to break-even — honest version
 
-- **Three engaged auction houses** ≈ US$90k/year in retainers + ~$24k year-1 deployment + ~$15k transaction surcharge ≈ **~$130k/year**. Covers infra + 2 salaries comfortably.
-- **Six engaged auction houses** ≈ $260k/year. The business has its own cashflow and can hire a second operations lead.
+The leanest base case (3 houses, 15% adoption) is **investment-stage through all three years**: Year 1 ~−$19k, Year 2 ~−$13k, Year 3 ~−$7k net; standalone break-even sits beyond month 36.
 
-The growth ceiling is set by how many auction houses we can *operate* well, not by software margins. That's the trade — fewer customers, more revenue per customer, much higher service intensity.
+The constraint is **scale, not adoption** — doubling adoption (15% → 30%) recovers only ~$200/month. What flips the model is house count: with **6 houses by month 44, 20% adoption, and the transport margin**, cumulative net turns positive ~month 36 and reaches ~+$103k by month 60. That path-to-viability is upside we earn — never the plan of record.
+
+The growth ceiling is set by how many auction houses we can *operate* well, not by software margins. Fewer customers, modest revenue per customer, high service intensity — and a deliberately slow, honest climb.
 
 ---
 
@@ -198,7 +202,7 @@ The growth ceiling is set by how many auction houses we can *operate* well, not 
 A **paid 90-day engagement** with one Harare-area auction house, structured as the first deployment under the SaPS model:
 
 - US$5,000 deployment fee, billed at signing — discounted from list price (US$8,000) because the house is taking pilot risk with us.
-- US$1,200/month operations retainer, billed month-to-month for the pilot, convertible to a 12-month commitment at month 4 if both sides are happy.
+- US$1,000/month operations retainer, billed month-to-month for the pilot, convertible to a 12-month commitment (at the $1,200 Tier B rate) at month 4 if both sides are happy.
 - 0.75% transaction surcharge on settled sales.
 - Paynow listed as the payment partner of record on all marketing and receipts.
 
