@@ -61,18 +61,18 @@ DECLARE
   specs text[][] := ARRAY[
     -- Burst: first four agent wins settle 2:05–2:11 (proves autonomy fast)
     ARRAY['Hereford Heifer', 'Cattle','Hereford',  '3 years','420kg','Live — settles ~2:05 via CF Worker relay + EcoCash push (Penny Sniper).','Harare',  'Excellent','0.01','0.01',img_hereford,seller_a::text,'5', 'penny','f','',''],
-    ARRAY['Brahman Bull',    'Cattle','Brahman',   '4 years','480kg','Live — settles ~2:07 (Penny Sniper).',                                    'Bulawayo','Excellent','0.01','0.02',img_brahman, seller_b::text,'7', 'penny','f','',''],
+    ARRAY['Brahman Bull',    'Cattle','Brahman',   '4 years','480kg','Live — settles ~2:07 (Penny Sniper).',                                    'Bulawayo','Excellent','0.01','0.01',img_brahman, seller_b::text,'7', 'penny','f','',''],
     ARRAY['Boer Goat',       'Goats', 'Boer',      '1 year', '45kg', 'Live — settles ~2:09 in parallel (Boer Bargainer).',                       'Gweru',   'Excellent','0.01','0.01',img_boergoat,seller_d::text,'9', 'boer', 'f','',''],
-    ARRAY['Large White Pig', 'Pigs',  'Large White','9 months','80kg','Live — settles ~2:11 (Boer Bargainer).',                                  'Kwekwe',  'Good',     '0.01','0.02',img_pig,     seller_c::text,'11','boer', 'f','',''],
+    ARRAY['Large White Pig', 'Pigs',  'Large White','9 months','80kg','Live — settles ~2:11 (Boer Bargainer).',                                  'Kwekwe',  'Good',     '0.01','0.01',img_pig,     seller_c::text,'11','boer', 'f','',''],
     -- Trickle through the talk
-    ARRAY['Dorper Lamb',     'Sheep', 'Dorper',    '6 months','30kg','Live — settles ~2:15 (Penny Sniper).',                                     'Masvingo','Good',     '0.01','0.02',img_dorper,  seller_e::text,'15','penny','f','',''],
-    ARRAY['Mixed Boer Pair', 'Goats', 'Boer Cross','2 years','50kg','Live — settles ~2:22. Transport-enabled (pickup Chinhoyi).',                'Chinhoyi','Good',     '0.01','0.03',img_boergoat,seller_a::text,'22','boer', 't','-17.3667','30.2003'],
-    ARRAY['Angus Calf',      'Cattle','Angus',     '8 months','240kg','Live — settles ~2:30. Transport-enabled (pickup Mutare).',                'Mutare',  'Good',     '0.01','0.04',img_angus,   seller_c::text,'30','penny','t','-18.9707','32.6709'],
-    ARRAY['Boer Kid',        'Goats', 'Boer',      '4 months','18kg','Live — settles ~2:40 (Boer Bargainer).',                                   'Bulawayo','Excellent','0.01','0.04',img_boergoat,seller_e::text,'40','boer', 'f','',''],
-    ARRAY['Merino Ewe',      'Sheep', 'Merino',    '1 year', '38kg','Live — settles ~2:52 (Penny Sniper).',                                      'Kadoma',  'Excellent','0.01','0.05',img_merino,  seller_b::text,'52','penny','f','',''],
-    ARRAY['Holstein Heifer', 'Cattle','Holstein',  '2 years','360kg','Live — settles ~3:05. Transport-enabled (pickup Harare). Carries Q&A.',    'Harare',  'Good',     '0.01','0.03',img_brahman, seller_d::text,'65','penny','t','-17.8292','31.0522'],
-    ARRAY['Sow & Piglets',   'Pigs',  'Hampshire', '3 years','180kg','Live — settles ~3:20 (Boer Bargainer, end of demo).',                      'Bulawayo','Excellent','0.01','0.04',img_pig,     seller_a::text,'80','boer', 'f','',''],
-    ARRAY['Damara Ewe',      'Sheep', 'Damara',    '2 years','42kg','Live — settles ~3:35. Last to settle, post Q&A.',                           'Mutare',  'Good',     '0.01','0.05',img_merino,  seller_c::text,'95','penny','f','','']
+    ARRAY['Dorper Lamb',     'Sheep', 'Dorper',    '6 months','30kg','Live — settles ~2:15 (Penny Sniper).',                                     'Masvingo','Good',     '0.01','0.01',img_dorper,  seller_e::text,'15','penny','f','',''],
+    ARRAY['Mixed Boer Pair', 'Goats', 'Boer Cross','2 years','50kg','Live — settles ~2:22. Transport-enabled (pickup Chinhoyi).',                'Chinhoyi','Good',     '0.01','0.01',img_boergoat,seller_a::text,'22','boer', 't','-17.3667','30.2003'],
+    ARRAY['Angus Calf',      'Cattle','Angus',     '8 months','240kg','Live — settles ~2:30. Transport-enabled (pickup Mutare).',                'Mutare',  'Good',     '0.01','0.01',img_angus,   seller_c::text,'30','penny','t','-18.9707','32.6709'],
+    ARRAY['Boer Kid',        'Goats', 'Boer',      '4 months','18kg','Live — settles ~2:40 (Boer Bargainer).',                                   'Bulawayo','Excellent','0.01','0.01',img_boergoat,seller_e::text,'40','boer', 'f','',''],
+    ARRAY['Merino Ewe',      'Sheep', 'Merino',    '1 year', '38kg','Live — settles ~2:52 (Penny Sniper).',                                      'Kadoma',  'Excellent','0.01','0.01',img_merino,  seller_b::text,'52','penny','f','',''],
+    ARRAY['Holstein Heifer', 'Cattle','Holstein',  '2 years','360kg','Live — settles ~3:05. Transport-enabled (pickup Harare). Carries Q&A.',    'Harare',  'Good',     '0.01','0.01',img_brahman, seller_d::text,'65','penny','t','-17.8292','31.0522'],
+    ARRAY['Sow & Piglets',   'Pigs',  'Hampshire', '3 years','180kg','Live — settles ~3:20 (Boer Bargainer, end of demo).',                      'Bulawayo','Excellent','0.01','0.01',img_pig,     seller_a::text,'80','boer', 'f','',''],
+    ARRAY['Damara Ewe',      'Sheep', 'Damara',    '2 years','42kg','Live — settles ~3:35. Last to settle, post Q&A.',                           'Mutare',  'Good',     '0.01','0.01',img_merino,  seller_c::text,'95','penny','f','','']
   ];
 
   spec text[];
