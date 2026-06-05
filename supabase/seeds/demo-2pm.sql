@@ -28,7 +28,7 @@ DECLARE
   -- >>> THE ONLY LINE TO CHANGE IF THE SLOT MOVES <<<
   demo_start timestamptz := '2026-06-05 14:00:00+02';  -- 2:00 PM Harare
 
-  buyer_id  uuid := '861ee7b2-f543-4bcb-9665-cdb8e3e2a95e';
+  buyer_id  uuid := '4afe19ee-8bca-483a-9f90-5351b4324344';  -- tatenda@paynow.co.zw
 
   seller_a  uuid := '889508c8-7206-46bd-aec2-d21fee774604';
   seller_b  uuid := '0cfc6ae4-3f42-4224-bc43-425fb8ae9cf0';
