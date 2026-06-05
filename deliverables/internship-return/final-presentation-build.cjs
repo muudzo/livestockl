@@ -50,7 +50,7 @@ const pres = new pptxgen();
 pres.layout = "LAYOUT_16x9";
 pres.author = "Tatenda Nyemudzo";
 pres.title = "ZimLivestock — Final Internship Presentation";
-const TOTAL = 29;
+const TOTAL = 31;
 
 // ---- helpers ---------------------------------------------------------------
 function accentBar(s, color = COLOR.gold) {
@@ -736,7 +736,97 @@ function divider(s, numeral, kicker, big, sub) {
 }
 
 // ============================================================================
-// 25 — THE VALUE PROPOSITION FOR PAYNOW (why this is a win for Paynow)
+// 25 — THE MARKET (how big the prize is) — grounded TAM
+// ============================================================================
+{
+  const s = pres.addSlide();
+  s.background = { color: COLOR.cream };
+  accentBar(s); eyebrow(s, "THE MARKET · HOW BIG IS THE PRIZE");
+  title(s, "A ~US$220M cattle trade. Almost none of it on a rail.", { size: 26 });
+  subhead(s, "Zimbabwe runs one of Africa's larger cattle economies — and at the point of sale it is still overwhelmingly cash. Digitizing even a sliver routes serious GMV onto Paynow.", 1.78);
+
+  const tiers = [
+    { n: "~US$220M", label: "cattle traded nationally / year",
+      body: "5.7M-head national herd × 6% off-take ≈ 342,000 cattle sold a year, at a conservative US$650 each. Most changes hands farm-gate or on WhatsApp — in cash, off any rail.", dark: false },
+    { n: "~US$90M", label: "the formal auction floor / year",
+      body: "~50 auction houses (8 anchor · 20 mid · 20 regional), by sale-day GMV × cadence. This is the slice we can actually reach, settle and route onto Paynow.", dark: false },
+    { n: "~US$9M", label: "if we digitize just 10%",
+      body: "10% of the formal floor — onto Paynow rails, from a market that is ~100% cash today. Our 5-yr plan lands here: a US$7.1M Year-5 run-rate, ~8% of the floor.", dark: true },
+  ];
+  const w = 2.73, x0 = 0.7, gap = 0.22;
+  tiers.forEach((p, i) => {
+    const x = x0 + i * (w + gap);
+    const bg = p.dark ? COLOR.dark : COLOR.cardBg;
+    const accent = p.dark ? COLOR.gold : COLOR.terracotta;
+    s.addShape(pres.shapes.RECTANGLE, { x, y: 2.46, w, h: 2.06, fill: { color: bg }, line: { type: "none" }, shadow: { type: "outer", color: "000000", blur: 8, offset: 2, angle: 90, opacity: 0.08 } });
+    s.addShape(pres.shapes.RECTANGLE, { x, y: 2.46, w: 0.06, h: 2.06, fill: { color: accent }, line: { type: "none" } });
+    s.addText(p.n, { x: x + 0.2, y: 2.58, w: w - 0.3, h: 0.58, fontFace: FONT.header, fontSize: 24, bold: true, color: accent, margin: 0 });
+    s.addText(p.label, { x: x + 0.2, y: 3.16, w: w - 0.3, h: 0.42, fontFace: FONT.body, fontSize: 10, bold: true, color: p.dark ? COLOR.cream : COLOR.body, margin: 0 });
+    s.addText(p.body, { x: x + 0.2, y: 3.62, w: w - 0.36, h: 0.85, fontFace: FONT.body, fontSize: 8.7, color: p.dark ? COLOR.mutedDark : COLOR.muted, margin: 0 });
+  });
+  s.addText([
+    { text: "Grounded in:  ", options: { bold: true, color: COLOR.terracotta } },
+    { text: "national herd 5.7M (Parliament / Newsday, Sept 2025) · 6% off-take (FAO) · live cattle US$2.84–3.93/kg (Selina Wamucii, 2025). Government targets a US$25bn livestock sector by 2030.", options: { color: COLOR.muted } },
+  ], { x: 0.7, y: 4.74, w: 8.7, h: 0.4, fontFace: FONT.body, fontSize: 8.3, italic: true, margin: 0 });
+  footer(s, 25);
+}
+
+// ============================================================================
+// 26 — HOW THE NUMBERS ARE BUILT (bottom-up, no black box)
+// ============================================================================
+{
+  const s = pres.addSlide();
+  s.background = { color: COLOR.cream };
+  accentBar(s); eyebrow(s, "HOW THE NUMBERS ARE BUILT · NO BLACK BOX");
+  title(s, "Every dollar traces to a driver.", { size: 28 });
+  subhead(s, "The US$19.5M is built bottom-up from auction-floor reality — not a top-down guess. Here is the chain, and Year 1 worked end-to-end.", 1.78);
+
+  // LEFT — the driver chain
+  s.addText("THE DRIVER CHAIN", { x: 0.7, y: 2.32, w: 4.2, h: 0.25, fontFace: FONT.body, fontSize: 9.5, bold: true, charSpacing: 1, color: COLOR.terracotta, margin: 0 });
+  const steps = [
+    "Houses live, by tier — 5 → 8 → 12 → 16 → 20 (anchors first)",
+    "× sale-day GMV × cadence  =  each house's annual floor",
+    "× digital adoption 10.5% → 13.7% — only the remote / sub-deposit slice",
+    "× half-year go-live on every new cohort",
+    "=  GMV settled onto Paynow rails",
+  ];
+  steps.forEach((t, i) => {
+    const y = 2.64 + i * 0.44;
+    const last = i === steps.length - 1;
+    s.addShape(pres.shapes.OVAL, { x: 0.7, y: y + 0.03, w: 0.26, h: 0.26, fill: { color: last ? COLOR.green : COLOR.terracotta }, line: { type: "none" } });
+    s.addText(`${i + 1}`, { x: 0.7, y: y + 0.03, w: 0.26, h: 0.26, fontFace: FONT.body, fontSize: 10, bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0 });
+    s.addText(t, { x: 1.08, y, w: 3.75, h: 0.42, fontFace: FONT.body, fontSize: 10, bold: last, color: last ? COLOR.body : COLOR.muted, valign: "middle", margin: 0 });
+  });
+
+  // RIGHT — Year 1 worked end-to-end (dark card)
+  const cx = 5.25, cw = 4.1;
+  s.addShape(pres.shapes.RECTANGLE, { x: cx, y: 2.3, w: cw, h: 2.5, fill: { color: COLOR.dark }, line: { type: "none" } });
+  s.addShape(pres.shapes.RECTANGLE, { x: cx, y: 2.3, w: 0.08, h: 2.5, fill: { color: COLOR.gold }, line: { type: "none" } });
+  s.addText("YEAR 1, WORKED END-TO-END", { x: cx + 0.25, y: 2.4, w: cw - 0.4, h: 0.25, fontFace: FONT.body, fontSize: 9.5, bold: true, charSpacing: 1, color: COLOR.gold, margin: 0 });
+  s.addText("3 anchor + 1 mid + 1 regional house (all new)", { x: cx + 0.25, y: 2.65, w: cw - 0.4, h: 0.24, fontFace: FONT.body, fontSize: 9, italic: true, color: COLOR.mutedDark, margin: 0 });
+  const rows = [
+    ["Full-year floor (3×$4.8M+$2.16M+$0.48M)", "$17.04M", false],
+    ["Half-year (all new cohort)  ÷ 2", "$8.52M", false],
+    ["× digital adoption  10.5%", "$894,600", true],
+    ["Cross-check:  ÷ $650 ticket", "1,376 tx ✓", false],
+  ];
+  rows.forEach((r, i) => {
+    const y = 3.0 + i * 0.41;
+    s.addText(r[0], { x: cx + 0.25, y, w: 2.55, h: 0.36, fontFace: FONT.body, fontSize: 8.7, color: r[2] ? COLOR.gold : COLOR.mutedDark, bold: r[2], valign: "middle", margin: 0 });
+    s.addText(r[1], { x: cx + 2.62, y, w: cw - 2.87, h: 0.36, fontFace: FONT.header, fontSize: r[2] ? 13 : 11, bold: true, color: r[2] ? COLOR.gold : COLOR.cream, align: "right", valign: "middle", margin: 0 });
+  });
+  s.addText("Same drivers × 5 years  →  US$19.5M cumulative onto Paynow.", { x: cx + 0.25, y: 4.46, w: cw - 0.4, h: 0.26, fontFace: FONT.body, fontSize: 8.7, italic: true, color: COLOR.mutedDark, margin: 0 });
+
+  // BOTTOM — conservatism stack
+  s.addText([
+    { text: "Conservative by construction:  ", options: { bold: true, color: COLOR.terracotta } },
+    { text: "1/3 of the market · adoption held <14% · US$650 ticket skewed low · we model only the sub-deposit slice cash excludes. The one stretch — landing 3 of ~8 anchors in Year 1.", options: { color: COLOR.muted } },
+  ], { x: 0.7, y: 4.98, w: 8.7, h: 0.28, fontFace: FONT.body, fontSize: 9, italic: true, margin: 0 });
+  footer(s, 26);
+}
+
+// ============================================================================
+// 27 — THE VALUE PROPOSITION FOR PAYNOW (why this is a win for Paynow)
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -764,11 +854,11 @@ function divider(s, numeral, kicker, big, sub) {
     { text: "The strategic fit:  ", options: { bold: true, color: COLOR.terracotta } },
     { text: "Paynow's growing contacts open the doors; ZimLivestock does the on-the-ground operating — and every dollar it settles flows onto Paynow rails.", options: { color: COLOR.muted } },
   ], { x: 0.7, y: 4.9, w: 8.7, h: 0.3, fontFace: FONT.body, fontSize: 10, italic: true, margin: 0 });
-  footer(s, 25);
+  footer(s, 27);
 }
 
 // ============================================================================
-// 26 — DX BENCHMARK FINDINGS (the honest scorecard + what Paynow wins)
+// 28 — DX BENCHMARK FINDINGS (the honest scorecard + what Paynow wins)
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -777,19 +867,19 @@ function divider(s, numeral, kicker, big, sub) {
   title(s, "I also stress-tested your front door.", { size: 28 });
   subhead(s, "Four weeks integrating Paynow with no SDK, benchmarked against four global gateways — the honest scorecard, and what Paynow already does better than anyone in this market.", 1.78);
   s.addText([
-    { text: "Overall DX: 2.3 / 5", options: { bold: true, color: COLOR.terracotta } },
+    { text: "Overall DX: 3.0 / 5", options: { bold: true, color: COLOR.terracotta } },
     { text: "    — Stripe 4.8 · Paystack 4.2 · Flutterwave 3.5 (same framework)", options: { color: COLOR.muted } },
   ], { x: 0.7, y: 2.28, w: 8.7, h: 0.3, fontFace: FONT.body, fontSize: 12, margin: 0 });
 
-  // LEFT — 7-dimension scorecard with mini bars
+  // LEFT — 7-dimension scorecard with mini bars (averages to 3.0)
   const dims = [
-    { d: "Documentation", v: 2.5 },
-    { d: "Integration simplicity", v: 2.0 },
-    { d: "Error messages", v: 1.5 },
-    { d: "API accessibility", v: 1.0 },
-    { d: "SDK quality", v: 2.5 },
-    { d: "Sandbox / testing", v: 3.5 },
-    { d: "Onboarding speed", v: 3.0 },
+    { d: "Documentation", v: 3.0 },
+    { d: "Integration simplicity", v: 2.5 },
+    { d: "Error messages", v: 2.5 },
+    { d: "API accessibility", v: 2.0 },
+    { d: "SDK quality", v: 3.0 },
+    { d: "Sandbox / testing", v: 4.0 },
+    { d: "Onboarding speed", v: 4.0 },
   ];
   const barX = 2.55, barW = 1.95, rowH = 0.34, top = 2.72;
   dims.forEach((r, i) => {
@@ -817,11 +907,11 @@ function divider(s, numeral, kicker, big, sub) {
     s.addShape(pres.shapes.OVAL, { x: 5.8, y: y + 0.06, w: 0.1, h: 0.1, fill: { color: COLOR.gold }, line: { type: "none" } });
     s.addText(t, { x: 6.0, y, w: 3.2, h: 0.38, fontFace: FONT.body, fontSize: 8.7, color: COLOR.mutedDark, valign: "top", margin: 0 });
   });
-  footer(s, 26);
+  footer(s, 28);
 }
 
 // ============================================================================
-// 27 — DX SOLUTIONS (the 9 recommendations, ranked by severity)
+// 29 — DX SOLUTIONS (the 9 recommendations, ranked by severity)
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -850,13 +940,13 @@ function divider(s, numeral, kicker, big, sub) {
   });
   s.addText([
     { text: "Result:  ", options: { bold: true, color: COLOR.terracotta } },
-    { text: "Paynow DX scored 2.3/5 — but every gap is fixable, and most are documentation, not architecture. Full report: paynow-dx-recommendations.md.", options: { color: COLOR.muted } },
+    { text: "Paynow DX scored 3.0/5 — solid, and every gap is fixable; most are documentation, not architecture. Full report: paynow-dx-recommendations.md.", options: { color: COLOR.muted } },
   ], { x: 0.7, y: 4.96, w: 8.7, h: 0.3, fontFace: FONT.body, fontSize: 9.5, italic: true, margin: 0 });
-  footer(s, 27);
+  footer(s, 29);
 }
 
 // ============================================================================
-// 28 — THE ASK (doors and rails) — dark
+// 30 — THE ASK (doors and rails) — dark
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -878,11 +968,11 @@ function divider(s, numeral, kicker, big, sub) {
       { text: a.b, options: { color: COLOR.mutedDark, fontSize: 12.5 } },
     ], { x: 1.3, y: y + 0.02, w: 8.0, h: 1.1, fontFace: FONT.body, valign: "top", margin: 0 });
   });
-  footer(s, 28, true);
+  footer(s, 30, true);
 }
 
 // ============================================================================
-// 29 — CLOSE
+// 31 — CLOSE
 // ============================================================================
 {
   const s = pres.addSlide();
