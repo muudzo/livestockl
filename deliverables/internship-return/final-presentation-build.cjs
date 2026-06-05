@@ -4,16 +4,27 @@
 //   III. The national cattle-digitization gateway (the unique angle)
 //   IV.  Go-to-market / market entry         V.   Financial predictions
 //
-// Reuses the terracotta/cream/gold design system + canonical v3.0 numbers
-// from md-pitch-build.cjs and financial-deck-build.cjs.
+// Recolored to the Paynow Zimbabwe corporate palette (royal blue #175FF8,
+// deep navy, cyan + teal accents on a light-blue paper) — sourced from
+// paynow.co.zw brand assets. Canonical v3.0 numbers retained.
 // Build:  cd deliverables/internship-return && NODE_PATH=$(npm root -g) node final-presentation-build.cjs
 
 const pptxgen = require("pptxgenjs");
 
+// Key names are kept from the prior terracotta system so every call site
+// carries over unchanged; only the *values* move to Paynow brand colors.
 const COLOR = {
-  terracotta: "B85042", cream: "F5E6D3", dark: "2D1B1A", gold: "D4A843",
-  body: "2D1B1A", muted: "7A4F47", mutedDark: "BFAA98", cardBg: "FFFFFF",
-  green: "5A7D5A",
+  terracotta: "175FF8", // Paynow royal blue — primary accent (was terracotta)
+  cream: "EEF3FF",      // light blue-tint paper (was cream)
+  dark: "0A2540",       // deep navy — dark sections (was near-black brown)
+  gold: "4CC3FF",       // Paynow cyan — bright accent on dark (was gold)
+  body: "13233F",       // navy ink
+  muted: "5B6B86",      // slate blue-grey
+  mutedDark: "AEC2E0",  // light slate on navy
+  cardBg: "FFFFFF",
+  green: "13BFA3",      // Paynow teal — positive / surplus (was olive green)
+  deepBlue: "0C40BE",   // strong fills / depth
+  warn: "E5484D",       // functional red — Critical severity only
 };
 const FONT = { header: "Georgia", body: "Calibri" };
 
@@ -39,7 +50,7 @@ const pres = new pptxgen();
 pres.layout = "LAYOUT_16x9";
 pres.author = "Tatenda Nyemudzo";
 pres.title = "ZimLivestock — Final Internship Presentation";
-const TOTAL = 25;
+const TOTAL = 29;
 
 // ---- helpers ---------------------------------------------------------------
 function accentBar(s, color = COLOR.gold) {
@@ -717,7 +728,135 @@ function divider(s, numeral, kicker, big, sub) {
 }
 
 // ============================================================================
-// 24 — THE ASK (doors and rails) — dark
+// 24 — DIVIDER VI: THE PAYNOW RETURN
+// ============================================================================
+{
+  const s = pres.addSlide();
+  divider(s, "VI", "THE PAYNOW RETURN", "What this internship is worth to Paynow.", "Beyond a product built on your rails: a flagship vertical, ~US$19.5M of GMV onto Paynow, and a developer-experience audit that makes the gateway easier for the next builder to adopt.");
+}
+
+// ============================================================================
+// 25 — THE VALUE PROPOSITION FOR PAYNOW (why this is a win for Paynow)
+// ============================================================================
+{
+  const s = pres.addSlide();
+  s.background = { color: COLOR.cream };
+  accentBar(s); eyebrow(s, "THE VALUE PROPOSITION FOR PAYNOW");
+  title(s, "Why ZimLivestock is a win for Paynow.", { size: 28 });
+  subhead(s, "Our take is thin by design. The value to Paynow is the GMV, the vertical and the network it activates — not the 0.75% we charge the house.", 1.95);
+
+  const cards = [
+    { n: "$19.5M", label: "GMV onto your rails (5yr)", body: "Livestock settlement routed through Core Express Checkout, BillPay, EcoCash USSD & merchant transfers — volume that is cash today." },
+    { n: "6", label: "products live in production", body: "A flagship reference deployment proving the Paynow ecosystem composes into a real, paying business — not a demo." },
+    { n: "40–60", label: "a new merchant category", body: "Auction houses are a class Paynow doesn't serve today. Each house onboarded is a new recurring biller + settlement account." },
+    { n: "9", label: "DX fixes delivered as feedback", body: "A full developer-experience benchmark vs Stripe, Paystack, Flutterwave & Pesepay — the next integrator's path made shorter." },
+  ];
+  const w = 2.05, x0 = 0.7, gap = 0.15;
+  cards.forEach((p, i) => {
+    const x = x0 + i * (w + gap);
+    s.addShape(pres.shapes.RECTANGLE, { x, y: 2.5, w, h: 2.2, fill: { color: COLOR.cardBg }, line: { type: "none" }, shadow: { type: "outer", color: "000000", blur: 8, offset: 2, angle: 90, opacity: 0.08 } });
+    s.addShape(pres.shapes.RECTANGLE, { x, y: 2.5, w: 0.06, h: 2.2, fill: { color: COLOR.terracotta }, line: { type: "none" } });
+    s.addText(p.n, { x: x + 0.2, y: 2.62, w: w - 0.25, h: 0.62, fontFace: FONT.header, fontSize: 26, bold: true, color: COLOR.terracotta, margin: 0 });
+    s.addText(p.label, { x: x + 0.2, y: 3.26, w: w - 0.25, h: 0.48, fontFace: FONT.body, fontSize: 10, bold: true, color: COLOR.body, margin: 0 });
+    s.addText(p.body, { x: x + 0.2, y: 3.78, w: w - 0.25, h: 0.95, fontFace: FONT.body, fontSize: 9.5, color: COLOR.muted, margin: 0 });
+  });
+  s.addText([
+    { text: "The strategic fit:  ", options: { bold: true, color: COLOR.terracotta } },
+    { text: "Paynow's growing contacts open the doors; ZimLivestock does the on-the-ground operating — and every dollar it settles flows onto Paynow rails.", options: { color: COLOR.muted } },
+  ], { x: 0.7, y: 4.9, w: 8.7, h: 0.3, fontFace: FONT.body, fontSize: 10, italic: true, margin: 0 });
+  footer(s, 25);
+}
+
+// ============================================================================
+// 26 — DX BENCHMARK FINDINGS (the honest scorecard + what Paynow wins)
+// ============================================================================
+{
+  const s = pres.addSlide();
+  s.background = { color: COLOR.cream };
+  accentBar(s); eyebrow(s, "DEVELOPER EXPERIENCE BENCHMARK · FINDINGS");
+  title(s, "I also stress-tested your front door.", { size: 28 });
+  subhead(s, "Four weeks integrating Paynow with no SDK, benchmarked against four global gateways — the honest scorecard, and what Paynow already does better than anyone in this market.", 1.78);
+  s.addText([
+    { text: "Overall DX: 2.3 / 5", options: { bold: true, color: COLOR.terracotta } },
+    { text: "    — Stripe 4.8 · Paystack 4.2 · Flutterwave 3.5 (same framework)", options: { color: COLOR.muted } },
+  ], { x: 0.7, y: 2.28, w: 8.7, h: 0.3, fontFace: FONT.body, fontSize: 12, margin: 0 });
+
+  // LEFT — 7-dimension scorecard with mini bars
+  const dims = [
+    { d: "Documentation", v: 2.5 },
+    { d: "Integration simplicity", v: 2.0 },
+    { d: "Error messages", v: 1.5 },
+    { d: "API accessibility", v: 1.0 },
+    { d: "SDK quality", v: 2.5 },
+    { d: "Sandbox / testing", v: 3.5 },
+    { d: "Onboarding speed", v: 3.0 },
+  ];
+  const barX = 2.55, barW = 1.95, rowH = 0.34, top = 2.72;
+  dims.forEach((r, i) => {
+    const y = top + i * rowH;
+    s.addText(r.d, { x: 0.7, y, w: 1.8, h: 0.28, fontFace: FONT.body, fontSize: 9.5, color: COLOR.body, valign: "middle", margin: 0 });
+    s.addShape(pres.shapes.RECTANGLE, { x: barX, y: y + 0.05, w: barW, h: 0.16, fill: { color: "D6E0F2" }, line: { type: "none" } });
+    const fillColor = r.v < 2 ? COLOR.warn : (r.v < 3 ? COLOR.terracotta : COLOR.green);
+    s.addShape(pres.shapes.RECTANGLE, { x: barX, y: y + 0.05, w: barW * (r.v / 5), h: 0.16, fill: { color: fillColor }, line: { type: "none" } });
+    s.addText(r.v.toFixed(1), { x: barX + barW + 0.1, y, w: 0.5, h: 0.28, fontFace: FONT.body, fontSize: 9.5, bold: true, color: COLOR.body, valign: "middle", margin: 0 });
+  });
+
+  // RIGHT — what Paynow already wins (dark card)
+  s.addShape(pres.shapes.RECTANGLE, { x: 5.55, y: 2.62, w: 3.8, h: 2.42, fill: { color: COLOR.dark }, line: { type: "none" } });
+  s.addShape(pres.shapes.RECTANGLE, { x: 5.55, y: 2.62, w: 0.08, h: 2.42, fill: { color: COLOR.gold }, line: { type: "none" } });
+  s.addText("WHAT PAYNOW ALREADY WINS", { x: 5.78, y: 2.74, w: 3.4, h: 0.25, fontFace: FONT.body, fontSize: 9.5, bold: true, charSpacing: 1, color: COLOR.gold, margin: 0 });
+  const wins = [
+    "Widest local coverage — EcoCash, OneMoney, InnBucks, O'mari, Zimswitch, Visa/MC",
+    "BuySafe escrow built in — Stripe charges extra; Paystack has none",
+    "Realistic test mode — success / delayed / cancelled / insufficient",
+    "BillPay Vendor API is genuinely well-designed (AUTH→PAY, JSON)",
+    "No minimum fees — works for micro-transactions",
+  ];
+  wins.forEach((t, i) => {
+    const y = 3.06 + i * 0.39;
+    s.addShape(pres.shapes.OVAL, { x: 5.8, y: y + 0.06, w: 0.1, h: 0.1, fill: { color: COLOR.gold }, line: { type: "none" } });
+    s.addText(t, { x: 6.0, y, w: 3.2, h: 0.38, fontFace: FONT.body, fontSize: 8.7, color: COLOR.mutedDark, valign: "top", margin: 0 });
+  });
+  footer(s, 26);
+}
+
+// ============================================================================
+// 27 — DX SOLUTIONS (the 9 recommendations, ranked by severity)
+// ============================================================================
+{
+  const s = pres.addSlide();
+  s.background = { color: COLOR.cream };
+  accentBar(s); eyebrow(s, "DEVELOPER EXPERIENCE BENCHMARK · SOLUTIONS");
+  title(s, "Nine recommendations, ranked by severity.");
+  subhead(s, "Every issue I hit became a concrete, defensible fix. The report is a gift to whoever builds on Paynow next.");
+
+  const groups = [
+    { sev: "CRITICAL · 1", chip: COLOR.warn, chipText: "FFFFFF",
+      body: [{ text: "Move the API off the bot-walled www domain — host it on api.paynow.co.zw with no Cloudflare challenge. ", options: { color: COLOR.body, bold: true } }, { text: "This is exactly why the live demo routes through a browser-relay.", options: { color: COLOR.muted } }] },
+    { sev: "HIGH · 3", chip: COLOR.terracotta, chipText: "FFFFFF",
+      body: [{ text: "Accept JSON alongside form-encoding · Document the hash field-order explicitly · Return structured error codes — today one “Invalid Hash” hides five different root causes.", options: { color: COLOR.body } }] },
+    { sev: "MEDIUM · 4", chip: COLOR.gold, chipText: "0A2540",
+      body: [{ text: "Add express-checkout examples · A status page + webhook delivery logs · Publish an OpenAPI spec · Make the Node & Java SDKs behave identically.", options: { color: COLOR.body } }] },
+    { sev: "LOW · 1", chip: COLOR.muted, chipText: "FFFFFF",
+      body: [{ text: "Expand test-mode docs — team testing, webhook testing and a go-live checklist.", options: { color: COLOR.body } }] },
+  ];
+  const gx = 0.7, gy = 2.38, step = 0.64, cardH = 0.56;
+  groups.forEach((g, i) => {
+    const y = gy + i * step;
+    s.addShape(pres.shapes.RECTANGLE, { x: gx, y, w: 8.6, h: cardH, fill: { color: COLOR.cardBg }, line: { type: "none" }, shadow: { type: "outer", color: "000000", blur: 5, offset: 1, angle: 90, opacity: 0.07 } });
+    s.addShape(pres.shapes.RECTANGLE, { x: gx + 0.15, y: y + 0.12, w: 1.2, h: 0.36, fill: { color: g.chip }, line: { type: "none" } });
+    s.addText(g.sev, { x: gx + 0.15, y: y + 0.12, w: 1.2, h: 0.36, fontFace: FONT.body, fontSize: 9, bold: true, charSpacing: 1, color: g.chipText, align: "center", valign: "middle", margin: 0 });
+    s.addText(g.body, { x: gx + 1.55, y, w: 6.9, h: cardH, fontFace: FONT.body, fontSize: 10, valign: "middle", margin: 0 });
+  });
+  s.addText([
+    { text: "Result:  ", options: { bold: true, color: COLOR.terracotta } },
+    { text: "Paynow DX scored 2.3/5 — but every gap is fixable, and most are documentation, not architecture. Full report: paynow-dx-recommendations.md.", options: { color: COLOR.muted } },
+  ], { x: 0.7, y: 4.96, w: 8.7, h: 0.3, fontFace: FONT.body, fontSize: 9.5, italic: true, margin: 0 });
+  footer(s, 27);
+}
+
+// ============================================================================
+// 28 — THE ASK (doors and rails) — dark
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -739,11 +878,11 @@ function divider(s, numeral, kicker, big, sub) {
       { text: a.b, options: { color: COLOR.mutedDark, fontSize: 12.5 } },
     ], { x: 1.3, y: y + 0.02, w: 8.0, h: 1.1, fontFace: FONT.body, valign: "top", margin: 0 });
   });
-  footer(s, 24, true);
+  footer(s, 28, true);
 }
 
 // ============================================================================
-// 25 — CLOSE
+// 29 — CLOSE
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -759,7 +898,7 @@ function divider(s, numeral, kicker, big, sub) {
   s.addText("Build software you can sell — and a business this market can actually carry.", { x: 0.7, y: 4.0, w: 8.6, h: 0.5, fontFace: FONT.header, fontSize: 20, italic: true, bold: true, color: COLOR.gold, margin: 0 });
   s.addText([
     { text: "Tatenda Nyemudzo", options: { bold: true, color: COLOR.cream } },
-    { text: "    dev@paynow.co.zw    ·    companions: gtm-strategy.md · financial-model.xlsx · national-initiative-alignment.md", options: { color: COLOR.mutedDark } },
+    { text: "    dev@paynow.co.zw    ·    companions: gtm-strategy.md · financial-model.xlsx · national-initiative-alignment.md · paynow-dx-recommendations.md", options: { color: COLOR.mutedDark } },
   ], { x: 0.7, y: 4.95, w: 8.6, h: 0.3, fontFace: FONT.body, fontSize: 11 });
 }
 
