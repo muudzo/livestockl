@@ -278,7 +278,6 @@ function divider(s, numeral, kicker, big, sub) {
     { check: true,  label: "Agentic auto-buy demo",            sub: "demoed to Paynow leadership 2026-05-08" },
     { check: true,  label: "BillPay biller-inbound API",       sub: "AUTH live; PAY round-trip awaiting creds" },
     { check: false, label: "Bisafe escrow integration",       sub: "designed, awaiting Paynow Bisafe spec" },
-    { check: false, label: "Paab cash-collection",             sub: "designed, awaiting Paynow Paab spec" },
   ];
   proof.forEach((it, i) => {
     const col = i % 2, row = Math.floor(i / 2);
@@ -536,7 +535,7 @@ function divider(s, numeral, kicker, big, sub) {
 }
 
 // ============================================================================
-// 18 — THE RAMP (3 phases) + Paynow partnership
+// 18 — THE RAMP (3 phases) + Paynow channel
 // ============================================================================
 {
   const s = pres.addSlide();
@@ -547,7 +546,7 @@ function divider(s, numeral, kicker, big, sub) {
 
   const phases = [
     { tag: "YEAR 1", title: "Anchors signed", body: "5 houses live — incl. 3 of ~8 Tier A anchors (the load-bearing bet). Wizard live: /operators → admin approval → RLS tenant." },
-    { tag: "YEARS 2–3", title: "The category", body: "8 → 12 houses live. Case studies compound. Paynow formalizes us as its livestock vertical solution." },
+    { tag: "YEARS 2–3", title: "The category", body: "8 → 12 houses live. Case studies compound. Paynow's contacts become the channel that sources new houses." },
     { tag: "YEARS 4–5", title: "20 houses + transport", body: "16 → 20 live (~1/3 of the market). Consumer-transport line ramps the B2B2C upside from 1.3% to 8.8% of revenue." },
   ];
   const w = 2.85, x0 = 0.7;
@@ -559,7 +558,7 @@ function divider(s, numeral, kicker, big, sub) {
   });
   s.addText([
     { text: "“", options: { color: COLOR.terracotta, fontSize: 20, bold: true } },
-    { text: "Position ZimLivestock as Paynow's vertical solution for livestock — reciprocal: we grow their GMV, they grow our pipeline.", options: { color: COLOR.body, italic: true } },
+    { text: "Paynow's growing contacts are the channel for selling this engine — and every house it sources routes its GMV onto Paynow's rails.", options: { color: COLOR.body, italic: true } },
     { text: "”", options: { color: COLOR.terracotta, fontSize: 20, bold: true } },
   ], { x: 0.7, y: 4.9, w: 8.6, h: 0.3, fontFace: FONT.header, fontSize: 12, margin: 0, valign: "middle" });
   footer(s, 18);
@@ -683,8 +682,7 @@ function divider(s, numeral, kicker, big, sub) {
   ], { x: 0.7, y: 4.12, w: 8.7, h: 0.3, fontFace: FONT.body, fontSize: 11.5, italic: true, margin: 0 });
   s.addText("PRODUCTS THIS PUTS TO WORK", { x: 0.7, y: 4.5, w: 8.6, h: 0.3, fontFace: FONT.body, fontSize: 10, bold: true, charSpacing: 3, color: COLOR.terracotta, margin: 0 });
   s.addText([
-    { text: "Core Express Checkout  ·  Bisafe escrow  ·  BillPay-as-biller  ·  EcoCash USSD  ·  merchant transfers  ·  ", options: { color: COLOR.body } },
-    { text: "Paab cash (once unblocked)", options: { color: COLOR.muted, italic: true } },
+    { text: "Core Express Checkout  ·  Bisafe escrow  ·  BillPay-as-biller  ·  EcoCash USSD  ·  merchant transfers  ·  SMS notifications", options: { color: COLOR.body } },
   ], { x: 0.7, y: 4.8, w: 8.7, h: 0.5, fontFace: FONT.body, fontSize: 11.5, margin: 0 });
   footer(s, 22);
 }
@@ -727,20 +725,19 @@ function divider(s, numeral, kicker, big, sub) {
   accentBar(s);
   s.addText("THE ASK", { x: 0.7, y: 0.55, w: 6, h: 0.3, fontFace: FONT.body, fontSize: 11, bold: true, charSpacing: 4, color: COLOR.gold });
   s.addText("Not money. Doors and rails.", { x: 0.7, y: 1.05, w: 8.6, h: 1.0, fontFace: FONT.header, fontSize: 40, bold: true, color: COLOR.cream, margin: 0 });
-  s.addText("Three things, none of them a cheque.", { x: 0.7, y: 1.95, w: 8.6, h: 0.5, fontFace: FONT.header, fontSize: 19, italic: true, color: COLOR.gold, margin: 0 });
+  s.addText("Two things, neither of them a cheque.", { x: 0.7, y: 1.95, w: 8.6, h: 0.5, fontFace: FONT.header, fontSize: 19, italic: true, color: COLOR.gold, margin: 0 });
 
   const asks = [
-    { t: "Unblock the rails", b: "Paab sandbox + docs (the only red on the board) and the BillPay PAY round-trip (vendor-portal creds; AUTH is already live). Both widen the buyer base and lift adoption." },
-    { t: "Formalize the partnership", b: "Name ZimLivestock as Paynow's livestock vertical solution; Paynow BD refers livestock-industry prospects. We grow your GMV; you grow our pipeline." },
-    { t: "Open one door", b: "A warm intro to one Harare-area auction house. The pilot is paid by the customer, not by Paynow — I just need the room." },
+    { t: "Access to your growing contacts", b: "Paynow's expanding network of merchants, billers and industry relationships — as the starting point for selling this settlement engine into the livestock market. Your contacts are the doors; I do the on-the-ground operating you don't want to." },
+    { t: "Continued access to the rails & core infrastructure", b: "Keep me on the Paynow stack I've built ZimLivestock on — Core Express Checkout, BillPay-as-biller, EcoCash USSD, merchant transfers, SMS. The engine runs on your rails; staying plugged in is what keeps every dollar of GMV flowing onto them." },
   ];
   asks.forEach((a, i) => {
-    const y = 2.65 + i * 0.82;
+    const y = 2.75 + i * 1.2;
     s.addText(`${i + 1}`, { x: 0.7, y, w: 0.5, h: 0.7, fontFace: FONT.header, fontSize: 30, bold: true, color: COLOR.gold, margin: 0 });
     s.addText([
-      { text: a.t + "   ", options: { bold: true, color: COLOR.cream, fontSize: 16 } },
-      { text: a.b, options: { color: COLOR.mutedDark, fontSize: 12 } },
-    ], { x: 1.3, y: y + 0.02, w: 8.0, h: 0.78, fontFace: FONT.body, valign: "top", margin: 0 });
+      { text: a.t + "   ", options: { bold: true, color: COLOR.cream, fontSize: 17, breakLine: true } },
+      { text: a.b, options: { color: COLOR.mutedDark, fontSize: 12.5 } },
+    ], { x: 1.3, y: y + 0.02, w: 8.0, h: 1.1, fontFace: FONT.body, valign: "top", margin: 0 });
   });
   footer(s, 24, true);
 }
