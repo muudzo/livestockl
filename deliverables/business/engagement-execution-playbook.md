@@ -104,7 +104,7 @@ Sellers don't respond to a sell; they respond to **excitement and proof their ne
 
 This is the "educate the masses" layer, and per your steer: **most aggressive social approach, more is better, be memorable, work toward virality.** The constraint from the strategy holds — this is *buyer/diaspora + cultural-awareness* reach, not the rural-seller channel (those are won on trust, §2.2). But the brand the memes build is what makes every other conversation warmer.
 
-**Mimoo — the mascot.** *(Reading your "kids tell their dads about Mimoo" as a cow mascot — Mimoo ≈ moo. Confirm and I'll lock it.)* Mimoo is the cultural Trojan horse: a funny, lovable cow character who is the face of the brand. A logo nobody remembers; a *character* kids imitate. Mimoo is how the brand reaches a cattle-owning dad — through his kid repeating a Mimoo line at dinner. That is the actual mechanism behind your "high-schooler tells their dad" vision: **make the brand a meme before you make it a pitch.**
+**Mimoo — the consumer brand name.** Mimoo (≈ *moo*) is the product/brand the masses know — short, friendly, repeatable, engineered for virality in a way "ZimLivestock" (the descriptive, B2B-facing name) never could be. The whole job of the name is to be a **meme before it's a pitch**: easy enough that a high-schooler repeats it and a cattle-owning dad hears it at dinner. That word-of-mouth path — kid to dad — is the exact mechanism behind your vision, and the name is the vehicle. A mascot and a jingle can sit *under* the name to carry it, but the asset is the word itself: **Mimoo.**
 
 **Virality mechanics (the metrics that matter — learn these cold).** The algorithm does not reward likes. In rough priority:
 1. **Completion / watch-time** — the hook in the first **1–2 seconds** decides ~90% of reach. Open on the punchline or the tension, never a logo.
@@ -151,19 +151,18 @@ Built from the **auction-house POV**: their problem → your fix → the money t
 
 | # | Slide | Job | Draft copy |
 |---|---|---|---|
-| **1** | **The story (hook)** | Make them *feel* it in 15 seconds | *[One of the three story angles below — image-led, almost no text.]* |
+| **1** | **The story (hook)** | Make them *feel* it in 15 seconds | *"My father runs finance at the central bank — and loves cattle more than spreadsheets. But he's never free on a sale-day Tuesday, so he buys blind on WhatsApp and overpays. There are thousands like him. **That's the demand leaking off your floor.**"* |
 | **2** | **The problem (their floor)** | Name their pain in their words | "Your room is only as strong as who's in it. Every Saturday, buyers who can't make the deposit or the drive go to WhatsApp instead — unsettled, unverified, at lower prices. **Your demand is leaking to a group chat that can't even guarantee payment.**" |
 | **3** | **Money on the table** | The number that stings | "[House] clears ~US$[X]/sale-day. A fuller room lifts prices. A 3% lift = **+US$[Y] GMV/yr** → **~US$[Z] more commission** — for less than one sale-day's takings a month." |
 | **4** | **The solution** | You make *them* the winner | "ZimLivestock adds remote and diaspora bidders to your *live* floor — your brand, your auctioneer, your fees. Settled instantly on Paynow. You don't get disrupted by digital; **you become the digital floor.**" |
 | **5** | **How it works + trust** | Make it real and safe | "Three steps. Five channels — web, WhatsApp, USSD, BillPay, Messenger. Digital police clearance + escrow so buyers trust it. Sellers paid to a Paynow ID — no bank details, no custody on you." |
 | **6** | **The ask** | Low-risk close | "**One sale day. 90-day pilot, US$1,000 — credited to your contract if you stay.** Let me show you the buyers you're missing. *[contact + site]*" |
 
-**Three story angles for Slide 1 — pick the true one (or blend):**
-- **A · Cattle as family wealth, fleeced.** In Zimbabwe cattle *are* the bank — lobola, school fees, drought insurance. Open on a smallholder forced into a distress sale, or scammed in a WhatsApp group, losing the value of years. The injustice every auctioneer has watched. *(Makes the house the protector of a fair trade.)*
-- **B · The intern who went to the floor.** *True, and it shows you did the work.* You went to a real auction on 19 March — saw the US$1,000 deposit turning people away, the cash, the policewoman clearing cattle by hand — and realised the money layer was missing. "I didn't build this from a desk. I built it from your floor."
-- **C · The buyer locked out.** Someone who wanted to buy cattle back home — for family, for investment — but couldn't attend and couldn't trust the process, so the deal never happened. The excluded-demand story, made personal.
+**Slide 1 story — locked (your father).** The real one, and the best one:
 
-> My lean: **B as the spine** (it's true, it earns credibility, it flatters their floor as the place that taught you), with **one beat of A** for emotion. But the story has to be *yours* — tell me which is real and I'll write it tight.
+> *"My father is a Director of Finance at the Reserve Bank of Zimbabwe. He has spent his life around numbers — and his heart is in cattle. But he's never free on a sale-day Tuesday to drive three hours to the pen. So he doesn't buy — or he buys blind, through a middleman on WhatsApp, and overpays. There are thousands like him: doctors, engineers, civil servants, the diaspora — people with the money and the love for cattle, locked out by one thing: they can't be in the room. That missing buyer is the demand leaking off your floor. I built Mimoo to put him back in your room."*
+
+It does four jobs at once: **credibility** (the RBZ name), **personification** (it makes the abstract "remote buyer" a real human), **flattery** (these are *your* missing high-value bidders, not strangers), and **warmth** (a son building for his dad). It also hands Slide 3 its number — those locked-out professionals are the recapturable demand. *(Anonymise to "a senior executive at the central bank" if you'd rather not name the role.)*
 
 **Reps protocol (the Elon arc, compressed into 50 reps):**
 1. **Record every rep** on your phone. No exceptions — unrecorded reps don't count.
@@ -187,4 +186,4 @@ Built from the **auction-house POV**: their problem → your fix → the money t
 
 ---
 
-*Execution companion to the v3.0 GTM and the stakeholder-engagement plan. Three weeks: get armed, get in rooms, deliver and capture. Win the gettable house first, let it sell the anchor. Reps over polish, in-person over funnels, humour over reach-buying — and a cow named Mimoo doing the work a logo never could.*
+*Execution companion to the v3.0 GTM and the stakeholder-engagement plan. Three weeks: get armed, get in rooms, deliver and capture. Win the gettable house first, let it sell the anchor. Reps over polish, in-person over funnels, humour over reach-buying — and a brand called Mimoo doing the work a description never could.*
