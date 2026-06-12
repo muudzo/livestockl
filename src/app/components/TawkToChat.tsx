@@ -29,10 +29,12 @@ declare global {
   }
 }
 
-export function TawkToChat() {
+export function TawkToChat({ enabled = true }: { enabled?: boolean }) {
   const user = useAuthStore((s) => s.user);
 
   useEffect(() => {
+    if (!enabled) return;
+
     const propertyId = import.meta.env.VITE_TAWKTO_PROPERTY_ID;
     const widgetId = import.meta.env.VITE_TAWKTO_WIDGET_ID;
 
@@ -78,7 +80,7 @@ export function TawkToChat() {
 
   // Update user attributes when auth state changes
   useEffect(() => {
-    if (user && window.Tawk_API?.setAttributes) {
+    if (enabled && user && window.Tawk_API?.setAttributes) {
       window.Tawk_API.setAttributes({
         name: user.first_name
           ? `${user.first_name} ${user.last_name || ''}`
@@ -86,7 +88,7 @@ export function TawkToChat() {
         email: user.email || '',
       });
     }
-  }, [user]);
+  }, [user, enabled]);
 
   return null; // No visible UI — the widget renders itself
 }

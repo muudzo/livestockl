@@ -30,7 +30,25 @@ export function useLivestockList(category?: string, search?: string) {
 
       let query = supabase
         .from('livestock_items')
-        .select('*, profiles!seller_id(first_name, last_name, avatar_url, verified, rating, sales_count)')
+        .select(`
+          id,
+          title,
+          breed,
+          age,
+          weight,
+          location,
+          description,
+          category,
+          current_bid,
+          starting_price,
+          status,
+          image_urls,
+          bid_count,
+          view_count,
+          end_time,
+          seller_id,
+          profiles!seller_id(first_name, last_name, avatar_url, verified, rating, sales_count)
+        `)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .range(pageParam, pageParam + PAGE_SIZE - 1);
@@ -192,6 +210,7 @@ export function useMyListings() {
   return useQuery({
     queryKey: ['my-listings', user?.id],
     enabled: !!user,
+    staleTime: 60_000, // keep data warm while user flips tabs
     queryFn: async () => {
       if (!isSupabaseConfigured) {
         return mockLivestock.slice(0, 2);
@@ -199,7 +218,7 @@ export function useMyListings() {
 
       const { data, error } = await supabase
         .from('livestock_items')
-        .select('*')
+        .select('id, title, status, image_urls, current_bid, bid_count, view_count, created_at')
         .eq('seller_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(50);

@@ -69,7 +69,7 @@ export function MyListings() {
           <TabsTrigger value="won">Won</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="selling" className="space-y-5">
+        <TabsContent value="selling" className="space-y-5" forceMount>
           {loadingSelling ? (
             <div className="space-y-5">
               <SkeletonCard />
@@ -137,7 +137,7 @@ export function MyListings() {
           )}
         </TabsContent>
 
-        <TabsContent value="won" className="space-y-5">
+        <TabsContent value="won" className="space-y-5" forceMount>
           {loadingWon ? (
             <div className="space-y-5">
               <SkeletonCard />

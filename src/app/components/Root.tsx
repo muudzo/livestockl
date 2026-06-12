@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { Plus, List, Bell, LogOut, ChevronRight, Zap, Settings, Inbox, UserCog } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useNotifications";
@@ -24,13 +24,14 @@ function RootInner() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [chatEnabled, setChatEnabled] = useState(false);
 
-  const primaryNav = [
+  const primaryNav = useMemo(() => ([
     { label: 'Home', path: '/' },
     { label: 'Agents', path: '/agents' },
     { label: 'Pay', path: '/payments' },
     { label: 'Chat', path: '/messages' },
-  ];
+  ]), []);
 
   const { role: tenantRole, tenant } = useTenant();
   const canManageTenant = tenantRole === 'admin' || tenantRole === 'operator';
@@ -59,9 +60,33 @@ function RootInner() {
     location.pathname === path || (path !== '/' && location.pathname.startsWith(path + '/'));
 
   const handleNav = (path: string) => {
+    if (path.startsWith('/messages')) {
+      setChatEnabled(true);
+    }
     navigate(path);
     setMenuOpen(false);
   };
+
+  // Enable chat widget lazily: on chat routes, after idle, or after a small delay.
+  useEffect(() => {
+    if (location.pathname.startsWith('/messages')) {
+      setChatEnabled(true);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (chatEnabled) return;
+    const timeoutId = window.setTimeout(() => setChatEnabled(true), 6000);
+    const idleId = 'requestIdleCallback' in window
+      ? (window as any).requestIdleCallback(() => setChatEnabled(true))
+      : null;
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (idleId && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleId);
+      }
+    };
+  }, [chatEnabled]);
 
   const handleLogout = async () => {
     setMenuOpen(false);
@@ -71,7 +96,7 @@ function RootInner() {
 
   return (
     <div className="h-screen flex flex-col bg-background max-w-[480px] mx-auto">
-      <TawkToChat />
+      <TawkToChat enabled={chatEnabled} />
       <div className="flex-1 overflow-y-auto">
         <Outlet />
       </div>
