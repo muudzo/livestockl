@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # npm dependencies — weekly, grouped to reduce PR noise.
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      radix-ui:
+        patterns: ["@radix-ui/*"]
+      dev-tooling:
+        patterns: ["eslint*", "@typescript-eslint/*", "prettier", "typescript", "vite", "vitest", "@vitest/*"]
+    # Security updates are always raised regardless of schedule.
+
+  # Keep GitHub Actions pinned-versions current.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
