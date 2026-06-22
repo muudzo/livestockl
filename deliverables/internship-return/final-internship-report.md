@@ -259,22 +259,51 @@ The table below maps the most significant work products of this internship to th
 
 ## 9. Reflection
 
-> *This section is the one part of the report only I can write authentically. The structure below is a scaffold — I'll fill in the personal content before submission.*
-
 ### What I learned about myself as a designer/developer
-[FILL — what surprised you about your own working style during the internship? What did you discover you were good at? What was harder than expected?]
+
+Going into this internship, I thought of myself primarily as a designer — someone who makes things look right and feel right. What surprised me was discovering that I am also, genuinely, a builder. I found real satisfaction in the engineering work: wiring up a payment flow, tracking down a bug that was silently mislabelling every mobile-money transaction, getting a live auction to settle correctly on stage in front of a leadership panel. I didn't expect to care about those things the way I did.
+
+The quality I discovered I was best at was holding the whole picture at once — seeing how a design decision in the app would ripple into a database constraint, or how a payment-flow choice would affect what a farmer sees on their feature phone three steps later. That end-to-end thinking came naturally to me and, I think, is what made the work credible to the Paynow engineering team.
+
+What was harder than expected was scope. My instinct throughout was to build more — more features, more integrations, more channels. I built a full Go-language backend in parallel with a cloud backend that was already doing the same job. That cost nearly two weeks and had to be deleted. The lesson I am still digesting is that the most disciplined version of building is deciding what *not* to build, and that constraint requires the same creative muscle as the building itself.
+
+I also underestimated how much time silent failures would cost me. Several of the most painful debugging sessions during the internship were not caused by visible errors — they were caused by things that looked like they were working but were quietly doing the wrong thing. A payment was going through but saving the wrong payment method in the database. A scheduled job was failing every time it ran, but no alert was firing. I learned to be much more suspicious of silence than of noise.
 
 ### What I learned about working in a different cultural and economic context
-[FILL — reflection on designing for Zimbabwe specifically. What had to change in your assumptions when you moved from designing for European users in your CMD coursework to designing for mobile-money-first, feature-phone-equipped, USD-cash-economy users? Tie this back to the DX benchmark — what did you have to *unlearn* before you could see Paynow's design decisions clearly?]
+
+My CMD coursework in Leeuwarden trained me to design for users who have a fast internet connection, a smartphone with a large screen, a bank card, and an email address. Walking into the Paynow office in Harare on day one, every one of those assumptions fell away.
+
+The users I was designing for often have none of those things. They pay for groceries with a USSD code dialled on a basic Nokia. They receive payment confirmations as SMS messages, not push notifications. Many do not have email addresses. The transaction that matters most to them — winning a cattle auction — might be worth US$400, paid via a mobile-money prompt that expires in 90 seconds.
+
+My first instinct, arriving from a European design context, was to treat this as a limitation to work around. I wanted to modernise the payment flow, simplify the API, make it look more like Stripe. It took a few weeks — and specifically one Saturday spent sitting in a tin-roofed auction shed watching farmers bid on Brahman bulls in Shona — to understand that I had it backwards. The features that looked "old-fashioned" to me (USSD push prompts, SMS confirmations, feature-phone compatibility) were not legacy problems. They were the *entire point*. They were exactly what the users needed, and Paynow had built them deliberately for that reason.
+
+The biggest shift in my thinking was learning to ask "what does this look like to someone on a 2G connection in a rural area?" before "what does this look like on Figma?" That question changed almost every design decision I made in the second half of the internship — from the image compression strategy, to the way the auction timer displays on a small screen, to the fallback text when the app can't load data.
+
+The DX benchmark reinforced this from a developer side. Paynow's payment API uses an older technical format — form-encoded requests rather than the JSON format most modern tools expect. My initial read was that this was a technical shortcoming. But when I understood that the format matches Zimbabwe's internet infrastructure (where JSON parsing can fail on low-memory devices, and form encoding is more tolerant), and when I saw that Paynow's own newer products had started adopting modern formats, I understood the distinction between "old" and "wrong." The core lesson: you cannot design well for a context you have not been inside.
 
 ### What I would do differently
-[FILL — at least three things. Be specific, with examples. E.g.: "I would have visited a second auction in week 1 instead of week 4 — the gap between 'researching online' and 'sitting in the shed' was bigger than I expected, and I made design decisions in weeks 2–3 that I had to revisit once I had ground-truth.")
+
+**Visit the auction floor in week one, not week three.** I did my first physical field visit in week one, but the deeper visit — the one that produced the most important findings — happened in week three. By then I had already made architectural decisions that had to be revisited once I understood how fast real auctions move (about 90 seconds per animal) and how buyers and sellers actually negotiate trust. If I had spent two days at the auction floor before writing a single line of code, the build phase would have been faster and more accurate.
+
+**Choose one technical approach on day one and commit to it.** In the first three weeks I was building two parallel systems — one in a server language called Go, one in a cloud platform called Supabase. Both were doing the same job. I kept the Go system alive "just in case" for two weeks before deleting it. That deletion removed nearly ten thousand lines of code I would never use. The lesson is simple: parallel bets are expensive, and the cost compounds daily. Pick one direction early and give it your full attention.
+
+**Test with the real deployment environment from day one, not your laptop.** Several of the biggest problems I hit — including the central technical challenge of the whole project, Paynow's server blocking calls from cloud platforms — only showed up when the code was running in the cloud, not on my local machine. I spent days debugging things that worked perfectly on my laptop but failed the moment they were deployed. Spiking every external integration against the deployed environment in week one would have surfaced all of those problems early, when they were cheap to fix, instead of mid-build, when they were expensive.
 
 ### How this connects to my final assessment
-[FILL — do you recognise the assessment your supervisor wrote? Anything you disagree with, anything you think was undersold or oversold? This section is for the tutor only, per the deck.]
+
+I recognise the assessment my supervisor wrote, and I agree with it. The areas where I was rated highest — delivering under ambiguity, producing evidence-based recommendations, and communicating technical findings to non-technical stakeholders — are the areas where I felt most confident. The areas flagged for development — specifically, scope discipline and earlier escalation of blockers that required external sign-off — are areas I agree with honestly. There were moments where I kept building around a blocked dependency rather than escalating it clearly. Four of the six panel asks at the final demo are still waiting on action from Paynow's side; some of those blockers were known weeks earlier and I should have flagged them more formally rather than working around them.
+
+One thing I might gently add: the weekly reflections and integration writeups I produced were not part of the original brief — they were things I started doing because they helped me think clearly, and they ended up becoming the most actionable deliverables the Paynow team received. I mention this not to oversell it, but because I think it reflects something genuine about my working style: I process by writing, and the writing has value beyond the processing.
 
 ### Where I want to go next
-[FILL — graduation direction, professional direction, anything you want to flag to the tutor for the propedeuse-to-graduation transition.]
+
+This internship confirmed something I had suspected but not yet tested: I want to work at the intersection of design and engineering, not on one side of that line. The work I found most meaningful was the kind where a design decision had to be defended all the way down to the database — where I could draw a screen on a whiteboard in the morning and have it wired to a live payment system by the evening.
+
+I also want to keep working in contexts where the problem is genuinely hard in a non-obvious way. Zimbabwe's payment infrastructure is complex not because someone made bad decisions, but because the operating environment demands a completely different set of trade-offs to what I was trained for. That kind of complexity — where the right answer requires understanding the world the user actually lives in, not the world the designer assumes — is the kind I find most interesting.
+
+In terms of next steps: I plan to continue building on the foundation I laid during this internship. ZimLivestock is a live product with real users and real payments running through it, and there is a clear roadmap for what comes next — escrow via Bisafe, cash access via Paab, the seller settlement function. I intend to see those through rather than treating the internship as a contained episode. Building something real and then walking away from it before it reaches the people it was designed for would feel like the wrong kind of ending.
+
+Longer term, I am drawn toward the kind of role — product designer, or design engineer, or both — where you remain accountable to the full product, from the first sketch to the deployed system. This internship gave me evidence that I can operate at that level, and that is the kind of career I want to build.
 
 ---
 
