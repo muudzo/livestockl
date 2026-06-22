@@ -32,13 +32,18 @@ export function AccountSettings() {
     queryKey: ['profile', user?.id],
     enabled: !!user?.id && isSupabaseConfigured,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, phone, email, paynow_merchant_id')
-        .eq('id', user!.id)
+      // PII columns are column-revoked from API roles; read the owner's full
+      // row (incl. phone/email/paynow_merchant_id) via the SECURITY DEFINER RPC.
+      const { data, error } = await (supabase.rpc as any)('get_my_profile')
         .single();
       if (error) throw error;
-      return data;
+      return data as {
+        first_name: string | null;
+        last_name: string | null;
+        phone: string | null;
+        email: string | null;
+        paynow_merchant_id: string | null;
+      };
     },
   });
 
@@ -157,7 +162,7 @@ export function AccountSettings() {
           />
         </Field>
         <Field label="Email">
-          <Input value={profile.email} disabled />
+          <Input value={profile.email ?? ''} disabled />
           <p className="text-[10px] text-muted-foreground mt-1">
             Contact support to change email.
           </p>

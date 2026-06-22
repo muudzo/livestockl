@@ -32,13 +32,12 @@ export function PostListing() {
     queryKey: ['profile-payout', user?.id],
     enabled: !!user?.id && isSupabaseConfigured,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('paynow_merchant_id')
-        .eq('id', user!.id)
+      // paynow_merchant_id is column-revoked from API roles; read the owner's
+      // own row via the SECURITY DEFINER RPC.
+      const { data, error } = await (supabase.rpc as any)('get_my_profile')
         .single();
       if (error) throw error;
-      return data;
+      return data as { paynow_merchant_id: string | null };
     },
   });
   const missingPayoutId = !!user && isSupabaseConfigured && !payoutProfile?.paynow_merchant_id;

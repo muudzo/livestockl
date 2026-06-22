@@ -17,6 +17,12 @@ alter table public.payments enable row level security;
 alter table public.notifications enable row level security;
 
 -- PROFILES
+-- SELECT stays world-readable at the ROW level so the marketplace can embed
+-- seller info (profiles!seller_id). PII (email, phone, paynow_merchant_id) is
+-- protected at the COLUMN level — see migration
+-- 20260622120000_profiles_pii_protection.sql, which revokes blanket SELECT and
+-- re-grants only non-PII columns to anon/authenticated. Owners read their full
+-- row via the SECURITY DEFINER function public.get_my_profile().
 create policy "Profiles are viewable by everyone"
   on public.profiles for select using (true);
 

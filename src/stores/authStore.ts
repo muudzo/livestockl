@@ -51,10 +51,9 @@ export const useAuthStore = create<AuthState>()(
               set({ user: null });
             }
 
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
+            // PII columns (email/phone/paynow_merchant_id) are column-revoked
+            // from the API roles; owners read their full row via this RPC.
+            const { data: profile } = await (supabase.rpc as any)('get_my_profile')
               .single();
 
             set({ user: profile, initialized: true });
@@ -72,10 +71,9 @@ export const useAuthStore = create<AuthState>()(
           if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
             set({ user: null });
           } else if (session?.user) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
+            // PII columns (email/phone/paynow_merchant_id) are column-revoked
+            // from the API roles; owners read their full row via this RPC.
+            const { data: profile } = await (supabase.rpc as any)('get_my_profile')
               .single();
 
             set({ user: profile });
