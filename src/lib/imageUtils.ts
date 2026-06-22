@@ -6,7 +6,7 @@
  * Falls back to the original URL for images uploaded before
  * dual-size was introduced (backwards compatible).
  */
-export function getThumbnailUrl(url: string, width = 400): string {
+export function getThumbnailUrl(url: string, _width = 400): string {
   if (!url) return '';
   // Convert {timestamp}.jpg → {timestamp}_thumb.jpg
   return url.replace(/\.jpg$/, '_thumb.jpg');

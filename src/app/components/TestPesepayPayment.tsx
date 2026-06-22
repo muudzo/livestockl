@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Loader2, CreditCard, Lock } from "lucide-react";
-import { supabase } from "../../lib/supabase";
 import { useAuthStore } from "../../stores/authStore";
 import { useNavigate } from "react-router";
 import { Button } from "./ui/button";

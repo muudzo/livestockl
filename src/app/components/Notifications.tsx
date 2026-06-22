@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { X, CheckCheck, Loader2, BellOff, AlertTriangle } from "lucide-react";
+import { X, CheckCheck, BellOff, AlertTriangle } from "lucide-react";
 import { useNotifications, useMarkAllRead, useMarkRead, useDeleteNotification } from "../../hooks/useNotifications";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";

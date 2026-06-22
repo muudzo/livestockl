@@ -2,7 +2,6 @@ import { createBrowserRouter, Link } from "react-router";
 import { lazy, Suspense, useEffect } from "react";
 import { Root } from "./components/Root";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Loader2 } from "lucide-react";
 
 // Auto-reload on stale chunk errors (happens after deploys when SW cache is outdated).

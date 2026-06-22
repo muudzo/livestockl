@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { MessageCircle, Edit, Trash2, Loader2, Package, Trophy, Bot, CheckCircle2, AlertTriangle } from "lucide-react";
+import { MessageCircle, Edit, Trash2, Package, Trophy, Bot, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";

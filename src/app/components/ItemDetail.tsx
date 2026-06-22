@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Heart, Share2, MapPin, Star, MessageCircle, Trophy, Loader2, SearchX, AlertTriangle, ShieldCheck, FlaskConical, Clock, ShieldAlert, ExternalLink } from "lucide-react";
+import { ArrowLeft, Heart, Share2, Star, MessageCircle, Trophy, SearchX, AlertTriangle, ShieldCheck, FlaskConical, Clock, ShieldAlert, ExternalLink } from "lucide-react";
 import { useLivestockItem, useEndExpiredAuctions } from "../../hooks/useLivestock";
 import { useBids, usePlaceBid } from "../../hooks/useBids";
 import { getFullImageUrl } from "../../lib/imageUtils";

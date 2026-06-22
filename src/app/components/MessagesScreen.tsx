@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Send, Loader2, MessageCircle, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, AlertTriangle } from "lucide-react";
 import { useConversations, useMessages, useSendMessage } from "../../hooks/useMessages";
 import { useAuthStore } from "../../stores/authStore";
 import { Button } from "./ui/button";
@@ -88,7 +88,6 @@ function ChatMessagesSkeleton() {
 function ConversationList() {
   const navigate = useNavigate();
   const { data: conversations, isLoading, isError, refetch } = useConversations();
-  const user = useAuthStore((s) => s.user);
 
   const items = conversations || [];
 

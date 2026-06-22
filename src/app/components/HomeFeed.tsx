@@ -1,6 +1,5 @@
 import { Fragment, useState, useCallback, useDeferredValue, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { useQueryClient } from "@tanstack/react-query";
 import { Heart, MapPin, Eye, MessageCircle, Gavel, CheckCircle, Loader2, Search, Zap, Phone, Droplet, Plus, TrendingUp, FlaskConical, Share2, Users, Package, Activity } from "lucide-react";
 import { categories } from "../data/mockData";
 import { useLivestockList, usePrefetchLivestockItem, useMyListings, usePlatformStats } from "../../hooks/useLivestock";
@@ -238,7 +237,6 @@ export function HomeFeed() {
   const getImageUrl = (item: any) => item.imageUrl ?? item.image_urls?.[0] ?? '';
   const getBidCount = (item: any) => item.bidCount ?? item.bid_count ?? 0;
   const getViewCount = (item: any) => item.viewCount ?? item.view_count ?? 0;
-  const getStartingPrice = (item: any) => item.startingPrice ?? item.starting_price ?? 0;
 
   return (
     <div className="min-h-screen bg-background pb-4">

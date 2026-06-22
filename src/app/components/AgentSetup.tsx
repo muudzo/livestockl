@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAgents, useCreateAgent, useAddGoal, useUpdateAgentStatus, type AgentType } from '../../hooks/useAgents';
 import { useNavigate } from 'react-router';
-import { Bot, ShoppingCart, TrendingUp, Target, Crosshair, Plus, ArrowRight } from 'lucide-react';
+import { Bot, ShoppingCart, TrendingUp, Target, Crosshair, ArrowRight } from 'lucide-react';
 
 const AGENT_TYPES: { type: AgentType; name: string; description: string; icon: typeof Bot; color: string }[] = [
   { type: 'buyer', name: 'Buyer Agent', description: 'Scans listings, evaluates against your criteria, and places bids automatically', icon: ShoppingCart, color: 'bg-blue-500' },

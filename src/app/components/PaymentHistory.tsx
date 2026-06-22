@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { CheckCircle, Clock, CreditCard, Loader2, XCircle, Receipt, AlertTriangle } from "lucide-react";
+import { CheckCircle, Clock, CreditCard, XCircle, Receipt, AlertTriangle } from "lucide-react";
 import { usePaymentHistory } from "../../hooks/usePayments";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";

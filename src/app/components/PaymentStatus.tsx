@@ -16,7 +16,6 @@ export function PaymentStatus() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  const amount = searchParams.get('amount') || '0';
   const method = searchParams.get('method') || '';
   const stripeStatus = searchParams.get('stripe_status');
 
