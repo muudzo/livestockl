@@ -210,7 +210,7 @@ export function ItemDetail() {
             onClick={async () => {
               const shareData = { title: item?.title || 'Listing', url: window.location.href };
               if (navigator.share) {
-                try { await navigator.share(shareData); } catch {}
+                try { await navigator.share(shareData); } catch { /* user dismissed the share sheet */ }
               } else {
                 await navigator.clipboard.writeText(window.location.href);
                 toast.success('Link copied to clipboard');

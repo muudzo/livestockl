@@ -72,7 +72,7 @@ export function useConversations() {
 
       // Get last message for each conversation
       const convIds = (data || []).map((c: any) => c.id);
-      let lastMessages: Record<string, string> = {};
+      const lastMessages: Record<string, string> = {};
 
       if (convIds.length > 0) {
         // Fetch last message for each conversation

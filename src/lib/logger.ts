@@ -24,7 +24,7 @@ class FrontendLogger {
     try {
       const auth = JSON.parse(localStorage.getItem('zimlivestock-auth') || '{}');
       userId = auth?.state?.user?.id;
-    } catch {}
+    } catch { /* best-effort: ignore malformed/absent auth in localStorage */ }
     return { userId, path: window.location.pathname };
   }
 
